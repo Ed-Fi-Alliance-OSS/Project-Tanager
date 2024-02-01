@@ -1,14 +1,18 @@
 # Project Tanager
 
-Design documents and discussions around Edd-Fi's "Project Tanager", which is building the
-next generation of Ed-Fi technology.
+Design documents and discussions around Ed-Fi's "Project Tanager", which is
+building the next generation of Ed-Fi technology.
 
 ![Scarlet Tanager, by Adam Jackson, no rights reserved](images/scarlet-tanager_by_adam-jackson_no-rights-reserved.jpg)
 
-* [Code of Conduct](./CODE_OF_CONDUCT.md)
-* [List of Contributors](./CONTRIBUTORS.md)
-* [Copyright and License Notices](./NOTICES.md)
-* [License](./LICENSE)
+* Project Documents
+  * [Introducing Project Tanager](./docs/README.md): motivation and
+    architectural vision
+* Boilerplate
+  * [Code of Conduct](./CODE_OF_CONDUCT.md)
+  * [List of Contributors](./CONTRIBUTORS.md)
+  * [Copyright and License Notices](./NOTICES.md)
+  * [License](./LICENSE)
 
 ## Legal Information
 
