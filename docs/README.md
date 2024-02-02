@@ -67,7 +67,29 @@ addresses the challenges listed above.
 
 ## Architectural Vision
 
-### Standard Client Interaction
+### Ed-Fi API's
+
+The software platform will instantiate the following Ed-Fi API specifications:
+
+* Discovery API
+* Resources API
+* Descriptor API
+* Change Queries API
+* Identity API
+* Admin API
+
+And, it will be capable of hosting Profile-based API definitions.
+
+To the extent possible, the software design will be independent of the API
+version, although there may be a lower limit to the API version that will be
+implemented. For example, it should be possible to run the Resources API for
+either Data Standard 4 or Data Standard 5 through the same software, ideally
+with no need to recompile.
+
+The system will also support standards-based extensions to the Resources API
+(and by implication, the Change Queries API and Descriptors API).
+
+### Components
 
 The following diagram illustrates the planned components of the software
 platform to be developed under Project Tanager, from the perspective of an API
@@ -135,8 +157,6 @@ Key components of this system are:
   * **EdFi_Config**: a simple database for storing configuration information,
     including data describing data authorization permissions.
 
-### System Administrator Interaction
-
 The next diagram is from the perspective of a system administrator interacting
 with this platform to create a new set of client credentials for use by the
 Client App described above.
@@ -197,20 +217,16 @@ flowchart LR
 
 ```
 
-## Operational Concerns
+## Further Reading
 
-### Deployment
+* [Operational Concerns](./OPERATIONS.md)
+* [Ed-Fi Data Management Service Features and Design](./DMS-FEATURES.md)
+* [Ed-Fi Configuration Service Features and Design](./CS-FEATURES.md)
+* [Authentication and Authorization Requirements](./AUTH.md)
 
-The software built in Project Tanager will be designed for operation on-premises
-or using Cloud-based managed services. The applications will be built in a
-(Docker) container-first fashion, with a basic Kubernetes topology. These
-services could also run on "bare" (virtual) metal, but the application testing
-process will focus on the container-based integration.
-
-### Logging
-
-Open Telemetry...
-
-### Authorization
-
-Beyond OAuth / Open ID...
+> [!NOTE]
+> As with most software projects, these design documents are intended to help
+> think through and communicate about features before and while they are being
+> developed. Efforts will be made to keep them true to the implementation, but
+> please beware the some implementation details may necessarily stray from the
+> initial vision described in these files.
