@@ -10,14 +10,14 @@ of features is subject to further revision based on feedback.
 
 ### Preview Release
 
-* Resources API
-* Descriptors API
-* Primary Data Storage
-  * Initially SQL Server and PostgreSQL
-* Cascading Key Updates
-* Streaming Data Out
-* Read-only Search Database
-  * Initially Elasticsearch and OpenSearch
+* [Resources API](./RESOURCES-API.md)
+* [Descriptors API](./DESCRIPTORS-API.md)
+* [Primary Data Storage](./PRIMARY-DATA-STORAGE.md)
+* [Cascading Key Updates](./CASCADING-UPDATES.md)
+* [Change Data Capture to Stream](./CDC-STREAMING.md)
+* [Read-only Search Database](./SEARCH-DATABASE.md)
+* Configuration Retrieval and Caching
+* Authentication and Authorization
 
 While the streaming and read-only capabilities are not strictly necessary, it is
 important that we have early progress toward these motivating goals for Project
