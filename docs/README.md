@@ -220,8 +220,8 @@ flowchart LR
 ## Further Reading
 
 * [Operational Concerns](./OPERATIONS.md)
-* [Ed-Fi Data Management Service Features and Design](./DMS-FEATURES.md)
-* [Ed-Fi Configuration Service Features and Design](./CS-FEATURES.md)
+* [Ed-Fi Data Management Service Features and Design](./DMS/README.md)
+* [Ed-Fi Configuration Service Features and Design](./CS/README.md)
 * [Authentication and Authorization Requirements](./AUTH.md)
 
 > [!NOTE]
