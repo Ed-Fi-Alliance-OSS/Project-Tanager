@@ -195,7 +195,7 @@ Change Data Capture (CDC) technology can be used in the `EdFi_DMS_WRITE`
 database to copy data into a streaming platform, such as Kafka, which can in
 turn populate other data stores: for instance, a data lake, or a search-oriented
 database that can support the requirements for the `EdFi_DMS_READ` database
-(alternately, a the "read" database could be the same as the "write" database,
+(alternately, the "read" database could be the same as the "write" database,
 or could be populated using database-native replication).
 
 ```mermaid
@@ -228,5 +228,5 @@ flowchart LR
 > As with most software projects, these design documents are intended to help
 > think through and communicate about features before and while they are being
 > developed. Efforts will be made to keep them true to the implementation, but
-> please beware the some implementation details may necessarily stray from the
+> please beware that some implementation details may necessarily stray from the
 > initial vision described in these files.

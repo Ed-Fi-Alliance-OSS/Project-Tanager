@@ -70,8 +70,9 @@ logged.
   * Includes anonymized HTTP request payloads for debugging integration
     problems.
 
-> [!TIP] Anonymized Payloads When vendor API clients encounter data integration
-> failures, the support teams often want to know what payload failed, and this
+> [!TIP] Anonymized Payloads
+> When vendor API clients encounter data integration
+> failures, the support teams often want to know about the failed payload, and this
 > information is not always readily available from the maintainers of the client
 > application. Providing anonymized payloads meets the support need "half way"
 > in that the system administrator and/or a support team member can see
@@ -106,13 +107,13 @@ These examples are general guidelines and not 100% exhaustive.
   * traceId
   * verb
   * contentType
-  * _no payload_
+  * _do not include the payload_
 * Responded to an HTTP request
   * URL
   * response code
   * clientId
   * duration from time of receipt of HTTP request to response (milliseconds)
-  * _no payload_
+  * _do not include the payload_
 * Process startup and shutdown
 * Database created
 
@@ -133,14 +134,6 @@ These examples are general guidelines and not 100% exhaustive.
 * Responded  to an HTTP request → add payload
   * Will require anonymization of the natural key fields when reporting a
     referential integrity problem
-
-    > [!TIP] Potential scenario:
-    > * Entity1 has natural key {personName, personId}.
-    > * Entity2 has a reference to Entity1
-    > * Post Entity2 with a {personName, personId} that do not exist. Then the
-    >   response message will have`is missing identity {\"personName\": \"the
-    >   actual value\", \"personId\": ... }`
-
 * Entered a function
 * About to connect to a service or run through an interesting algorithm
 * Received information back from a service

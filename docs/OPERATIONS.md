@@ -13,7 +13,7 @@ support them.
 
 The applications will be built in a (Docker) container-first fashion. A
 Kubernetes topology, and potentially Docker Compose topology, will be provided
-for based testing and demonstration purposes. They might be useful as a basis
+for basic testing and demonstration purposes. These artifacts might be useful
 for production deployments into Kubernetes. Anyone using as such should review
 carefully, particularly with respect to security concerns.
 
