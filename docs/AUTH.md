@@ -9,7 +9,7 @@ That token should be a JSON Web Token (JWT), so that it can encode some basic
 claim information.
 
 Various authorization schemes will be applicable depending on the API being
-access, and will be described in more detail in that application's
+accessed, and will be described in more detail in that application's
 documentation. In order to keep the JWT from becoming unreasonably large, and to
 prevent managing detailed permissions within the OAuth 2.0 provider, these
 schemes may use a role and/or "claimset" name that can then be mapped to
