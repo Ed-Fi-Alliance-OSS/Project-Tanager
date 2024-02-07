@@ -22,6 +22,6 @@ Braindump:
   * If column, then do we need immediate updates on cascading key changes?
 * Meadowlark stored a few metadata columns and the JSON. That was working well,
   though not great for report writers wanting to query a relational database.
-  However, we probably should focus on report writers, since we want them to use
+  However, we should not focus on report writers, since we want them to use
   downstream systems. And they can use JSON Path.
 * Unlike Meadowlark, we probably need one table per entity.
