@@ -36,7 +36,7 @@ The following article provides additional information about Open Telemetry and
 how it might be useful in Project Tanager. The article is in the Project
 Meadowlark repository and references that application stack, but is equally
 applicable to Project Tanager applications: [What Is Open
-Telemetry?](https://github.com/Ed-Fi-Exchange-OSS/Meadowlark/edit/main/docs/design/open-telemetry/README.md)
+Telemetry?](https://github.com/Ed-Fi-Exchange-OSS/Meadowlark/blob/main/docs/design/open-telemetry/README.md)
 
 ## Security
 

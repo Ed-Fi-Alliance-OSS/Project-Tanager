@@ -183,8 +183,8 @@ flowchart LR
 
     client -->|/oauth/token| openid
 
-    client -->|/ed-fi/students| gateway
-    gateway -->|/ed-fi/students| CS
+    client -->|/admin-api/clients| gateway
+    gateway -->|/admin-api/clients| CS
 
     CS --> |/connect/register| openid
 ```
