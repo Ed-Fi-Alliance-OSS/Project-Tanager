@@ -8,6 +8,8 @@ building the next generation of Ed-Fi technology.
 * Project Documents
   * [Introducing Project Tanager](./docs/README.md): motivation and
     architectural vision
+* Products (Tanager is "project", these are the products):
+  * [Data Management Service](https://github.com/Ed-Fi-Alliance-OSS/Data-Management-Service)
 * Boilerplate
   * [Code of Conduct](./CODE_OF_CONDUCT.md)
   * [List of Contributors](./CONTRIBUTORS.md)
