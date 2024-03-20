@@ -81,6 +81,12 @@ be provided to API clients.
 The `Documents` table will also include the document itself as well as a `document_uuid`, which is the
 externally exposed resource ID. It will also include metadata like resource name and version.
 
+SQL Server does not have a JSON-specific datatype and instead JSON is typically stored in an NVARCHAR(MAX)
+column. Two (non-exclusive) options to mitigate size/performance issues are to 1) store the JSON as COMPRESSed
+VARBINARY(MAX) instead and 2) set sp_tableoption `large value types out of row` to `1` for the `Documents`
+table, which will move the JSON blob off the row and only store a pointer on-row. See
+[here](https://bornsql.ca/blog/think-twice-about-storing-json-in-your-sql-server-database/#comment-22382).
+
 #### Reference validation
 
 There will also be a separate `References` table which will be composed of two `reference_ids`, one for the
