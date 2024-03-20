@@ -71,8 +71,8 @@ This is very much like the Meadowlark implementation of the PostgreSQL backend, 
 advantage of foreign key constraints for reference validation.
 
 We would have a `Documents` table that will hold all of the documents for all of the entities. This will be a
-partitioned table so that we don't have to be concerned about how big this table grows. The documents table
-will have a `referential_id` as both the primary key and a hash partition key. It will be a UUIDv5 (see [RFC
+partitioned table so that we can properly manage the table size. The documents table will have a
+`referential_id` as both the primary key and a hash partition key. It will be a UUIDv5 (see [RFC
 4122](https://datatracker.ietf.org/doc/html/rfc4122#section-4.3)) with an Ed-Fi namespace ID and the resource
 name + the extracted document identity as the "name". This concept of a deterministic hash UUID allows Tanager
 to determine both document identities and document references independent of data in the DB. This ID will not
@@ -101,6 +101,18 @@ The benefit of this design is that by putting all resources in a single table we
 to provide referential integrity between any two documents. If we split the documents by resource, we now also
 require join tables between specific resources which greatly increases Tanager complexity.
 
+#### Why partitioning?
+
+The Option A design is for two very large tables. It's important to note that a large school district with
+positive attendance tracking could have on the order of 450 million attendance records in a school year. Since
+a Tanager instance will store a lot more that just attendance, we need to be able to support on the order of 1
+billion rows in the `Documents` table. If we estimate that each document has on the order of 10 references to
+other documents (they can have arrays of references), then we need to be able to support on the order of 10
+billion rows in the `References` table.
+
+Determining a good default number of partitions for each table will require experimentation, but 16 partitions
+for `Documents` and 64 partitions for `References` is probably a good starting point.
+
 #### Why random GUIDs as primary and partition keys on Documents?
 
 We should expand on the reasoning behind the choice of random GUIDs as primary and partition keys on
@@ -127,7 +139,6 @@ distributed across pages, avoiding insert contention.
 This same benefit of randomness also applies when designing the partition scheme for the `Documents` table.
 Using the PK as the partition key means fast partition elimination, and the randomness of the GUIDs provides
 for even distribution of inserts across partitions.
-
 
 #### How insert/update/delete will work
 
@@ -184,8 +195,6 @@ erDiagram
     }
 ```
 
-
-
 For example, `QuerySchoolIndex` would have a `referential_id` foreign keyed to the `Documents` table with a
 row per School document. The other columns will be the list of queryable columns that are available to an API
 user for GET-by-query. Those columns will be indexed so they can be searched. These tables will likely need to
@@ -193,9 +202,8 @@ be partitioned as well.
 
 The next question is how this tables get populated. Probably the best way would be for it to be via a separate
 process so as not to slow down the performance of inserts. However, if you're in a deployment situation where
-a search engine is not an option, a separate process may not be viable either.
-
-(**Maybe provide both options?**)
+a search engine is not an option, a separate process may not be viable either. In that case, we'll need to
+extract the indexable fields from the document before insert.
 
 The query table schema can be pre-generated of course, but also the JSON Paths to the queryable elements, and
 even the SQL insert statements -- though they'd have to target all supported databases.
@@ -241,8 +249,6 @@ Another potential downside is partitioning itself. However, designing for partit
 adding on later, and there are resources for attendance and assessments with potential to need partitioning on
 their own. Hash partitioning is conceptually straightforward and operationally you just decide on the number
 of partitions to hash into.
-
-(**Hash-based partitioning is easy to declare in PostgreSQL, need to research more on SQL Server side**)
 
 Probably the biggest potential downside is a common SQL server community concern around using GUIDs as a
 primary key.
@@ -375,25 +381,18 @@ had to do testing on stored procedures.
 
 ## Proposed Proof of Concept for Option A
 
-Option A is our preferred alternative. A plan to test it:
+Option A is our preferred alternative. However, before implementing in Tanager we need to test the usage of
+random GUIDs and partitions via simulation.
 
-- Create `Documents` and `References` with reference IDs as uuids for the primary key
-- Insert a million records to start. (We'd really like to get more like 100 million in order to get the right
-  order of magnitude for large districts, but a test like that takes a long time.)
+A plan to test it via script:
+
+- Create `Documents` and `References` with reference IDs as GUIDs for the primary key
+- Insert a million rows into each table to start. (We'd really like to get more like 100 million in order to
+  get the right order of magnitude for large districts, but a test like that takes a long time.) Use randomly
+  generated GUIDs.
   - Monitor index fragmentation with the tools from [this
     presentation](https://www.youtube.com/watch?v=nc4CMo7VSPo), and do index maintenance as necessary
 - Compare insert performance.
 - Compare query performance with a couple of likely scenarios.
 - Compare storage requirements.
-- Repeat with bigints as primary keys with sequential ordering
-
-## Early notes to remove once saved elsewhere:
-
-- Deployment decision: install tables on the fly, use separate utility, or hybrid approach. Example: a
-  separate connection string is provided, deployment occurs on post to an endpoint, and only sys admins can
-  access that endpoint.
-- Generate schemas in MetaEd or C#? Relates closely to the item above.
-- Store JSON for fast retrieval and for change data capture
-  - As column or in a separate outbox table?
-  - If outbox, then not valuable for fast retrieval.
-  - If column, then do we need immediate updates on cascading key changes?
+- Repeat with bigints as primary keys with sequential ordering as a baseline comparison
