@@ -57,7 +57,7 @@ erDiagram
         tinyint referenced_partition_key FK "Part of Aliases PK, derived from referenced_referential_id"
         tinyint partition_key PK "Partition key for this table, derived from parent_referential_id"
     }
-    Aliases ||--|| Documents : "2 rows with same FK to Documents if subclass, 1 row otherwise"
+    Aliases }o--|| Documents : "2 rows with same FK to Documents if subclass, 1 row otherwise"
     Aliases {
         Guid referential_id PK "Extracted or superclassed document identity, clustered"
         tinyint partition_key PK "Partition key for this table, derived from referential_id"
@@ -131,7 +131,8 @@ The solution is for inserts of a subclass document to simply add a second row in
 so there is no referential integrity issue with an insert into the `References` table.
 
 It's important to note that the engineering of referential integrity for reference validation is the sole
-purpose of the `References` and `Aliases` tables. By design, there should be no benefit to joining these tables.
+purpose of the `References` and `Aliases` tables. By design, there should be no benefit to joining these
+tables.
 
 #### Why not a table per resource?
 
@@ -218,7 +219,8 @@ reference.
 1. Find the document in `Documents` by `document_uuid` (indexed) from request.
     * Read the `referential_id` for delete in `Aliases` table.
     * If subclass, read JSON document and derive superclass `referential_id`.
-    * (These steps are a tradeoff to avoid a non-unique non-clustered index on `Aliases.actual_document_uuid` just for deletes.)
+    * (These steps are a tradeoff to avoid a non-unique non-clustered index on `Aliases.actual_document_uuid`
+      just for deletes.)
 1. Delete the document's document references (indexed) in the `References` table.
 1. Delete the document's aliases in the `Aliases` table.
 1. Delete the document in the `Documents` table.
@@ -331,10 +333,16 @@ that index rebuilds after 1% fragmentation combine with an avoidance of reorgani
 maintain free space random inserts. Interestingly, because the amount of total free space grows as pages are
 added, over time you can raise the fill-factor and/or maintenance will be needed less frequently.
 
-### Option B - Reduce GUID usage
+### Option B - Similar to Option A but reduce GUID usage
 
 Option B is just like Option A except that we use a sequential bigint PK instead of a GUID PK in an attempt to
-minimize GUID indexing.
+minimize GUID indexing. An important part of making this work efficiently with partitioning is to use
+partition keys derived from GUIDs even when the GUID is not a column on the table.
+
+With the design below, we are able to maintain partition elimination (seeking only to the relevant partition)
+with all of our access patterns. Additionally, there are only two GUID columns, `Documents.document_uuid` and
+`Aliases.referential_id`, and they can both be indexed non-clustered and partition-aligned (meaning an index
+per partition, not a single cross-partition index).
 
 ```mermaid
 erDiagram
@@ -342,18 +350,18 @@ erDiagram
     References {
         bigint id PK "Sequential key pattern, clustered"
         tinyint partition_key PK "Partition key for this table, derived from Aliases.referential_id for parent alias"
-        bigint parent_alias_id FK "Alias of parent document with the reference"
+        bigint parent_alias_id FK "Alias of parent document with the reference, non-unique non-clustered partition-aligned"
         tinyint parent_partition_key FK "Part of Aliases PK, derived from Aliases.referential_id for parent alias"
         bigint referenced_alias_id FK "Alias of document being referenced"
         tinyint referenced_partition_key FK "Part of Aliases PK, derived from Aliases.referential_id for referenced alias"
     }
-    Aliases ||--|| Documents : "2 rows with same FK to Documents if subclass, 1 row otherwise"
+    Aliases }o--|| Documents : "2 rows with same FK to Documents if subclass, 1 row otherwise"
     Aliases {
         bigint id PK "Sequential key pattern, clustered"
         Guid referential_id "Extracted or superclassed document identity, unique non-clustered, partition-aligned"
         tinyint partition_key PK "Partition key for this table, derived from referential_id"
         bigint document_id FK "The aliased document"
-        tinyint document_partition_key FK "Part of Documents PK, derived from actual_document_uuid"
+        tinyint document_partition_key FK "Part of Documents PK, derived from Documents.document_uuid"
     }
     Documents {
         bigint id PK "Sequential key pattern, clustered"
@@ -368,17 +376,19 @@ erDiagram
 
 #### How insert/update/delete will work
 
-All three will be implemented as transactions.
+All three will be implemented as transactions. Partition key usage is omitted for brevity, but is derivable
+from the `document_uuid` or `reference_id` traceable to each action.
 
 ##### Insert
 
 1. Insert the document in the `Documents` table.
-    *  Get the sequential id
+    *  Get the sequential id for the next insert
 1. Insert an entry in the `Aliases` table for the document.
-    * Get the sequential id.
-    * If the document is a subclass, insert a second entry with a derived superclass version of the `referential_id`.
+    * Get the sequential id for the next insert.
+    * If the document is a subclass, insert a second entry with a derived superclass version of the
+      `referential_id`. (Don't need this sequential id for next insert.)
 1. Insert each document reference on the document in the `References` table.
-    * Via INSERT with SELECT WHERE on `Aliases.referential_id` to determine `referenced_alias_id`
+    * Via INSERT with SELECT WHERE on `Aliases.referential_id` to determine `referenced_alias_id`.
 * Notes:
    * A PK constraint violation on `Documents` indicates this should be handled as an update, not an insert.
    * A PK constraint violation on the first insert into `Aliases` means this should be handled as an update.
@@ -390,9 +400,11 @@ All three will be implemented as transactions.
 
 1. Find the document in `Documents` by `document_uuid` from request.
 1. Delete the document's current document references in the `References` table.
-    * Via DELETE with SELECT WHERE on `Documents.document_uuid` JOINed through `Aliases.document_id` to determine `References.parent_alias_id`.
+    * Via DELETE with SELECT WHERE on `Documents.document_uuid` JOINed through `Aliases.document_id` to
+      determine `References.parent_alias_id`.
 1. Insert each document reference on the updated document in the `References` table.
-    * Via INSERT with SELECT WHERE on `Aliases.referential_id` to determine `References.referenced_alias_id`, save and reuse `References.parent_alias_id`.
+    * Via INSERT with SELECT WHERE on `Aliases.referential_id` to determine `References.referenced_alias_id`,
+      save and reuse `References.parent_alias_id`.
 1. Updates the JSON document itself on the `Documents` table.
 * Notes:
    * A FK constraint violation on `References` indicates a reference validation failure on an updated
@@ -402,14 +414,13 @@ reference.
 
 1. Find the document in `Documents` by `document_uuid` from request.
 1. Delete the document's document references in the `References` table.
-    * Via DELETE with SELECT WHERE on `Documents.document_uuid` JOINed through `Aliases.document_id` to determine `References.parent_alias_id`.
+    * Via DELETE with SELECT WHERE on `Documents.document_uuid` JOINed through `Aliases.document_id` to
+      determine `References.parent_alias_id`.
 1. Delete the document's aliases in the `Aliases` table.
 1. Delete the document in the `Documents` table.
 * Notes:
    *  A FK constraint violation on `Aliases` indicates a failure because the document is being referenced by
 another document.
-
-
 
 ### Option C - One table per resource
 
@@ -529,20 +540,21 @@ We could mitigate the round trips by pushing reference validation into stored pr
 the potential for errors requires a very heavy investment in testing. This would be even more complex if we
 had to do testing on stored procedures.
 
-## Proposed Proof of Concept for Option A
+## Proposed Proof of Concept for Option B
 
-Option A is our preferred alternative. However, before implementing in Tanager we need to test the usage of
-random GUIDs and partitions via simulation.
+Option B is our preferred alternative. However, before implementing in Tanager we need to test the usage of
+partitions with partition-aligned GUID indexes via simulation.
 
 A plan to test it via script:
 
-- Create `Documents` and `References` with reference IDs as GUIDs for the primary key
+- Create the DB schema, including query tables for 2 resources with 4 or 5 query fields.
 - Insert a million rows into each table to start. (We'd really like to get more like 100 million in order to
   get the right order of magnitude for large districts, but a test like that takes a long time.) Use randomly
   generated GUIDs.
   - Monitor index fragmentation with the tools from [this
     presentation](https://www.youtube.com/watch?v=nc4CMo7VSPo), and do index maintenance as necessary
-- Compare insert performance.
-- Compare query performance with a couple of likely scenarios.
-- Compare storage requirements.
-- Repeat with bigints as primary keys with sequential ordering as a baseline comparison
+- Review insert performance.
+- Review query performance with a couple of likely scenarios.
+- Review storage requirements.
+- Review index maintenance requirements.
+
