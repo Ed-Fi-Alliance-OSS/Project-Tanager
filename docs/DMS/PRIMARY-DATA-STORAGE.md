@@ -312,35 +312,23 @@ their own. Hash partitioning is conceptually straightforward and operationally y
 of partitions to hash into.
 
 Probably the biggest potential downside is a common SQL server community concern around using GUIDs as a
-primary key.
+primary key. However, the real issue is that random GUID keys need to be managed differently than sequential
+keys. The benefit of the sequential key pattern is that inserts fill data pages in a orderly fashion to avoid
+page splits. You rarely run into page splits because you are only appending to the last page. The downside is
+that rapid index inserts create hot page contention. Regardless, all other pages are completely full due to a
+goal fill-factor of 100%.
 
-It describes how the real issue is that random GUID keys need to be managed differently than sequential keys.
-He's just a bit reluctant to deviate from the sequential key pattern.
+With a random GUID key pattern, a full data page is a terrible place for a new key to be randomly inserted.
+Every insert would cause a page split. Therefore, if your plan is to randomly distribute keys across data
+pages, it would be crazy to always keep the pages full.
 
-In the section on "Random GUID keys", he's exactly right that a full data page is a terrible place for a new
-key to be inserted. With the sequential key pattern, you almost never run into that because you are only
-appending to the last page with a goal fill-factor of 100%. (The downside is that rapid index inserts create
-hot page contention.) Anyway, here your index maintenance goal is to pack everything to 100%.
-
-However, if your plan is to randomly distribute keys across data pages, you would be insane to always pack the
-pages full! As he notes, full pages mean a page split on every insert.
-
-He's actually got the answer to the problem in his "Fillfactor to the rescue?" section. The answer is easy,
-just run at a lower fill-factor. Now the inserts are randomly distributed across pages with no splitting, and
-with the added benefit of faster inserts due to no hot page contention. The index maintenance goal is now to
-maintain a fill-factor that allows room to avoid splitting between maintenance sessions. (Interestingly,
-because the amount of total free space grows as the number of pages grow, over time you could actually raise
-the fill-factor if you wanted to.)
-
-Yes, this scheme requires more disk/memory space than sequential keys
-
-(**There is a strong community bias towards sequential numbers as primary keys. It will be important to
-demonstrate that using a randomized uuid as a primary key can work just fine, but definitely requires
-different index maintenance from a sequential primary key. We will need to provide technical guidance on how
-index maintenance differs between tables with sequential IDs and tables with randomized IDs. We will need to
-provide real world testing showing that randomized IDs work very well so long as index maintenance is done
-properly.** [This presentation](https://www.youtube.com/watch?v=nc4CMo7VSPo) **is an excellent starting
-point.**)
+The answer to this issue is simple, just run at a lower fill-factor. Now the inserts are randomly distributed
+across pages with no splitting, and with the added benefit of faster inserts due to no hot page contention.
+The index maintenance goal is now to maintain a fill-factor (say 80% to start) that allows room to avoid
+splitting between maintenance sessions. [Experimentation](https://www.youtube.com/watch?v=nc4CMo7VSPo) shows
+that index rebuilds after 1% fragmentation combine with an avoidance of reorganizes are the best way to
+maintain free space random inserts. Interestingly, because the amount of total free space grows as pages are
+added, over time you can raise the fill-factor and/or maintenance will be needed less frequently.
 
 ### Option B - Reduce GUID usage
 
