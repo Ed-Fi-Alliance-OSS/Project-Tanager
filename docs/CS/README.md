@@ -12,3 +12,4 @@ Braindump:
     full claimset information.
   * Is that sufficiently secure?
 * Need sys admin authorization.
+* Must support key rotation procedure
