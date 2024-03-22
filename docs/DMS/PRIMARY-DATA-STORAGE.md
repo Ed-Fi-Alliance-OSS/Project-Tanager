@@ -52,22 +52,21 @@ erDiagram
     References }o--|| Aliases : "2 FKs to Aliases per row, parent and referenced"
     References {
         Guid parent_referential_id PK, FK "Parent document with the reference, also clustered PK"
-        tinyint parent_partition_key FK "Part of Aliases PK with parent_referential_id"
+        tinyint parent_partition_key FK "Part of Aliases PK, derived from parent_referential_id"
         Guid referenced_referential_id PK, FK "Document being referenced, also PK"
-        tinyint referenced_partition_key FK "Part of Aliases PK with referenced_referential_id"
+        tinyint referenced_partition_key FK "Part of Aliases PK, derived from referenced_referential_id"
         tinyint partition_key PK "Partition key for this table, derived from parent_referential_id"
     }
     Aliases ||--|| Documents : "2 rows with same FK to Documents if subclass, 1 row otherwise"
     Aliases {
         Guid referential_id PK "Extracted or superclassed document identity, clustered"
-        tinyint partition_key PK "Partition key for this table"
+        tinyint partition_key PK "Partition key for this table, derived from referential_id"
         Guid actual_document_uuid FK "Part of Documents PK"
-        tinyint actual_partition_key FK "Part of Documents PK"
-
+        tinyint actual_partition_key FK "Part of Documents PK, derived from actual_document_uuid"
     }
     Documents {
         Guid document_uuid PK "API resource id, clustered"
-        tinyint partition_key PK "Partition key for this table"
+        tinyint partition_key PK "Partition key for this table, derived from document_uuid"
         Guid referential_id "Extracted document identity"
         string project_name "Example: Ed-Fi (for DS)"
         string resource_name "Example: Student"
@@ -132,7 +131,7 @@ The solution is for inserts of a subclass document to simply add a second row in
 so there is no referential integrity issue with an insert into the `References` table.
 
 It's important to note that the engineering of referential integrity for reference validation is the sole
-purpose of the `References` and `Aliases` tables.
+purpose of the `References` and `Aliases` tables. By design, there should be no benefit to joining these tables.
 
 #### Why not a table per resource?
 
@@ -206,8 +205,8 @@ entry with a derived superclass version of the `referential_id`.
 
 ##### Update (ignoring identity updates)
 
-1. Find the document in `Documents` by `document_uuid` from request.
-1. Delete the document's current document references in the `References` table.
+1. Find the document in `Documents` by `document_uuid` (indexed) from request.
+1. Delete the document's current document references (indexed) in the `References` table.
 1. Insert each document reference on the updated document in the `References` table.
 1. Updates the JSON document itself on the `Documents` table.
 * Notes:
@@ -216,8 +215,11 @@ reference.
 
 ##### Delete
 
-1. Find the document in `Documents` by `document_uuid` from request.
-1. Delete the document's document references in the `References` table.
+1. Find the document in `Documents` by `document_uuid` (indexed) from request.
+    * Read the `referential_id` for delete in `Aliases` table.
+    * If subclass, read JSON document and derive superclass `referential_id`.
+    * (These steps are a tradeoff to avoid a non-unique non-clustered index on `Aliases.actual_document_uuid` just for deletes.)
+1. Delete the document's document references (indexed) in the `References` table.
 1. Delete the document's aliases in the `Aliases` table.
 1. Delete the document in the `Documents` table.
 * Notes:
@@ -227,14 +229,14 @@ another document.
 #### Query handling
 
 Looking at queries, these will be handled by some sidecar tables that will be need to be generated as a table
-per resource.
+per resource. (The example will ignore partitioning which will be similar to the `Documents` table.)
 
 ```mermaid
 erDiagram
 
     Documents {
-        Guid referential_id PK "Hash of identity"
-        Guid document_uuid "API resource id, indexed"
+        Guid document_uuid PK "API resource id, clustered"
+        Guid referential_id "Extracted document identity"
         string project_name "Example: Ed-Fi (for DS)"
         string resource_name "Example: Student"
         string resource_version "Example: 5.0.0"
@@ -242,24 +244,24 @@ erDiagram
     }
     QuerySchoolIndex ||--|| Documents : ""
     QuerySchoolIndex {
-        Guid referential_id PK,FK "School document being indexed"
+        Guid document_uuid PK,FK "School document being indexed"
         string school_id "SchoolId of the school"
         string name_of_institution "Name of the school"
         string et_cetera
     }
     QueryStudentIndex ||--|| Documents : ""
     QueryStudentIndex {
-        Guid referential_id PK,FK "Student document being indexed"
+        Guid document_uuid PK,FK "Student document being indexed"
         string first_name "First name of student"
         string last_surname "Last surname of student"
         string et_cetera
     }
 ```
 
-For example, `QuerySchoolIndex` would have a `referential_id` foreign keyed to the `Documents` table with a
-row per School document. The other columns will be the list of queryable columns that are available to an API
-user for GET-by-query. Those columns will be indexed so they can be searched. These tables will likely need to
-be partitioned as well.
+For example, `QuerySchoolIndex` would have a `document_uuid` foreign keyed to the `Documents` table with a row
+per School document. The other columns will be the list of queryable columns that are available to an API user
+for GET-by-query. Those columns will be indexed so they can be searched. These tables will likely need to be
+partitioned as well.
 
 The next question is how this tables get populated. Probably the best way would be for it to be via a separate
 process so as not to slow down the performance of inserts. However, if you're in a deployment situation where
@@ -278,8 +280,8 @@ partitioning scheme as the `Documents`, including collocation. See
 ```mermaid
 erDiagram
     Documents {
-        Guid referential_id PK "Hash of identity"
-        Guid document_uuid "API resource id, indexed"
+        Guid document_uuid PK "API resource id, clustered"
+        Guid referential_id "Extracted document identity"
         string project_name "Example: Ed-Fi (for DS)"
         string resource_name "Example: Student"
         string resource_version "Example: 5.0.0"
@@ -287,8 +289,7 @@ erDiagram
     }
     StudentSchoolAssociationSecurity ||--|| Documents : ""
     StudentSchoolAssociationSecurity {
-        bigint id PK "Auto-increment, otherwise unused"
-        Guid referential_id FK "SSA document being indexed"
+        Guid document_uuid PK, FK "SSA document being indexed"
         string student_usi "Student unique id in this SSA document"
         string school_id "School id in this SSAdocument"
         string et_cetera
@@ -332,27 +333,32 @@ added, over time you can raise the fill-factor and/or maintenance will be needed
 
 ### Option B - Reduce GUID usage
 
-Option B is very similar to Option A except that we use a bigint instead of a GUID PK on `Documents`.
-(However, there will still be indexed GUID columns.) This requires the introduction of an intermediate table,
-`ReferentialIdMapping`, which holds the referential_id for each document separate from `Documents`
+Option B is just like Option A except that we use a sequential bigint PK instead of a GUID PK in an attempt to
+minimize GUID indexing.
 
 ```mermaid
 erDiagram
-    References }o--|| Documents : ""
+    References }o--|| Aliases : "2 FKs to Aliases per row, parent and referenced"
     References {
-        bigint id PK "Auto-increment, otherwise unused"
-        Guid parent_ref_id FK "Parent document with reference"
-        Guid referenced_ref_id FK "Document being referenced"
+        bigint id PK "Sequential key pattern, clustered"
+        tinyint partition_key PK "Partition key for this table, derived from Aliases.referential_id for parent alias"
+        bigint parent_alias_id FK "Alias of parent document with the reference"
+        tinyint parent_partition_key FK "Part of Aliases PK, derived from Aliases.referential_id for parent alias"
+        bigint referenced_alias_id FK "Alias of document being referenced"
+        tinyint referenced_partition_key FK "Part of Aliases PK, derived from Aliases.referential_id for referenced alias"
     }
-    ReferentialIdMapping {
-        bigint id PK "Auto-increment, otherwise unused"
-        bigint documents_id FK "Reference to Documents PK"
-        Guid referential_id "ref_id for the document"
+    Aliases ||--|| Documents : "2 rows with same FK to Documents if subclass, 1 row otherwise"
+    Aliases {
+        bigint id PK "Sequential key pattern, clustered"
+        Guid referential_id "Extracted or superclassed document identity, unique non-clustered, partition-aligned"
+        tinyint partition_key PK "Partition key for this table, derived from referential_id"
+        bigint document_id FK "The aliased document"
+        tinyint document_partition_key FK "Part of Documents PK, derived from actual_document_uuid"
     }
     Documents {
-        bigint id PK "Auto-increment, partition key"
-        Guid referential_id PK "Hash of identity"
-        Guid document_uuid "API resource id, indexed"
+        bigint id PK "Sequential key pattern, clustered"
+        tinyint partition_key PK "Partition key for this table, derived from document_uuid"
+        Guid document_uuid "API resource id, unique non-clustered, partition-aligned"
         string project_name "Example: Ed-Fi (for DS)"
         string resource_name "Example: Student"
         string resource_version "Example: 5.0.0"
@@ -360,44 +366,48 @@ erDiagram
     }
 ```
 
+#### How insert/update/delete will work
 
+All three will be implemented as transactions.
 
+##### Insert
 
-Without GUID PKs (still requires a GUID index):
+1. Insert the document in the `Documents` table.
+    *  Get the sequential id
+1. Insert an entry in the `Aliases` table for the document.
+    * Get the sequential id.
+    * If the document is a subclass, insert a second entry with a derived superclass version of the `referential_id`.
+1. Insert each document reference on the document in the `References` table.
+    * Via INSERT with SELECT WHERE on `Aliases.referential_id` to determine `referenced_alias_id`
+* Notes:
+   * A PK constraint violation on `Documents` indicates this should be handled as an update, not an insert.
+   * A PK constraint violation on the first insert into `Aliases` means this should be handled as an update.
+   * A PK constraint violation on a superclass insert into `Aliases` means there already exists a subclass
+     with the same superclass identity.
+   * A FK constraint violation on `References` indicates a reference validation failure.
 
-Insert:
+##### Update (ignoring identity updates)
 
-1. Insert into Documents
- - generates bigint identity PK, used as modulo-ed partition key
- - referential_id is not PK, not indexed, but still here (mostly for easy streaming out)
- - document_uuid is non-partition-aligned, nonclustered index for lookups
+1. Find the document in `Documents` by `document_uuid` from request.
+1. Delete the document's current document references in the `References` table.
+    * Via DELETE with SELECT WHERE on `Documents.document_uuid` JOINed through `Aliases.document_id` to determine `References.parent_alias_id`.
+1. Insert each document reference on the updated document in the `References` table.
+    * Via INSERT with SELECT WHERE on `Aliases.referential_id` to determine `References.referenced_alias_id`, save and reuse `References.parent_alias_id`.
+1. Updates the JSON document itself on the `Documents` table.
+* Notes:
+   * A FK constraint violation on `References` indicates a reference validation failure on an updated
+reference.
 
-2. Insert into ReferentialIdMapping, a new table with three columns
- - generated identity PK
- - FK back to the Documents PK
- - Unique indexed referential_id (GUID index)
+##### Delete
 
-3. Insert into References
- - parent_ref_id FKed to ReferentialIdMapping.referential_id
- - same for referenced_ref_id
-
-
-Update (no identity update allowed):
-
-1. Same as before
-
-
-Delete:
-
-1. Delete entry in ReferentialIdMapping
-
-2. Delete entry in Documents and references in References
-
-Downsides:
-- No longer have an PK/partition key for partition elimination on read/update/delete by id
-
-
-
+1. Find the document in `Documents` by `document_uuid` from request.
+1. Delete the document's document references in the `References` table.
+    * Via DELETE with SELECT WHERE on `Documents.document_uuid` JOINed through `Aliases.document_id` to determine `References.parent_alias_id`.
+1. Delete the document's aliases in the `Aliases` table.
+1. Delete the document in the `Documents` table.
+* Notes:
+   *  A FK constraint violation on `Aliases` indicates a failure because the document is being referenced by
+another document.
 
 
 
