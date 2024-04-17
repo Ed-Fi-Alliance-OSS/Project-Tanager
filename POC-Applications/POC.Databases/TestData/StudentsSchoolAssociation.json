@@ -1,0 +1,24 @@
+[
+    {
+        "schoolReference": {
+            "schoolId": 255901001,
+            "link": {
+                "rel": "School",
+                "href": "/ed-fi/schools/20ec19e5070245128a30fdcc6925bb09"
+            }
+        },
+        "studentReference": {
+            "studentUniqueId": "604822",
+            "link": {
+                "rel": "Student",
+                "href": "/ed-fi/students/7f427af23ed84961907dccd3d76b58d5"
+            }
+        },
+        "entryDate": "2021-08-23",
+        "entryGradeLevelDescriptor": "uri://ed-fi.org/GradeLevelDescriptor#Ninth grade",
+        "alternativeGraduationPlans": [],
+        "educationPlans": [],
+        "_etag": "5250164703056918347",
+        "_lastModifiedDate": "2024-04-04T23:01:02.9530443Z"
+    }
+]

@@ -1,0 +1,54 @@
+[
+    {
+        "id": "01e367dec14448158f551b1276e89469",
+        "courseOfferingReference": {
+            "localCourseCode": "ALG-1",
+            "schoolId": 255901001,
+            "schoolYear": 2022,
+            "sessionName": "2021-2022 Fall Semester",
+            "link": {
+                "rel": "CourseOffering",
+                "href": "/ed-fi/courseOfferings/5394aabc256d4b938a8137d3b971b372"
+            }
+        },
+        "locationReference": {
+            "classroomIdentificationCode": "220",
+            "schoolId": 255901001,
+            "link": {
+                "rel": "Location",
+                "href": "/ed-fi/locations/3a3cb39669624dd08d35fe88da094f34"
+            }
+        },
+        "locationSchoolReference": {
+            "schoolId": 255901001,
+            "link": {
+                "rel": "School",
+                "href": "/ed-fi/schools/20ec19e5070245128a30fdcc6925bb09"
+            }
+        },
+        "sectionIdentifier": "25590100102Trad220ALG112011",
+        "availableCredits": 1,
+        "educationalEnvironmentDescriptor": "uri://ed-fi.org/EducationalEnvironmentDescriptor#Classroom",
+        "sectionName": "Algebra 1",
+        "sectionTypeDescriptor": "uri://ed-fi.org/SectionTypeDescriptor#Attendance and Credit",
+        "sequenceOfCourse": 1,
+        "characteristics": [],
+        "classPeriods": [
+            {
+                "classPeriodReference": {
+                    "classPeriodName": "02 - Traditional",
+                    "schoolId": 255901001,
+                    "link": {
+                        "rel": "ClassPeriod",
+                        "href": "/ed-fi/classPeriods/3367c3c3b4ba4732b39e85089aa51cc3"
+                    }
+                }
+            }
+        ],
+        "courseLevelCharacteristics": [],
+        "offeredGradeLevels": [],
+        "programs": [],
+        "_etag": "5250060873750268986",
+        "_lastModifiedDate": "2023-12-06T18:52:12.2881082Z"
+    }
+]
