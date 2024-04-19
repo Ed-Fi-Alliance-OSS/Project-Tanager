@@ -67,24 +67,32 @@ void TestDMSDataBase()
 
     void SeedData(SqlConnection connection)
     {
-      var schoolReference = new ReferencedItem(0, null);
-      var sectionReference = new ReferencedItem(0, null);
+      ReferencedItem[]? schoolReferences = null;
+      ReferencedItem[]? sectionReferences = null;
 
       // Add school document
       if (schoolItems != null)
       {
-        schoolReference = InsertDocuments(schoolItems.AsArray(), "School", connection, true, null);
+        schoolReferences = InsertDocuments(
+          schoolItems.AsArray(),
+          "School",
+          connection,
+          true,
+          null,
+          10
+        );
       }
 
       // Add Section document
       if (sectionItems != null)
       {
-        sectionReference = InsertDocuments(
+        sectionReferences = InsertDocuments(
           sectionItems.AsArray(),
           "Section",
           connection,
           true,
-          null
+          null,
+          10
         );
       }
 
@@ -97,7 +105,7 @@ void TestDMSDataBase()
           "StudentSchoolAssociation",
           connection,
           false,
-          [schoolReference!],
+          schoolReferences,
           1000000
         );
       }
@@ -110,13 +118,13 @@ void TestDMSDataBase()
           "StudentSectionAssociation",
           connection,
           false,
-          [sectionReference!],
+          sectionReferences,
           10000
         );
       }
     }
 
-    ReferencedItem? InsertDocuments(
+    ReferencedItem[]? InsertDocuments(
       JsonArray items,
       string resourceName,
       SqlConnection connection,
@@ -125,7 +133,6 @@ void TestDMSDataBase()
       int numberofiterations = 1
     )
     {
-      ReferencedItem? referencedResource = null;
       long insertedAliasId = 0;
 
       string documentInsertQuery =
@@ -136,6 +143,8 @@ void TestDMSDataBase()
 
       string referenceInsertQuery =
         $"INSERT INTO dbo.[References] (partition_key, parent_alias_id, parent_partition_key, referenced_alias_id, referenced_partition_key) VALUES (@partition_key, @parent_alias_id, @parent_partition_key, @referenced_alias_id, @referenced_partition_key)";
+
+      var referencedResources = new List<ReferencedItem>();
 
       for (int i = 0; i < numberofiterations; i++)
       {
@@ -168,7 +177,9 @@ void TestDMSDataBase()
             command.Parameters.AddWithValue("@document_id", insertedDocId);
             command.Parameters.AddWithValue("@document_partition_key", docPartitionKey);
             insertedAliasId = (long)command.ExecuteScalar();
-            referencedResource = new ReferencedItem(insertedAliasId, referential_id_partitionkey);
+            referencedResources.Add(
+              new ReferencedItem(insertedAliasId, referential_id_partitionkey)
+            );
           }
 
           if (isSubClass)
@@ -214,7 +225,7 @@ void TestDMSDataBase()
         }
       }
 
-      return referencedResource;
+      return referencedResources.ToArray();
     }
 
     Dictionary<Guid, JsonNode> GetDocuments(SqlConnection connection)

@@ -63,10 +63,16 @@ Additionally, it offers details of partitioning and clustered indexes within the
   Function Name: partition_function_References
 
 ## Performance Considerations:
-Data Volume: 100000
-
 Data Operation: Insert ( The insert operation will involve inserting a new record into table `Documents`. Additionally, it will create an alias record in table `Aliases` and generate reference entries in table `References`.)
 
+Number of records to Documents: 100000
 Performance Metrics:
     Execution Time: 1.10 minutes
+
+Number of records to Documents: 1000020
+Number of records to Aliases: 1000040
+Number of records to References: 10000000
+
+Performance Metrics:
+    Execution Time: 35.22 minutes
 
