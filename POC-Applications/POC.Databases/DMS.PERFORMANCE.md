@@ -63,31 +63,32 @@ Additionally, it offers details of partitioning and clustered indexes within the
   Function Name: partition_function_References
 
 ## Performance Considerations:
-Data Operation: Insert ( The insert operation will involve inserting a new record into table `Documents`. Additionally, it will create an alias record in table `Aliases` and generate reference entries in table `References`.)
+Data Operations
 
-Number of records to Documents: 100000
-Performance Metrics:
-    Execution Time: 1.10 minutes
+### Insert
+    Insert ( The insert operation will involve inserting a new record into table `Documents`. Additionally, it will create an alias record in table `Aliases` and generate references entries in table `References`.)
 
-Number of records to Documents: 1000020
-Number of records to Aliases: 1000040
-Number of records to References: 10000000
+### Select Query Details
 
-Performance Metrics:
-    Execution Time: 35.22 minutes
+    Select with guid
+    SELECT1: SELECT * FROM [EdFi_DataManagementService].[dbo].[Documents] where document_uuid = 'D14CBB83-81F5-48FC-BB49-F23E4359D6E0'
 
-| Table Name                 | OperationName | ExecutionTimeInSeconds | Number Of Rows    | StartTime           | EndTime             |
-|----------------------------|---------------|------------------------|-------------------|---------------------|---------------------|
-| Student                    | SELECT        | 50                     | 100               | 2024-04-13 09:00:00 | 2024-04-13 09:00:50 |
-| StudentSchoolAssociation   | INSERT        | 20                     | 1                 | 2024-04-13 09:01:00 | 2024-04-13 09:01:20 |
-| StudentSchoolAssociation   | SELECT        | 20                     | 100               | 2024-04-13 09:01:00 | 2024-04-13 09:01:20 |
-| StudentSectionAssociation  | UPDATE        | 30                     | 10                | 2024-04-13 09:02:00 | 2024-04-13 09:02:30 |
+    Select with guid and partition key:
+    SELECT2: SELECT * FROM [EdFi_DataManagementService].[dbo].[Documents]
+    where document_uuid = 'D14CBB83-81F5-48FC-BB49-F23E4359D6E0' AND partition_key = 0
+
+| Table Name   | OperationName | ExecutionTimeInSeconds | Number Of Rows affected  | Details                         |
+|--------------|---------------|------------------------|--------------------------|---------------------------------|
+| Documents    | INSERT        | 70                     | 100000                   | With 1 reference per document   |
+| Documents    | INSERT        | 1994                   | 1000020                  | With 10 references per document |
+| Documents    | SELECT1       | 42                     | 1                        |                                 |
+| Documents    | SELECT2       | 7                      | 1                        |                                 |
+| Documents    | UPDATE        | 19                     | 1000                     |                                 |
 
 
-| Table Name                 | Number Of Rows | Reserved Size(KB) |Index Size(KB) | Data Size(KB) | Unused Size(KB) |
-|----------------------------|----------------|-------------------|---------------|---------------|-----------------|
-| Student                    | 136            | 50                | 100           |               |                 |
-| StudentSchoolAssociation   | 136            | 20                | 1             |               |                 |
-| StudentSectionAssociation  | 200            | 30                | 10            |               |                 |
-
+| Table Name | Number Of Rows | Reserved Size(KB) |Index Size(KB) | Data Size(KB) | Unused Size(KB) |
+|------------|----------------|-------------------|---------------|---------------|-----------------|
+| Documents  | 1000020        | 716864            | 512           | 714496        | 1856            |
+| References | 10000000       | 360384            | 1920          | 357208        | 1256            |
+| Aliases    | 1000040        | 44160             | 256           | 42616         | 1288            |
 
