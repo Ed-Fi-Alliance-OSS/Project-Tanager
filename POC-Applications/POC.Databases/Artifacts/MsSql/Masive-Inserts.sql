@@ -104,13 +104,13 @@ Set @EndTimeStdSec = GETDATE()
 
 ----------------------------------------------------------
 
-Select Count(1) as Students, @BeginTimeStd, @EndTimeStd, (@EndTimeStd - @BeginTimeStd) From edfi.Student
-Select Count(1) as StudentSectionAssociations, @BeginTimeStdSch, @EndTimeStdSch, (@EndTimeStdSch - @BeginTimeStdSch) From edfi.StudentSchoolAssociation
-Select Count(1) as StudentSchoolAssociations, @BeginTimeStdSec, @EndTimeStdSec, (@EndTimeStdSec - @BeginTimeStdSec) From edfi.StudentSectionAssociation
+Select Count(1) as Students, @BeginTimeStd StartTime, @EndTimeStd EndTime, (@EndTimeStd - @BeginTimeStd) TotalTime From edfi.Student
+Select Count(1) as StudentSectionAssociations, @BeginTimeStdSch StartTime, @EndTimeStdSch EndTime, (@EndTimeStdSch - @BeginTimeStdSch) TotalTime From edfi.StudentSchoolAssociation
+Select Count(1) as StudentSchoolAssociations, @BeginTimeStdSec StartTime, @EndTimeStdSec EndTime, (@EndTimeStdSec - @BeginTimeStdSec) TotalTime From edfi.StudentSectionAssociation
 
 
 Set @TotalTime = GETDATE()
-Select 'TotalTime', (@TotalTime - @InitialTime)
+Select 'TotalTime', (@TotalTime - @InitialTime) TotalTime
 
 --Select * From edfi.Student
 
