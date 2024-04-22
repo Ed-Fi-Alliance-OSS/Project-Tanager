@@ -51,37 +51,41 @@ In this section, we will analyze the performance of the ODS database. To do so, 
 ## First round of execution
 
 ### 1,000 records:
-| Table Name                 | OperationName | Execution Time In Seconds | Data Space Used (KB)| Index Space Used (KB)|
-|----------------------------|---------------|------------------------|---------------------|----------------------|
-| Student                    | INSERT        | 0:00:02                | 136                 | 312                  |
-| StudentSchoolAssociation   | INSERT        | 0:00:02                | 136                 | 912                  |
-| StudentSectionAssociation  | INSERT        | 0:00:02                | 200                 | 1,240                |
+| Table Name                 | OperationName | Execution Time | Data Space Used (KB)| Index Space Used (KB)|
+|----------------------------|---------------|----------------|---------------------|----------------------|
+| Student                    | INSERT        | 0:00:02        | 136                 | 312                  |
+| StudentSchoolAssociation   | INSERT        | 0:00:02        | 136                 | 912                  |
+| StudentSectionAssociation  | INSERT        | 0:00:02        | 200                 | 1,240                |
+| Total Time                 |               | 0:00:06        | 
 
 ### 10,000 records:
-| Table Name                 | OperationName | Execution Time In Seconds | Data Space Used (KB)| Index Space Used (KB)|
-|----------------------------|---------------|------------------------|---------------------|----------------------|
-| Student                    | INSERT        | 0:00:18                | 1,360               | 1,704                |
-| StudentSchoolAssociation   | INSERT        | 0:00:20                | 1,360               | 5,448                |
-| StudentSectionAssociation  | INSERT        | 0:00:19                | 2,000               | 11,544               |
+| Table Name                 | OperationName | Execution Time | Data Space Used (KB)| Index Space Used (KB)|
+|----------------------------|---------------|----------------|---------------------|----------------------|
+| Student                    | INSERT        | 0:00:18        | 1,360               | 1,704                |
+| StudentSchoolAssociation   | INSERT        | 0:00:20        | 1,360               | 5,448                |
+| StudentSectionAssociation  | INSERT        | 0:00:19        | 2,000               | 11,544               |
+| Total Time                 |               | 0:00:57        |
 
 ### 100,000 records:
-| Table Name                 | OperationName | Execution Time In Seconds | Data Space Used (KB)| Index Space Used (KB)|
-|----------------------------|---------------|------------------------|---------------------|----------------------|
-| Student                    | INSERT        | 0:03:00                | 13,650              | 15,536               |
-| StudentSchoolAssociation   | INSERT        | 0:04:05                | 13,336              | 15,536               |
-| StudentSectionAssociation  | INSERT        | 0:03:18                | 20,000              | 114,696              |
+| Table Name                 | OperationName | Execution Time | Data Space Used (KB)| Index Space Used (KB)|
+|----------------------------|---------------|----------------|---------------------|----------------------|
+| Student                    | INSERT        | 0:03:00        | 13,650              | 15,536               |
+| StudentSchoolAssociation   | INSERT        | 0:04:05        | 13,336              | 15,536               |
+| StudentSectionAssociation  | INSERT        | 0:03:18        | 20,000              | 114,696              |
+| Total Time                 |               | 0:10:23        |
 
 ### 1,000,000 records:
-| Table Name                 | OperationName | Execution Time In Seconds |Data Space Used (KB)| Index Space Used (KB)|
-|----------------------------|---------------|------------------------|---------------------|----------------------|
-| Student                    | INSERT        | 0:33:02                | 135,600             | 150,256              |
-| StudentSchoolAssociation   | INSERT        | 0:37:24                | 133,336             | 519,976              |
-| StudentSectionAssociation  | INSERT        | 0:33:20                | 200,00              | 1,147,584            |
+| Table Name                 | OperationName | Execution Time | Data Space Used (KB)| Index Space Used (KB)|
+|----------------------------|---------------|----------------|---------------------|----------------------|
+| Student                    | INSERT        | 0:33:00        | 135,600             | 150,256              |
+| StudentSchoolAssociation   | INSERT        | 0:37:24        | 133,336             | 519,976              |
+| StudentSectionAssociation  | INSERT        | 0:33:20        | 200,000              | 1,147,584            |
+| Total Time                 |               | 1:43:44        |
 
 ### 10,000,000 records:
-| Table Name                 | OperationName | Execution Time In Seconds | Data Space Used (KB)| Index Space Used (KB)|
-|----------------------------|---------------|------------------------|---------------------|----------------------|
-| Student                    | INSERT        | 0:00:00                | 0                 | 0                  |
-| StudentSchoolAssociation   | INSERT        | 0:00:00                | 0                 | 0                  |
-| StudentSectionAssociation  | INSERT        | 0:00:00                | 0                 | 0                |
-
+| Table Name                 | OperationName | Execution Time | Data Space Used (KB)| Index Space Used (KB)|
+|----------------------------|---------------|----------------|---------------------|----------------------|
+| Student                    | INSERT        | 0:00:00        | 0                 | 0                      |
+| StudentSchoolAssociation   | INSERT        | 0:00:00        | 0                 | 0                      |
+| StudentSectionAssociation  | INSERT        | 0:00:00        | 0                 | 0                      |
+| Total Time                 |               | 0:00:06        |
