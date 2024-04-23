@@ -291,6 +291,8 @@ From Tanager Core:
 - If a subclass, the Document Referential Id in superclass form
 - Referential Ids of Document references - extracted
 
+Transaction:
+
 1. Insert the JSON Document, Document Metadata and Document UUID in the `Documents` table.
    - Derive `partition_key` from `document_uuid`.
    - Get the sequential id from the insert for the next operation.
@@ -322,6 +324,8 @@ From Tanager Core:
 - If a subclass, the Document Referential Id in superclass form
 - Referential Ids of Document references - extracted
 
+Transaction:
+
 1. Find the document in the `Documents` table
    - Derive `partition_key` from `document_uuid`.
    - Find the document in `Documents` using the index on `document_uuid`.
@@ -340,6 +344,12 @@ From Tanager Core:
 1. Update the JSON document itself on the `Documents` table.
 
 ### Delete Operation
+
+From Tanager Core:
+
+- Document UUID
+
+Transaction:
 
 1. Follow update operation steps through deleting old document references.
 1. Delete the document's aliases in the `Aliases` table.
