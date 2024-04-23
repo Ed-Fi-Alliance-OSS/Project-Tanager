@@ -1,4 +1,4 @@
---begin tran
+begin tran
 ------------------------------------------------------------ Masive -------------------------------------------------------------
 Declare @InitialTime datetime, @TotalTime datetime
 Set @InitialTime = GETDATE()
@@ -88,12 +88,37 @@ FETCH NEXT FROM studentSectionAssociations_cursor INTO @StudentUSI
 
 WHILE @@FETCH_STATUS = 0  
 BEGIN
+	-- 5 Sections per Student
 	INSERT INTO edfi.StudentSectionAssociation 
 	(LastModifiedDate, CreateDate, Id, AttemptStatusDescriptorId, EndDate, HomeroomIndicator, RepeatIdentifierDescriptorId, TeacherStudentDataLinkExclusion, Discriminator, BeginDate, 
 		LocalCourseCode, SchoolId, SchoolYear, SectionIdentifier, SessionName, StudentUSI) 
 	VALUES (GETDATE(), GETDATE(), NEWID(), NULL, '2021-12-17', 0, NULL, NULL, NULL, '2021-08-23', 'ALG-1', 255911001, 2022, '25591100102Trad220ALG112011', 
 		'2021-2022 Fall Semester', @StudentUSI)
 		
+	INSERT INTO edfi.StudentSectionAssociation 
+	(LastModifiedDate, CreateDate, Id, AttemptStatusDescriptorId, EndDate, HomeroomIndicator, RepeatIdentifierDescriptorId, TeacherStudentDataLinkExclusion, Discriminator, BeginDate, 
+		LocalCourseCode, SchoolId, SchoolYear, SectionIdentifier, SessionName, StudentUSI) 
+	VALUES (GETDATE(), GETDATE(), NEWID(), NULL, '2021-12-17', 0, NULL, NULL, NULL, '2021-08-23', 'ALG-1', 255911001, 2022, '25591100102Trad220ALG112011-2', 
+		'2021-2022 Fall Semester', @StudentUSI)
+
+	INSERT INTO edfi.StudentSectionAssociation 
+	(LastModifiedDate, CreateDate, Id, AttemptStatusDescriptorId, EndDate, HomeroomIndicator, RepeatIdentifierDescriptorId, TeacherStudentDataLinkExclusion, Discriminator, BeginDate, 
+		LocalCourseCode, SchoolId, SchoolYear, SectionIdentifier, SessionName, StudentUSI) 
+	VALUES (GETDATE(), GETDATE(), NEWID(), NULL, '2021-12-17', 0, NULL, NULL, NULL, '2021-08-23', 'ALG-1', 255911001, 2022, '25591100102Trad220ALG112011-3', 
+		'2021-2022 Fall Semester', @StudentUSI)
+
+	INSERT INTO edfi.StudentSectionAssociation 
+	(LastModifiedDate, CreateDate, Id, AttemptStatusDescriptorId, EndDate, HomeroomIndicator, RepeatIdentifierDescriptorId, TeacherStudentDataLinkExclusion, Discriminator, BeginDate, 
+		LocalCourseCode, SchoolId, SchoolYear, SectionIdentifier, SessionName, StudentUSI) 
+	VALUES (GETDATE(), GETDATE(), NEWID(), NULL, '2021-12-17', 0, NULL, NULL, NULL, '2021-08-23', 'ALG-1', 255911001, 2022, '25591100102Trad220ALG112011-4', 
+		'2021-2022 Fall Semester', @StudentUSI)
+
+	INSERT INTO edfi.StudentSectionAssociation 
+	(LastModifiedDate, CreateDate, Id, AttemptStatusDescriptorId, EndDate, HomeroomIndicator, RepeatIdentifierDescriptorId, TeacherStudentDataLinkExclusion, Discriminator, BeginDate, 
+		LocalCourseCode, SchoolId, SchoolYear, SectionIdentifier, SessionName, StudentUSI) 
+	VALUES (GETDATE(), GETDATE(), NEWID(), NULL, '2021-12-17', 0, NULL, NULL, NULL, '2021-08-23', 'ALG-1', 255911001, 2022, '25591100102Trad220ALG112011-5', 
+		'2021-2022 Fall Semester', @StudentUSI)
+
 	FETCH NEXT FROM studentSectionAssociations_cursor INTO @StudentUSI 
 END 
 
@@ -145,4 +170,4 @@ SELECT
         [reservedSize KB] DESC
 
 
--- rollback
+ rollback

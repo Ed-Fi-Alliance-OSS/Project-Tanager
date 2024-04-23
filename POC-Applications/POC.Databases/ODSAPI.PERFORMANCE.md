@@ -49,6 +49,7 @@ In this section, we will analyze the performance of the ODS database. To do so, 
 ![alt text](image-2.png)
 
 ## First round of execution
+* One-to-one relationship between selected tables.
 
 ### 1,000 records:
 | Table Name                 | Operation Name | Execution Time | Data Space Used (KB)| Index Space Used (KB)|
@@ -91,3 +92,16 @@ In this section, we will analyze the performance of the ODS database. To do so, 
 | Total Time*                |                | 12:22:39       |
 
 * Total number of records inserted for StudentSectionAssociation: 2,958,496. Due to the cancellation of the process prior to its completion.
+
+-----------
+## Second round of execution
+* One-to-one relationship between Student and StudentSchoolAssociations.
+* One-to-five between Student and StudentSectionAssociations.
+
+
+| Table Name                 | Operation Name |  Number of Records | Execution Time | Data Space Used (KB)| Index Space Used (KB)|
+|----------------------------|----------------|--------------------|----------------|---------------------|----------------------|
+| Student                    | INSERT         | 0                  | 00:00:02       | 136                 | 312                  |
+| StudentSchoolAssociation   | INSERT         | 0                  | 00:00:02       | 136                 | 912                  |
+| StudentSectionAssociation  | INSERT         | 0                  | 00:00:02       | 200                 | 1,240                |
+| Total Time                 |                | 0                  | 00:00:06       | 
