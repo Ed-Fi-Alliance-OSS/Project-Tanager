@@ -52,9 +52,8 @@ erDiagram
     References }o--|| Aliases : "2 FKs to Aliases per row, parent and referenced"
     References {
         bigint id PK "Sequential key pattern, clustered"
-        tinyint partition_key PK "Partition key for this table, derived from Aliases.referential_id for parent alias"
-        bigint parent_alias_id FK "Alias of parent document with the reference, non-unique non-clustered partition-aligned"
-        tinyint parent_partition_key FK "Partition key of Aliases table, derived from Aliases.referential_id for parent alias"
+        tinyint document_partition_key PK "Partition key for this table, same as Documents.document_partition_key of parent document"
+        bigint document_id FK "Document id of parent document with the reference, non-unique non-clustered partition-aligned"
         bigint referenced_alias_id FK "Alias of document being referenced"
         tinyint referenced_partition_key FK "Partition key of Aliases table, derived from Aliases.referential_id for referenced alias"
     }
@@ -62,13 +61,13 @@ erDiagram
     Aliases {
         bigint id PK "Sequential key pattern, clustered"
         Guid referential_id "Extracted or superclassed document identity, unique non-clustered, partition-aligned"
-        tinyint partition_key PK "Partition key for this table, derived from referential_id"
+        tinyint referential_partition_key PK "Partition key for this table, derived from referential_id"
         bigint document_id FK "The aliased document"
         tinyint document_partition_key FK "Partition key of Documents table, derived from Documents.document_uuid"
     }
     Documents {
         bigint id PK "Sequential key pattern, clustered"
-        tinyint partition_key PK "Partition key for this table, derived from document_uuid"
+        tinyint document_partition_key PK "Partition key for this table, derived from document_uuid"
         Guid document_uuid "API resource id, unique non-clustered, partition-aligned"
         string project_name "Example: Ed-Fi (for DS)"
         string resource_name "Example: Student"
@@ -103,12 +102,12 @@ IF NOT EXISTS (select object_id from sys.objects where object_id = OBJECT_ID(N'[
 BEGIN
 CREATE TABLE [dbo].[Documents] (
   id BIGINT IDENTITY(1,1),
-  partition_key TINYINT NOT NULL,
+  document_partition_key TINYINT NOT NULL,
   document_uuid UNIQUEIDENTIFIER NOT NULL,
   resource_name VARCHAR(256) NOT NULL,
   edfi_doc VARBINARY(MAX) NOT NULL,
-  PRIMARY KEY CLUSTERED (partition_key ASC, id ASC)
-  ON partition_scheme_Documents (partition_key)
+  PRIMARY KEY CLUSTERED (document_partition_key ASC, id ASC)
+  ON partition_scheme_Documents (document_partition_key)
 );
 END
 
@@ -119,7 +118,7 @@ EXEC sp_tableoption 'dbo.Documents', 'large value types out of row', 1;
 -- GET/UPDATE/DELETE by id lookup support, document_uuid uniqueness validation
 IF NOT EXISTS (SELECT name FROM sys.indexes WHERE name = N'UX_Documents_DocumentUuid')
     CREATE UNIQUE NONCLUSTERED INDEX UX_Documents_DocumentUuid
-    ON [dbo].[Documents] (partition_key, document_uuid);
+    ON [dbo].[Documents] (document_partition_key, document_uuid);
 
 ------------------ Aliases Table ------------------
 
@@ -144,21 +143,21 @@ IF NOT EXISTS (select object_id from sys.objects where object_id = OBJECT_ID(N'[
 BEGIN
 CREATE TABLE [dbo].[Aliases] (
   id BIGINT IDENTITY(1,1),
-  partition_key TINYINT NOT NULL,
+  referential_partition_key TINYINT NOT NULL,
   referential_id UNIQUEIDENTIFIER NOT NULL,
   document_id BIGINT NOT NULL,
   document_partition_key TINYINT NOT NULL,
   CONSTRAINT FK_Aliases_Documents FOREIGN KEY (document_partition_key, document_id)
-    REFERENCES [dbo].[Documents](partition_key, id),
-  PRIMARY KEY CLUSTERED (partition_key ASC, id ASC)
-  ON partition_scheme_Aliases (partition_key)
+    REFERENCES [dbo].[Documents](document_partition_key, id),
+  PRIMARY KEY CLUSTERED (referential_partition_key ASC, id ASC)
+  ON partition_scheme_Aliases (referential_partition_key)
 );
 END
 
 -- Referential ID uniqueness validation and reference insert into References support
 IF NOT EXISTS (SELECT name FROM sys.indexes WHERE name = N'UX_Aliases_ReferentialId')
     CREATE UNIQUE NONCLUSTERED INDEX UX_Aliases_ReferentialId
-    ON [dbo].[Aliases] (partition_key, referential_id);
+    ON [dbo].[Aliases] (referential_partition_key, referential_id);
 
 ------------------ References Table ------------------
 
@@ -183,24 +182,23 @@ IF NOT EXISTS (select object_id from sys.objects where object_id = OBJECT_ID(N'[
 BEGIN
 CREATE TABLE [dbo].[References] (
   id BIGINT IDENTITY(1,1),
-  partition_key TINYINT NOT NULL,
-  parent_alias_id BIGINT NOT NULL,
-  parent_partition_key TINYINT NOT NULL,
+  document_id BIGINT NOT NULL,
+  document_partition_key TINYINT NOT NULL,
   referenced_alias_id BIGINT NOT NULL,
   referenced_partition_key TINYINT NOT NULL,
-  CONSTRAINT FK_References_ParentAlias FOREIGN KEY (parent_partition_key, parent_alias_id)
-  REFERENCES [dbo].[Aliases](partition_key, id),
+  CONSTRAINT FK_References_Documents FOREIGN KEY (document_partition_key, document_id)
+  REFERENCES [dbo].[Documents](document_partition_key, id),
   CONSTRAINT FK_References_ReferencedAlias FOREIGN KEY (referenced_partition_key, referenced_alias_id)
-  REFERENCES [dbo].[Aliases](partition_key, id),
-  PRIMARY KEY CLUSTERED (partition_key ASC, id ASC)
-  ON partition_scheme_References (partition_key)
+  REFERENCES [dbo].[Aliases](referential_partition_key, id),
+  PRIMARY KEY CLUSTERED (document_partition_key ASC, id ASC)
+  ON partition_scheme_References (document_partition_key)
 );
 END
 
 -- DELETE/UPDATE by id lookup support
-IF NOT EXISTS (SELECT name FROM sys.indexes WHERE name = N'UX_References_ParentAliasId')
-    CREATE NONCLUSTERED INDEX UX_References_ParentAliasId
-    ON [dbo].[References] (partition_key, parent_alias_id);
+IF NOT EXISTS (SELECT name FROM sys.indexes WHERE name = N'IX_References_DocumentId')
+    CREATE NONCLUSTERED INDEX UX_References_DocumentId
+    ON [dbo].[References] (document_partition_key, document_id);
 
 
 ```
@@ -216,7 +214,7 @@ three tables use the sequential surrogate key pattern with size `BIGINT`.
 The `Documents` table holds all of the documents for all of the entities. `id` is the sequential surrogate
 primary key. `document_uuid` is the external GUID expressed in the API as the resource id. It will be indexed
 as unique and non-clustered to support both document_uuid uniqueness validation as well as direct access for
-GET/UPDATE/DELETE by id operations. `partition_key` is included as part of the primary key. It is derived from
+GET/UPDATE/DELETE by id operations. `document_partition_key` is included as part of the primary key. It is derived from
 the `document_uuid`, either as a modulo or by taking low-order bits, and maps to a partition number. This will
 allow the index on `document_uuid` to be partition-aligned.
 
@@ -236,25 +234,22 @@ document references independent of data in the DB. Each document has at least on
 subclass documents have a second referential id, which is the document identity in the form of its superclass.
 `referential_id` will be indexed as unique and non-clustered to support referential_id uniqueness validation.
 
-`partition_key` is included as part of the primary key. It is derived from the `referential_id`, either as a
+`referential_partition_key` is included as part of the primary key. It is derived from the `referential_id`, either as a
 modulo or by taking low-order bits, and maps to a partition number. This will allow the index on
 `referential_id` to be partition-aligned.
 
 `Aliases` has a foreign key reference back to the document with this `referential_id`.
 
-#### References Table
-
-The `References` table stores every document reference. It also has `id` as a sequential surrogate primary key
-as well as a `partition_key` as part of the primary key.
-
-The table is composed of two `referential_ids` foreign key references back to the `Aliases` table, one for the
-parent of the reference and one for the document being referenced. The purpose of these foreign key
-constraints is to perform reference validation. Insert attempts into this table validate reference existence.
 Delete attempts from the `Aliases` table validate that a document is not referenced by another document.
 
-`parent_alias_id` will be indexed as non-clustered to support removal on document deletes and updates.
-`partition_key` is derived from the `parent_alias_id` referential id in the same manner and for the same
-reason as the other tables.
+#### References Table
+
+The `References` table stores every document reference. It also has `id` as a sequential surrogate primary key.
+It shares `document_partition_key` as its own partition kay as part of the primary key.
+
+The table is composed of a `document_id` foreign key reference back to the `Documents` table for
+the parent document of the reference, and a `referenced_alias_id` foreign key reference back to the `Aliases` table for the document being referenced. The purpose of the `Aliases` foreign key
+constraint is to perform reference validation. Insert attempts into this table validate reference existence. `document_id` will be indexed as non-unique, non-clustered and partition-aligned to support removal on document deletes and updates.
 
 #### Why not a table per resource?
 
@@ -294,26 +289,48 @@ From Tanager Core:
 Transaction:
 
 1. Insert the JSON Document, Document Metadata and Document UUID in the `Documents` table.
-   - Derive `partition_key` from `document_uuid`.
+   - Derive `document_partition_key` from `document_uuid`.
    - Get the sequential id from the insert for the next operation.
    - A uniqueness constraint violation on `document_uuid` means this should be retried as an update.
 1. Insert an entry in the `Aliases` table for the document.
-   - Derive `partition_key` from `referential_id`.
-   - FK back to the initial insert into `Documents`.
-   - Get the sequential id from the insert for the next operation.
-   - If the document is a subclass, insert a second entry Document Referential Id in superclass form.
+   - Derive `referential_partition_key` from `referential_id`.
+   - `document_id` is this document's sequential id from the `Documents` insert.
+   - `document_partition_key` id also from the `Documents` insert.
+   - If the document is a subclass, insert a second entry with `referential_id` in superclass form.
    - A uniqueness constraint violation on `referential_id` on the first insert means this should be handled as
      an update.
    - A uniqueness constraint violation on `referential_id` on the superclass insert means failure because
      there already exists a subclass with the same superclass identity.
 1. Insert each document reference on the document in the `References` table.
-   - `parent_alias_id` is this document's sequential id from the initial `Aliases` insert.
-   - `parent_partition_key` is the partition key from the initial `Aliases` insert.
+   - `document_id` is this document's sequential id from the `Documents` insert.
+   - `document_partition_key` id also from the `Documents` insert.
    - Determine `referenced_alias_id` and `referenced_partition_key` from a lookup on the `Aliases` table index
      for `referential_id`.
    - A missing `referential_id` lookup on `Aliases` indicates a reference validation failure.
 
-### Update Operation (ignoring identity updates)
+### Update Operation (no identity update)
+
+From Tanager Core:
+
+- JSON Document
+- Document Metadata
+- Document UUID
+- Referential Ids of Document references - extracted
+
+Transaction:
+
+1. Find the document in the `Documents` table
+   - Derive `document_partition_key` from `document_uuid`.
+   - Find the document in `Documents` using the index on `document_uuid`.
+   - Get `id` as the document id.
+1. Delete the old document references
+   - Delete document references on the `References` table using the index on `document_id` and
+     `document_partition_key`.
+1. Insert the new document references
+   - Insert each document reference on the updated document as in the insert operation.
+1. Update the JSON document itself on the `Documents` table.
+
+### Update Operation (with identity update)
 
 From Tanager Core:
 
@@ -327,20 +344,21 @@ From Tanager Core:
 Transaction:
 
 1. Find the document in the `Documents` table
-   - Derive `partition_key` from `document_uuid`.
+   - Derive `document_partition_key` from `document_uuid`.
    - Find the document in `Documents` using the index on `document_uuid`.
    - Get `id` as the document id.
 1. Get the Aliases table entry for the document (don't worry about superclass entry)
-   - Derive `partition_key` from `referential_id`.
-   - Find the alias in `Aliases` using the index on `referential_id`.
-   - Sanity check alias `document_id` and `document_partition_key` are a match, fatal error otherwise.
-   - This is the `parent_alias_id` and `parent_partition_key` for the `References` table.
+   - Find the alias(es) in `Aliases` using the index on `document_id`.
+   - Delete the original aliases entries for the `document_id`
+     - **_ Currently no index _**
+   - Add the new alias(es) to the `Aliases` table.
+   - A foreign key constraint violation means a cascading update is necessary
+     - **_ Needs review _**
 1. Delete the old document references
-   - Delete document references on the `References` table using the index on `parent_alias_id` and
-     `parent_partition_key`.
+   - Delete document references on the `References` table using the index on `document_id` and
+     `document_partition_key`.
 1. Insert the new document references
    - Insert each document reference on the updated document as in the insert operation.
-   - A missing `referential_id` lookup on `Aliases` indicates a reference validation failure.
 1. Update the JSON document itself on the `Documents` table.
 
 ### Delete Operation
@@ -383,18 +401,18 @@ erDiagram
         bigint id PK "Sequential key pattern, clustered"
         bigint document_id FK "School document being indexed"
         tinyint document_partition_key FK "Partition key of School document being indexed"
-        string school_id "SchoolId of the school"
-        string name_of_institution "Name of the school"
-        string et_cetera
+        string schoolid "SchoolId of the school"
+        string nameofinstitution "Name of the school"
+        string etcetera
     }
     QueryStudent ||--|| Documents : ""
     QueryStudent {
         bigint id PK "Sequential key pattern, clustered"
         bigint document_id FK "Student document being indexed"
         tinyint document_partition_key FK "Partition key of Student document being indexed"
-        string first_name "First name of student"
-        string last_surname "Last surname of student"
-        string et_cetera
+        string firstname "First name of student"
+        string lastsurname "Last surname of student"
+        string etcetera
     }
 ```
 
@@ -413,7 +431,9 @@ slow down insert performance inserts. However, in a deployment where a search en
 separate process may not be viable either. In this case, we'll need to extract the queryable fields from the
 document before insert.
 
-The query table schema will be pre-generated, as will the JSON Paths to the queryable elements.
+The query table schema will be pre-generated, as will the JSON Paths to the queryable elements. The JSON Paths will
+be included with the API query field names in the ApiSchema.json file. The query field names will be all lowercased, and
+for ease of query construction the column names should be identical (i.e. not snake case).
 
 #### Query SQL
 
