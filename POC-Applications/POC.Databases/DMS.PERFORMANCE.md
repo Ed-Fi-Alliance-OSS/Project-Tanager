@@ -116,6 +116,6 @@ Additionally, it offers details of partitioning and clustered indexes within the
 | Documents    | INSERT        | 0:00:15       | 10000                    | With 5 references per document and query table insert |
 | References   | SELECT        | 0:00:34       | 10000000                 | Select * from References                              |
 | References   | DELETE        | 0:00:09       | 10000000                 | Delete from References                                |
-| Documents    | INSERT        | 0:00:15       | 1000000                  | With 5 references per document and query table insert |
+| Documents    | INSERT        | 0:00:41       | 30000                    | With 5 references per document and query table insert |
 
 
