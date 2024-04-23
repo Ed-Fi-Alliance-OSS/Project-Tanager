@@ -18,6 +18,12 @@
     <None Update="Artifacts\MsSql\00002-CreateDMSTables.sql">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Artifacts\MsSql\00003-QueryTables.sql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TestData\Student.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="TestData\Schools.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
