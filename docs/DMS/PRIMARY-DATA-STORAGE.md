@@ -52,10 +52,10 @@ erDiagram
     References }o--|| Aliases : "2 FKs to Aliases per row, parent and referenced"
     References {
         bigint id PK "Sequential key pattern, clustered"
-        tinyint document_partition_key PK "Partition key for this table, same as Documents.document_partition_key of parent document"
-        bigint document_id FK "Document id of parent document with the reference, non-unique non-clustered partition-aligned"
+        tinyint document_partition_key PK "Partition key, same as Documents.document_partition_key of parent document"
+        bigint document_id FK "Document id of parent document, non-unique non-clustered partition-aligned"
         bigint referenced_alias_id FK "Alias of document being referenced"
-        tinyint referenced_partition_key FK "Partition key of Aliases table, derived from Aliases.referential_id for referenced alias"
+        tinyint referenced_partition_key FK "Partition key of Aliases table, derived from Aliases.referential_id"
     }
     Aliases }o--|| Documents : "2 rows with same FK to Documents if subclass, 1 row otherwise"
     Aliases {
@@ -248,8 +248,10 @@ The `References` table stores every document reference. It also has `id` as a se
 It shares `document_partition_key` as its own partition kay as part of the primary key.
 
 The table is composed of a `document_id` foreign key reference back to the `Documents` table for
-the parent document of the reference, and a `referenced_alias_id` foreign key reference back to the `Aliases` table for the document being referenced. The purpose of the `Aliases` foreign key
-constraint is to perform reference validation. Insert attempts into this table validate reference existence. `document_id` will be indexed as non-unique, non-clustered and partition-aligned to support removal on document deletes and updates.
+the parent document of the reference, and a `referenced_alias_id` foreign key reference back to the `Aliases` table for
+the document being referenced. The purpose of the `Aliases` foreign key constraint is to perform reference validation.
+Insert attempts into this table validate reference existence. `document_id` will be indexed as non-unique, non-clustered
+and partition-aligned to support removal on document deletes and updates.
 
 #### Why not a table per resource?
 
