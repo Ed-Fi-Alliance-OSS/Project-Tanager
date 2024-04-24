@@ -98,10 +98,34 @@ In this section, we will analyze the performance of the ODS database. To do so, 
 * One-to-one relationship between Student and StudentSchoolAssociations.
 * One-to-five between Student and StudentSectionAssociations.
 
-
+* ### 1,000 records:
 | Table Name                 | Operation Name |  Number of Records | Execution Time | Data Space Used (KB)| Index Space Used (KB)|
 |----------------------------|----------------|--------------------|----------------|---------------------|----------------------|
-| Student                    | INSERT         | 0                  | 00:00:02       | 136                 | 312                  |
-| StudentSchoolAssociation   | INSERT         | 0                  | 00:00:02       | 136                 | 912                  |
-| StudentSectionAssociation  | INSERT         | 0                  | 00:00:02       | 200                 | 1,240                |
-| Total Time                 |                | 0                  | 00:00:06       | 
+| Student                    | INSERT         | 1,000              | 00:00:02       | 136                 | 312                  |
+| StudentSchoolAssociation   | INSERT         | 1,000              | 00:00:02       | 136                 | 912                  |
+| StudentSectionAssociation  | INSERT         | 5,000              | 00:00:08       | 1,032               | 1,240                |
+| Totals                     |                | 7,000              | 00:00:12       | 
+
+### 10,000 records:
+| Table Name                 | Operation Name |  Number of Records | Execution Time | Data Space Used (KB)| Index Space Used (KB)|
+|----------------------------|----------------|--------------------|----------------|---------------------|----------------------|
+| Student                    | INSERT         | 10,000             | 00:00:16       | 1,360               | 1,688                |
+| StudentSchoolAssociation   | INSERT         | 10,000             | 00:00:20       | 1,336               | 5,464                |
+| StudentSectionAssociation  | INSERT         | 50,000             | 00:01:28       | 10,032              | 58,632               |
+| Totals                     |                | 70,000             | 00:02:04       |
+
+### 100,000 records:
+| Table Name                 | Operation Name |  Number of Records | Execution Time | Data Space Used (KB)| Index Space Used (KB)|
+|----------------------------|----------------|--------------------|----------------|---------------------|----------------------|
+| Student                    | INSERT         | 100,000            | 00:02:46       | 13,560              | 15,384               |
+| StudentSchoolAssociation   | INSERT         | 100,000            | 00:03:10       | 13,336              | 51,920               |
+| StudentSectionAssociation  | INSERT         | 500,000            | 00:14:13       | 100,032             | 584,888              |
+| Totals                     |                | 700,000            | 00:20:09       | 
+
+### 1,000,000 records:
+| Table Name                 | Operation Name |  Number of Records | Execution Time | Data Space Used (KB)| Index Space Used (KB)|
+|----------------------------|----------------|--------------------|----------------|---------------------|----------------------|
+| Student                    | INSERT         | 1,000,000          | 00:27:23       | 135,600             | 150,522              |
+| StudentSchoolAssociation   | INSERT         | 1,000,000          | 00:32:10       | 133,336             | 520,200              |
+| StudentSectionAssociation  | INSERT         | 5,000,000          | 02:23:01       | 1,000,032           | 5,848,616            |
+| Totals                     |                | 7,000,000          | 03:22:34       | 
