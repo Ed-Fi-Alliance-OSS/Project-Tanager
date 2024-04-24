@@ -6,16 +6,17 @@ Additionally, it offers details of partitioning and clustered indexes within the
 
 ## DataTable Name: [dbo].[Documents]
 
-| Column Name   | Data Type        | Description |
-|---------------|------------------|-----------------|
-| id            | BIGINT           | Identity column |
-| partition_key | TINYINT          | Partition key for this table, derived from document_uuid |
-| document_uuid | UNIQUEIDENTIFIER | API resource id, clustered |
-| resource_name | TINYINT          | Example: Student |
-| edfi_doc      | VARBINARY(MAX)   | The document |
+| Column Name            | Data Type        | Description |
+|------------------------|------------------|-----------------|
+| id                     | BIGINT           | Identity column |
+| document_partition_key | TINYINT          | Partition key for this table, derived from document_uuid |
+| document_uuid          | UNIQUEIDENTIFIER | API resource id, clustered |
+| resource_name          | TINYINT          | Example: Student |
+| edfi_doc               | VARBINARY(MAX)   | The document |
 
 ### Indexes
-  Clustered Index Columns: partition_key, id
+  Clustered Index Columns: document_partition_key, id
+  NonClustered Index Columns: document_partition_key, document_uuid
 
 ### Partition
   Strategy: List partitioning  <br>
@@ -27,13 +28,14 @@ Additionally, it offers details of partitioning and clustered indexes within the
 | Column Name                 | Data Type        | Description |
 |-----------------------------|------------------|-----------------|
 | id                          | BIGINT           | Identity column |
-| partition_key               | TINYINT          | Partition key for this table, derived from document_uuid |
+| referential_partition_key   | TINYINT          | Partition key for this table, derived from referential_id |
 | referential_id              | UNIQUEIDENTIFIER | Extracted or superclassed document identity |
 | document_id                 | BIGINT           | Actual document id |
 | document_partition_key      | TINYINT          | Actual document partition key |
 
 ### Indexes
   Clustered Index Columns: partition_key, id
+  NonClustered Index Columns: referential_partition_key, referential_id
 
 ### Partition
   Strategy: List partitioning  <br>
@@ -45,14 +47,14 @@ Additionally, it offers details of partitioning and clustered indexes within the
 | Column Name               | Data Type | Description |
 |---------------------------|-----------|-----------------|
 | id                        | BIGINT    | Identity column |
-| partition_key             | TINYINT   | Partition key for this table, derived from parent_referential_id |
-| parent_alias_id           | BIGINT    | API resource id, clustered |
-| parent_partition_key      | TINYINT   | Example: Student |
-| referenced_alias_id       | BIGINT    | The document |
-| referenced_partition_key  | BIGINT    | The document |
+| document_id               | BIGINT    | Document id of parent document, non-unique non-clustered partition-aligned |
+| document_partition_key    | TINYINT   | Partition key, same as Documents.document_partition_key of parent document |
+| referenced_alias_id       | BIGINT    | Alias of document being referenced |
+| referenced_partition_key  | BIGINT    | Partition key of Aliases table, derived from Aliases.referential_id |
 
 ### Indexes
-  Clustered Index Columns: partition_key, id
+  Clustered Index Columns: document_partition_key, id
+  NonClustered Index Columns: document_partition_key,  document_id
 
 ### Partition
   Strategy: List partitioning  <br>
