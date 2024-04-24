@@ -70,33 +70,35 @@ Additionally, it offers details of partitioning and clustered indexes within the
 ### Data Operations
 
 ### Insert
-    Insert ( The insert operation will involve inserting a new record into table `Documents`. Additionally, it will create an alias record in table `Aliases` and generate references entries in table `References`.)
+    Insert ( The insert operation will involve inserting a new record into table `Documents`. Additionally,
+    it will create an alias record in table `Aliases` and generate references entries in table `References`.)
 
-    Note: Each insertion into the Documents table results in the creation of five references records inserted into the References table.
+    Note: Each insertion into the Documents table results in the creation of five references records inserted
+    into the References table.
 
 #### 10,000 documents
 
-| Table Name                | OperationName | ExecutionTime | Data Space Used (KB) | Index Space Used (KB) |
-|---------------------------|---------------|---------------|----------------------|-----------------------|
-| Student                   | INSERT        | 0:02:07       | 4976                 | 256                   |
-| StudentSchoolAssociation  | INSERT        | 0:02:09       | 8480                 | 256                   |
-| StudentSectionAssociation | INSERT        | 0:02:10       | 8510                 | 256                   |
+| Table Name                | OperationName | Total Records  | ExecutionTime | Data Space Used (KB) | Index Space Used (KB) |
+|---------------------------|---------------|----------------|---------------|----------------------|-----------------------|
+| Student                   | INSERT        | 70015          | 0:02:07       | 4976                 | 256                   |
+| StudentSchoolAssociation  | INSERT        | 70015          | 0:02:09       | 8480                 | 256                   |
+| StudentSectionAssociation | INSERT        | 70015          | 0:02:10       | 8510                 | 256                   |
 
 #### 100,000 documents
 
-| Table Name                | OperationName | ExecutionTime | Data Space Used (KB) | Index Space Used (KB) |
-|---------------------------|---------------|---------------|----------------------|-----------------------|
-| Student                   | INSERT        | 0:22:57       | 47544                | 384                   |
-| StudentSchoolAssociation  | INSERT        | 0:23:01       | 72472                | 384                   |
-| StudentSectionAssociation | INSERT        | 0:23:02       | 72490                | 384                   |
+| Table Name                | OperationName | Total Records  | ExecutionTime | Data Space Used (KB) | Index Space Used (KB) |
+|---------------------------|---------------|----------------|---------------|----------------------|-----------------------|
+| Student                   | INSERT        | 700015         | 0:22:57       | 47544                | 384                   |
+| StudentSchoolAssociation  | INSERT        | 700015         | 0:23:01       | 72472                | 384                   |
+| StudentSectionAssociation | INSERT        | 700015         | 0:23:02       | 72490                | 384                   |
 
 #### 1,000,000 documents
 
-| Table Name                | OperationName | ExecutionTime | Data Space Used (KB) | Index Space Used (KB) | With new Indexes (KB) |
-|---------------------------|---------------|---------------|----------------------|-----------------------|-----------------------|
-| Student                   | INSERT        | 3:53:59       | 473016               | 512                   | 43552                 |
-| StudentSchoolAssociation  | INSERT        | 3:54:01       | 714496               | 512                   | 43552                 |
-| StudentSectionAssociation | INSERT        | 3:54:03       | 714511               | 512                   | 43552                 |
+| Table Name                | OperationName | Total Records  | ExecutionTime | Data Space Used (KB) | Index Space Used (KB) | With new Indexes (KB) |
+|---------------------------|---------------|----------------|---------------|----------------------|-----------------------|-----------------------|
+| Student                   | INSERT        | 7000015        | 3:53:59       | 473016               | 512                   | 43552                 |
+| StudentSchoolAssociation  | INSERT        | 7000015        | 3:54:01       | 714496               | 512                   | 43552                 |
+| StudentSectionAssociation | INSERT        | 7000015        | 3:54:03       | 714511               | 512                   | 43552                 |
 
 ### Select Query Details
 
@@ -110,8 +112,8 @@ Additionally, it offers details of partitioning and clustered indexes within the
 
 | Table Name   | OperationName | ExecutionTime | Number Of Rows affected  | Details                                               |
 |--------------|---------------|---------------|--------------------------|-------------------------------------------------------|
-| Documents    | SELECT        | 0:00:42       | 1                        | Where condition with document_uuid                    |
-| Documents    | SELECT        | 0:00:07       | 1                        | Where condition with document_uuid and partition_key  |
+| Documents    | SELECT        | 0:00:42       | 1 from 1 mill records    | Where condition with document_uuid                    |
+| Documents    | SELECT        | 0:00:07       | 1 from 1 mill records    | Where condition with document_uuid and partition_key  |
 | Documents    | UPDATE        | 0:00:19       | 1000                     |                                                       |
 | Documents    | INSERT        | 0:00:15       | 10000                    | With 5 references per document and query table insert |
 | References   | SELECT        | 0:00:34       | 10000000                 | Select * from References                              |
