@@ -15,7 +15,7 @@ Additionally, it offers details of partitioning and clustered indexes within the
 | edfi_doc               | VARBINARY(MAX)   | The document |
 
 ### Indexes
-  Clustered Index Columns: document_partition_key, id
+  Clustered Index Columns: document_partition_key, id <br>
   NonClustered Index Columns: document_partition_key, document_uuid
 
 ### Partition
@@ -34,7 +34,7 @@ Additionally, it offers details of partitioning and clustered indexes within the
 | document_partition_key      | TINYINT          | Actual document partition key |
 
 ### Indexes
-  Clustered Index Columns: partition_key, id
+  Clustered Index Columns: partition_key, id <br>
   NonClustered Index Columns: referential_partition_key, referential_id
 
 ### Partition
@@ -53,7 +53,7 @@ Additionally, it offers details of partitioning and clustered indexes within the
 | referenced_partition_key  | BIGINT    | Partition key of Aliases table, derived from Aliases.referential_id |
 
 ### Indexes
-  Clustered Index Columns: document_partition_key, id
+  Clustered Index Columns: document_partition_key, id <br>
   NonClustered Index Columns: document_partition_key,  document_id
 
 ### Partition
