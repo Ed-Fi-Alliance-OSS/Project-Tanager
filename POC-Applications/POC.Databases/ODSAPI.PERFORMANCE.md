@@ -129,3 +129,10 @@ In this section, we will analyze the performance of the ODS database. To do so, 
 | StudentSchoolAssociation   | INSERT         | 1,000,000          | 00:32:10       | 133,336             | 520,200              |
 | StudentSectionAssociation  | INSERT         | 5,000,000          | 02:23:01       | 1,000,032           | 5,848,616            |
 | Totals                     |                | 7,000,000          | 03:22:34       | 
+
+
+| Having a Total of Students                | 1,000,000 |
+|-------------------------------------------------------|
+| Rows Update by Id (uniqueidentifier)      | 1,000     |
+| Time elapsed:                             | 00:00:58  |
+| Select the same quantity records updated: | 00:00:02  |
