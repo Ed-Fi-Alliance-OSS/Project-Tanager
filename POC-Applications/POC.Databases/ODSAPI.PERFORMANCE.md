@@ -132,7 +132,7 @@ In this section, we will analyze the performance of the ODS database. To do so, 
 
 
 | Having a Total of Students                | 1,000,000 |
-|-------------------------------------------------------|
+|-------------------------------------------|-----------|
 | Rows Update by Id (uniqueidentifier)      | 1,000     |
 | Time elapsed:                             | 00:00:58  |
 | Select the same quantity records updated: | 00:00:02  |
