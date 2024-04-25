@@ -49,7 +49,8 @@ able to hit those goals.
 
 ```mermaid
 erDiagram
-    References }o--|| Aliases : "2 FKs to Aliases per row, parent and referenced"
+    References }o--|| Aliases : "Referenced document alias"
+    References }o--|| Documents : "Parent document of reference"
     References {
         bigint id PK "Sequential key pattern, clustered"
         tinyint document_partition_key PK "Partition key, same as Documents.document_partition_key of parent document"
@@ -214,9 +215,9 @@ three tables use the sequential surrogate key pattern with size `BIGINT`.
 The `Documents` table holds all of the documents for all of the entities. `id` is the sequential surrogate
 primary key. `document_uuid` is the external GUID expressed in the API as the resource id. It will be indexed
 as unique and non-clustered to support both document_uuid uniqueness validation as well as direct access for
-GET/UPDATE/DELETE by id operations. `document_partition_key` is included as part of the primary key. It is derived from
-the `document_uuid`, either as a modulo or by taking low-order bits, and maps to a partition number. This will
-allow the index on `document_uuid` to be partition-aligned.
+GET/UPDATE/DELETE by id operations. `document_partition_key` is included as part of the primary key. It is
+derived from the `document_uuid`, either as a modulo or by taking low-order bits, and maps to a partition
+number. This will allow the index on `document_uuid` to be partition-aligned.
 
 `Documents` also includes metadata about the document, such as project name, resource name and resource
 version. The table will also include the document itself as `edfi_doc`, which will be stored compressed and
@@ -234,8 +235,8 @@ document references independent of data in the DB. Each document has at least on
 subclass documents have a second referential id, which is the document identity in the form of its superclass.
 `referential_id` will be indexed as unique and non-clustered to support referential_id uniqueness validation.
 
-`referential_partition_key` is included as part of the primary key. It is derived from the `referential_id`, either as a
-modulo or by taking low-order bits, and maps to a partition number. This will allow the index on
+`referential_partition_key` is included as part of the primary key. It is derived from the `referential_id`,
+either as a modulo or by taking low-order bits, and maps to a partition number. This will allow the index on
 `referential_id` to be partition-aligned.
 
 `Aliases` has a foreign key reference back to the document with this `referential_id`.
@@ -244,14 +245,14 @@ Delete attempts from the `Aliases` table validate that a document is not referen
 
 #### References Table
 
-The `References` table stores every document reference. It also has `id` as a sequential surrogate primary key.
-It shares `document_partition_key` as its own partition kay as part of the primary key.
+The `References` table stores every document reference. It also has `id` as a sequential surrogate primary
+key. It shares `document_partition_key` as its own partition kay as part of the primary key.
 
-The table is composed of a `document_id` foreign key reference back to the `Documents` table for
-the parent document of the reference, and a `referenced_alias_id` foreign key reference back to the `Aliases` table for
-the document being referenced. The purpose of the `Aliases` foreign key constraint is to perform reference validation.
-Insert attempts into this table validate reference existence. `document_id` will be indexed as non-unique, non-clustered
-and partition-aligned to support removal on document deletes and updates.
+The table is composed of a `document_id` foreign key reference back to the `Documents` table for the parent
+document of the reference, and a `referenced_alias_id` foreign key reference back to the `Aliases` table for
+the document being referenced. The purpose of the `Aliases` foreign key constraint is to perform reference
+validation. Insert attempts into this table validate reference existence. `document_id` will be indexed as
+non-unique, non-clustered and partition-aligned to support removal on document deletes and updates.
 
 #### Why not a table per resource?
 
@@ -433,9 +434,9 @@ slow down insert performance inserts. However, in a deployment where a search en
 separate process may not be viable either. In this case, we'll need to extract the queryable fields from the
 document before insert.
 
-The query table schema will be pre-generated, as will the JSON Paths to the queryable elements. The JSON Paths will
-be included with the API query field names in the ApiSchema.json file. The query field names will be all lowercased, and
-for ease of query construction the column names should be identical (i.e. not snake case).
+The query table schema will be pre-generated, as will the JSON Paths to the queryable elements. The JSON Paths
+will be included with the API query field names in the ApiSchema.json file. The query field names will be all
+lowercased, and for ease of query construction the column names should be identical (i.e. not snake case).
 
 #### Query SQL
 
