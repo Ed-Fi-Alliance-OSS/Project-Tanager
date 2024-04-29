@@ -33,9 +33,9 @@ related to this, but we won't prejudge whether it will be based off of streaming
 
 ### Simplicity
 
-As maintainability is a primary goal, we want to keep Tanager as simple as possible. Meadowlark demonstrated
+As maintainability is a primary goal, we want to keep DMS as simple as possible. Meadowlark demonstrated
 that we can simplify over the ODS/API by avoiding code-per-resource and instead use a generalized design
-applicable to any resource. While it may not be possible with Tanager to do this completely, we would like to
+applicable to any resource. While it may not be possible with DMS to do this completely, we would like to
 do it whenever possible.
 
 ### Performance
@@ -230,7 +230,7 @@ a sequential surrogate primary key.
 
 `referential_id` is a UUIDv5 (see [RFC 4122](https://datatracker.ietf.org/doc/html/rfc4122#section-4.3)) with
 an Ed-Fi namespace ID as the "namespace" and the resource name + the extracted document identity as the
-"name". This concept of a deterministic hash UUID allows Tanager to determine both document identities and
+"name". This concept of a deterministic hash UUID allows DMS to determine both document identities and
 document references independent of data in the DB. Each document has at least one referential id. Only
 subclass documents have a second referential id, which is the document identity in the form of its superclass.
 `referential_id` will be indexed as unique and non-clustered to support referential_id uniqueness validation.
@@ -266,7 +266,7 @@ complexity and 2) is redundant because referential_id already encodes the resour
 
 This design is for three very large tables. It's important to note that the largest US school district with
 positive attendance tracking could have on the order of 450 million attendance records in a school year. Since
-a Tanager instance will store a lot more that just attendance, we are targeting support on the order of 1
+a DMS instance will store a lot more that just attendance, we are targeting support on the order of 1
 billion rows in the `Documents` table. If we estimate that each document has on the order of 10 references to
 other documents (they can have arrays of references), then we need to be able to support on the order of 10
 billion rows in the `References` table.
@@ -280,7 +280,7 @@ on queries and partition-aligned indexing.
 
 ### Insert Operation
 
-From Tanager Core:
+From DMS Core:
 
 - JSON Document
 - Document Metadata
@@ -313,7 +313,7 @@ Transaction:
 
 ### Update Operation (no identity update)
 
-From Tanager Core:
+From DMS Core:
 
 - JSON Document
 - Document Metadata
@@ -335,7 +335,7 @@ Transaction:
 
 ### Update Operation (with identity update)
 
-From Tanager Core:
+From DMS Core:
 
 - JSON Document
 - Document Metadata
@@ -366,7 +366,7 @@ Transaction:
 
 ### Delete Operation
 
-From Tanager Core:
+From DMS Core:
 
 - Document UUID
 
@@ -381,7 +381,7 @@ Transaction:
 ### Query handling
 
 While the preferred method of query handling is via search engine, some deployments will not be able to handle
-the additional operational complexity. In these cases Tanager can be configured to handle queries in the main
+the additional operational complexity. In these cases DMS can be configured to handle queries in the main
 datastore at a cost of performance.
 
 Queries are handled by resource-specific "query" tables that include each searchable field. These tables are
@@ -419,7 +419,7 @@ erDiagram
     }
 ```
 
-For example, `QuerySchool` has a foreign key to the `Documents` table with a row per School document. Because
+For example, `QueryStudent` has a foreign key to the `Documents` table with a row per Student document. Because
 the query tables include the `Documents` partition key, query tables act as a cross-partition index on the
 Documents table while avoiding the downsides of an actual cross-partition index. For this reason, "Get All"
 queries will use these tables as well.
@@ -427,7 +427,7 @@ queries will use these tables as well.
 The other columns on a query table are a list of queryable columns that are available to an API user for
 GET-by-query. Pagination will operate on query tables only. Like the ODS/API there will be no indexes on
 individual query fields, preferring insert performance over ad hoc query performance. Deployments needing fast
-ad hoc query performance should consider using Tanager's search engine option.
+ad hoc query performance should consider using DMS's search engine option.
 
 The next question is how this tables get populated. The best way would be via a separate process so as not to
 slow down insert performance inserts. However, in a deployment where a search engine is not an option, a
@@ -441,10 +441,10 @@ lowercased, and for ease of query construction the column names should be identi
 #### Query SQL
 
 ```
--- Query table with search fields for School documents
-IF NOT EXISTS (select object_id from sys.objects where object_id = OBJECT_ID(N'[dbo].[QuerySchool]') and type = 'U')
+-- Query table with search fields for Student documents
+IF NOT EXISTS (select object_id from sys.objects where object_id = OBJECT_ID(N'[dbo].[QueryStudent]') and type = 'U')
 BEGIN
-CREATE TABLE [dbo].[QuerySchool] (
+CREATE TABLE [dbo].[QueryStudent] (
   id BIGINT IDENTITY(1,1),
   document_partition_key TINYINT NOT NULL,
   document_id BIGINT NOT NULL,
@@ -462,7 +462,7 @@ CREATE TABLE [dbo].[QuerySchool] (
   personalTitlePrefix VARCHAR(256) NULL,
   preferredFirstName VARCHAR(256) NULL,
   preferredLastSurname VARCHAR(256) NULL,
-  CONSTRAINT FK_QuerySchool_Documents FOREIGN KEY (document_partition_key, document_id)
+  CONSTRAINT FK_QueryStudent_Documents FOREIGN KEY (document_partition_key, document_id)
     REFERENCES [dbo].[Documents](partition_key, id),
   PRIMARY KEY CLUSTERED (id)
 );
@@ -470,13 +470,13 @@ END
 
 -- Example SQL query for a lastSurname. Join includes partition elimination on Documents table
 SELECT d.edfi_doc
-FROM Documents d INNER JOIN QuerySchool q
+FROM Documents d INNER JOIN QueryStudent q
   ON (d.partition_key = q.document_partition_key AND d.id = q.document_id)
 WHERE q.lastSurname = 'Williams';
 
--- Example SQL query for a "GET ALL". Acts as a cross-partition index for all School documents
+-- Example SQL query for a "GET ALL". Acts as a cross-partition index for all Student documents
 SELECT d.edfi_doc
-FROM Documents d INNER JOIN QuerySchool q
+FROM Documents d INNER JOIN QueryStudent q
   ON (d.partition_key = q.document_partition_key AND d.id = q.document_id);
 ```
 
