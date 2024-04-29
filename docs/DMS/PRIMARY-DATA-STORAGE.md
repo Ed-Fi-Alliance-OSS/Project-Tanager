@@ -33,9 +33,9 @@ related to this, but we won't prejudge whether it will be based off of streaming
 
 ### Simplicity
 
-As maintainability is a primary goal, we want to keep Tanager as simple as possible. Meadowlark demonstrated
+As maintainability is a primary goal, we want to keep DMS as simple as possible. Meadowlark demonstrated
 that we can simplify over the ODS/API by avoiding code-per-resource and instead use a generalized design
-applicable to any resource. While it may not be possible with Tanager to do this completely, we would like to
+applicable to any resource. While it may not be possible with DMS to do this completely, we would like to
 do it whenever possible.
 
 ### Performance
@@ -49,7 +49,8 @@ able to hit those goals.
 
 ```mermaid
 erDiagram
-    References }o--|| Aliases : "2 FKs to Aliases per row, parent and referenced"
+    References }o--|| Aliases : "Referenced document alias"
+    References }o--|| Documents : "Parent document of reference"
     References {
         bigint id PK "Sequential key pattern, clustered"
         tinyint document_partition_key PK "Partition key, same as Documents.document_partition_key of parent document"
@@ -214,9 +215,9 @@ three tables use the sequential surrogate key pattern with size `BIGINT`.
 The `Documents` table holds all of the documents for all of the entities. `id` is the sequential surrogate
 primary key. `document_uuid` is the external GUID expressed in the API as the resource id. It will be indexed
 as unique and non-clustered to support both document_uuid uniqueness validation as well as direct access for
-GET/UPDATE/DELETE by id operations. `document_partition_key` is included as part of the primary key. It is derived from
-the `document_uuid`, either as a modulo or by taking low-order bits, and maps to a partition number. This will
-allow the index on `document_uuid` to be partition-aligned.
+GET/UPDATE/DELETE by id operations. `document_partition_key` is included as part of the primary key. It is
+derived from the `document_uuid`, either as a modulo or by taking low-order bits, and maps to a partition
+number. This will allow the index on `document_uuid` to be partition-aligned.
 
 `Documents` also includes metadata about the document, such as project name, resource name and resource
 version. The table will also include the document itself as `edfi_doc`, which will be stored compressed and
@@ -229,13 +230,13 @@ a sequential surrogate primary key.
 
 `referential_id` is a UUIDv5 (see [RFC 4122](https://datatracker.ietf.org/doc/html/rfc4122#section-4.3)) with
 an Ed-Fi namespace ID as the "namespace" and the resource name + the extracted document identity as the
-"name". This concept of a deterministic hash UUID allows Tanager to determine both document identities and
+"name". This concept of a deterministic hash UUID allows DMS to determine both document identities and
 document references independent of data in the DB. Each document has at least one referential id. Only
 subclass documents have a second referential id, which is the document identity in the form of its superclass.
 `referential_id` will be indexed as unique and non-clustered to support referential_id uniqueness validation.
 
-`referential_partition_key` is included as part of the primary key. It is derived from the `referential_id`, either as a
-modulo or by taking low-order bits, and maps to a partition number. This will allow the index on
+`referential_partition_key` is included as part of the primary key. It is derived from the `referential_id`,
+either as a modulo or by taking low-order bits, and maps to a partition number. This will allow the index on
 `referential_id` to be partition-aligned.
 
 `Aliases` has a foreign key reference back to the document with this `referential_id`.
@@ -244,14 +245,14 @@ Delete attempts from the `Aliases` table validate that a document is not referen
 
 #### References Table
 
-The `References` table stores every document reference. It also has `id` as a sequential surrogate primary key.
-It shares `document_partition_key` as its own partition kay as part of the primary key.
+The `References` table stores every document reference. It also has `id` as a sequential surrogate primary
+key. It shares `document_partition_key` as its own partition kay as part of the primary key.
 
-The table is composed of a `document_id` foreign key reference back to the `Documents` table for
-the parent document of the reference, and a `referenced_alias_id` foreign key reference back to the `Aliases` table for
-the document being referenced. The purpose of the `Aliases` foreign key constraint is to perform reference validation.
-Insert attempts into this table validate reference existence. `document_id` will be indexed as non-unique, non-clustered
-and partition-aligned to support removal on document deletes and updates.
+The table is composed of a `document_id` foreign key reference back to the `Documents` table for the parent
+document of the reference, and a `referenced_alias_id` foreign key reference back to the `Aliases` table for
+the document being referenced. The purpose of the `Aliases` foreign key constraint is to perform reference
+validation. Insert attempts into this table validate reference existence. `document_id` will be indexed as
+non-unique, non-clustered and partition-aligned to support removal on document deletes and updates.
 
 #### Why not a table per resource?
 
@@ -265,7 +266,7 @@ complexity and 2) is redundant because referential_id already encodes the resour
 
 This design is for three very large tables. It's important to note that the largest US school district with
 positive attendance tracking could have on the order of 450 million attendance records in a school year. Since
-a Tanager instance will store a lot more that just attendance, we are targeting support on the order of 1
+a DMS instance will store a lot more that just attendance, we are targeting support on the order of 1
 billion rows in the `Documents` table. If we estimate that each document has on the order of 10 references to
 other documents (they can have arrays of references), then we need to be able to support on the order of 10
 billion rows in the `References` table.
@@ -279,7 +280,7 @@ on queries and partition-aligned indexing.
 
 ### Insert Operation
 
-From Tanager Core:
+From DMS Core:
 
 - JSON Document
 - Document Metadata
@@ -312,7 +313,7 @@ Transaction:
 
 ### Update Operation (no identity update)
 
-From Tanager Core:
+From DMS Core:
 
 - JSON Document
 - Document Metadata
@@ -334,7 +335,7 @@ Transaction:
 
 ### Update Operation (with identity update)
 
-From Tanager Core:
+From DMS Core:
 
 - JSON Document
 - Document Metadata
@@ -365,7 +366,7 @@ Transaction:
 
 ### Delete Operation
 
-From Tanager Core:
+From DMS Core:
 
 - Document UUID
 
@@ -380,7 +381,7 @@ Transaction:
 ### Query handling
 
 While the preferred method of query handling is via search engine, some deployments will not be able to handle
-the additional operational complexity. In these cases Tanager can be configured to handle queries in the main
+the additional operational complexity. In these cases DMS can be configured to handle queries in the main
 datastore at a cost of performance.
 
 Queries are handled by resource-specific "query" tables that include each searchable field. These tables are
@@ -418,7 +419,7 @@ erDiagram
     }
 ```
 
-For example, `QuerySchool` has a foreign key to the `Documents` table with a row per School document. Because
+For example, `QueryStudent` has a foreign key to the `Documents` table with a row per Student document. Because
 the query tables include the `Documents` partition key, query tables act as a cross-partition index on the
 Documents table while avoiding the downsides of an actual cross-partition index. For this reason, "Get All"
 queries will use these tables as well.
@@ -426,24 +427,24 @@ queries will use these tables as well.
 The other columns on a query table are a list of queryable columns that are available to an API user for
 GET-by-query. Pagination will operate on query tables only. Like the ODS/API there will be no indexes on
 individual query fields, preferring insert performance over ad hoc query performance. Deployments needing fast
-ad hoc query performance should consider using Tanager's search engine option.
+ad hoc query performance should consider using DMS's search engine option.
 
 The next question is how this tables get populated. The best way would be via a separate process so as not to
 slow down insert performance inserts. However, in a deployment where a search engine is not an option, a
 separate process may not be viable either. In this case, we'll need to extract the queryable fields from the
 document before insert.
 
-The query table schema will be pre-generated, as will the JSON Paths to the queryable elements. The JSON Paths will
-be included with the API query field names in the ApiSchema.json file. The query field names will be all lowercased, and
-for ease of query construction the column names should be identical (i.e. not snake case).
+The query table schema will be pre-generated, as will the JSON Paths to the queryable elements. The JSON Paths
+will be included with the API query field names in the ApiSchema.json file. The query field names will be all
+lowercased, and for ease of query construction the column names should be identical (i.e. not snake case).
 
 #### Query SQL
 
 ```
--- Query table with search fields for School documents
-IF NOT EXISTS (select object_id from sys.objects where object_id = OBJECT_ID(N'[dbo].[QuerySchool]') and type = 'U')
+-- Query table with search fields for Student documents
+IF NOT EXISTS (select object_id from sys.objects where object_id = OBJECT_ID(N'[dbo].[QueryStudent]') and type = 'U')
 BEGIN
-CREATE TABLE [dbo].[QuerySchool] (
+CREATE TABLE [dbo].[QueryStudent] (
   id BIGINT IDENTITY(1,1),
   document_partition_key TINYINT NOT NULL,
   document_id BIGINT NOT NULL,
@@ -461,7 +462,7 @@ CREATE TABLE [dbo].[QuerySchool] (
   personalTitlePrefix VARCHAR(256) NULL,
   preferredFirstName VARCHAR(256) NULL,
   preferredLastSurname VARCHAR(256) NULL,
-  CONSTRAINT FK_QuerySchool_Documents FOREIGN KEY (document_partition_key, document_id)
+  CONSTRAINT FK_QueryStudent_Documents FOREIGN KEY (document_partition_key, document_id)
     REFERENCES [dbo].[Documents](partition_key, id),
   PRIMARY KEY CLUSTERED (id)
 );
@@ -469,13 +470,13 @@ END
 
 -- Example SQL query for a lastSurname. Join includes partition elimination on Documents table
 SELECT d.edfi_doc
-FROM Documents d INNER JOIN QuerySchool q
+FROM Documents d INNER JOIN QueryStudent q
   ON (d.partition_key = q.document_partition_key AND d.id = q.document_id)
 WHERE q.lastSurname = 'Williams';
 
--- Example SQL query for a "GET ALL". Acts as a cross-partition index for all School documents
+-- Example SQL query for a "GET ALL". Acts as a cross-partition index for all Student documents
 SELECT d.edfi_doc
-FROM Documents d INNER JOIN QuerySchool q
+FROM Documents d INNER JOIN QueryStudent q
   ON (d.partition_key = q.document_partition_key AND d.id = q.document_id);
 ```
 
