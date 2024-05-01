@@ -18,10 +18,11 @@ In this section, we will analyze the performance of the ODS database. To do so, 
  *	Sections
 
  *-*	A new environment was created for the execution of the tests. Some values configured in the environment are:
- *	Windows Server 2020
+ *  Size: Standard E4s v3
+ *  Windows Server 2020
  *	Microsoft SQL Server 2022
  *	32GB RAM
- *	4 CPU 2.56 GHz
+ *	4 vCPUs
 
 #### Requirements:
 *-*	Download the following artifacts from the Project-Tanager repository ([POC-Applications\POC.Databases\Artifacts\MsSql](https://github.com/Ed-Fi-Alliance-OSS/Project-Tanager/tree/a61373c5e9542b87b8d5fa4a9da84f6a79362ee3/POC-Applications/POC.Databases/Artifacts/MsSql)):
@@ -136,3 +137,22 @@ In this section, we will analyze the performance of the ODS database. To do so, 
 | Rows Update by Id (uniqueidentifier)      | 1,000     |
 | Time elapsed:                             | 00:00:58  |
 | Select the same quantity records updated: | 00:00:02  |
+
+-----------
+## Third round of execution
+
+VM Improvements:
+ *  Size: Standard D8as V4
+ *  Windows Server 2020
+ *	Microsoft SQL Server 2022
+ *	32GB RAM
+ *	8 vCPUs
+
+After making some improvements to the VM, the results of running the test with 100,000 records are as follow:
+
+| Table Name                 | Operation Name |  Number of Records | Execution Time | Data Space Used (KB)| Index Space Used (KB)|
+|----------------------------|----------------|--------------------|----------------|---------------------|----------------------|
+| Student                    | INSERT         | 100,000            | 00:02:25       | 13,560              | 15,376               |
+| StudentSchoolAssociation   | INSERT         | 100,000            | 00:02:40       | 13,336              | 51,992               |
+| StudentSectionAssociation  | INSERT         | 500,000            | 00:12:02       | 100,032             | 585,024              |
+| Totals                     |                | 700,000            | 00:17:07       | 
