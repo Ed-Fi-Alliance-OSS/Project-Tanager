@@ -156,3 +156,9 @@ After making some improvements to the VM, the results of running the test with 1
 | StudentSchoolAssociation   | INSERT         | 100,000            | 00:02:40       | 13,336              | 51,992               |
 | StudentSectionAssociation  | INSERT         | 500,000            | 00:12:02       | 100,032             | 585,024              |
 | Totals                     |                | 700,000            | 00:17:07       | 
+
+| Having a Total of Students                | 100,000   |
+|-------------------------------------------|-----------|
+| Rows Update by Id (uniqueidentifier)      | 1,000     |
+| Time elapsed:                             | 00:00:11  |
+| Select the same quantity records updated: | 00:00:01  |
