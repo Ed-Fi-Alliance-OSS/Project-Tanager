@@ -1,11 +1,7 @@
 ﻿[
   {
     "localEducationAgencyReference": {
-      "localEducationAgencyId": 255901,
-      "link": {
-        "rel": "LocalEducationAgency",
-        "href": "/ed-fi/localEducationAgencies/dc8fcdc127734b11b5d113ac6b8d9c54"
-      }
+      "localEducationAgencyId": 255901
     },
     "schoolId": 255901001,
     "nameOfInstitution": "Grand Bend High School",
@@ -93,8 +89,6 @@
       {
         "gradeLevelDescriptor": "uri://ed-fi.org/GradeLevelDescriptor#Twelfth grade"
       }
-    ],
-    "_etag": "5250145422930362568",
-    "_lastModifiedDate": "2024-03-13T15:27:30.2974664Z"
+    ]
   }
 ]

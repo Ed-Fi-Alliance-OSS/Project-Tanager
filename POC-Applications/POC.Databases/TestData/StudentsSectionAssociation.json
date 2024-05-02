@@ -5,24 +5,14 @@
             "schoolId": 255901001,
             "schoolYear": 2022,
             "sectionIdentifier": "25590100102Trad220ALG112011",
-            "sessionName": "2021-2022 Fall Semester",
-            "link": {
-                "rel": "Section",
-                "href": "/ed-fi/sections/01e367dec14448158f551b1276e89469"
-            }
+            "sessionName": "2021-2022 Fall Semester"
         },
         "studentReference": {
-            "studentUniqueId": "604822",
-            "link": {
-                "rel": "Student",
-                "href": "/ed-fi/students/7f427af23ed84961907dccd3d76b58d5"
-            }
+            "studentUniqueId": "604822"
         },
         "beginDate": "2021-08-23",
         "endDate": "2021-12-17",
         "homeroomIndicator": false,
-        "programs": [],
-        "_etag": "5250060874274551294",
-        "_lastModifiedDate": "2023-12-06T18:53:04.716339Z"
+        "programs": []
     }
 ]

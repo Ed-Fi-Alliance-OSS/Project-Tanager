@@ -115,6 +115,21 @@ After making some improvements to the VM, the results of running the test with 1
 |---------------------------|---------------|----------------|---------------|----------------------|-----------------------|
 | StudentSchoolAssociation  | INSERT        | 7000030        | 3:05:24       | 714712               | 43912                 |
 
+With VARBINARY
+
+| Table Name                | OperationName | Total Records  | ExecutionTime | Data Space Used (KB) | With new Indexes (KB) |
+|---------------------------|---------------|----------------|---------------|----------------------|-----------------------|
+| StudentSchoolAssociation  | INSERT        | 10,000         | 00:02:15      | 4632                 | 1024                  |
+| StudentSchoolAssociation  | INSERT        | 1,000,000      | 03:05:24      | 714496               | 43552                 |
+
+With NVARCHAR
+
+| Table Name                | OperationName | Total Records  | ExecutionTime | Data Space Used (KB) | With new Indexes (KB) |
+|---------------------------|---------------|----------------|---------------|----------------------|-----------------------|
+| StudentSchoolAssociation  | INSERT        | 10,000         | 00:01:40      | 5800                 | 1032                  |
+| StudentSchoolAssociation  | INSERT        | 100,000        | 00:17:04      | 57232                | 4728                  |
+| StudentSchoolAssociation  | INSERT        | 1,000,000      | 02:49:42      | 571528               | 46360                 |
+
 ### Select Query Details
 
     Select with guid
