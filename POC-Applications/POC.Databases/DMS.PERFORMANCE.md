@@ -102,6 +102,19 @@ Additionally, it offers details of partitioning and clustered indexes within the
 | StudentSchoolAssociation  | INSERT        | 7000015        | 3:54:01       | 714496               | 512                   | 43552                 |
 | StudentSectionAssociation | INSERT        | 7000015        | 3:54:03       | 714511               | 512                   | 43552                 |
 
+VM Improvements:
+ *  Size: Standard D8as V4
+ *  Windows Server 2020
+ *	Microsoft SQL Server 2022
+ *	32GB RAM
+ *	8 vCPUs
+
+After making some improvements to the VM, the results of running the test with 1,000,000 records are as follow:
+
+| Table Name                | OperationName | Total Records  | ExecutionTime | Data Space Used (KB) | With new Indexes (KB) |
+|---------------------------|---------------|----------------|---------------|----------------------|-----------------------|
+| StudentSchoolAssociation  | INSERT        | 7000030        | 3:05:24       | 714712               | 43912                 |
+
 ### Select Query Details
 
     Select with guid
