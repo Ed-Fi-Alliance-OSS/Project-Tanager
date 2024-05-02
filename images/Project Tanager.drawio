@@ -1,0 +1,135 @@
+<mxfile host="app.diagrams.net" modified="2024-04-16T02:32:41.661Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36" etag="3kAkm4Q3_KKjz3weurJO" version="24.2.5" type="device" pages="2">
+  <diagram name="System Architecture" id="v3n5sksxTkO3odkdHbcb">
+    <mxGraphModel dx="1101" dy="838" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-2" value="&lt;b&gt;Ed-Fi Software&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;verticalAlign=top;" parent="1" vertex="1">
+          <mxGeometry x="309" y="67" width="490" height="440" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-29" value="&lt;b&gt;COTS or OSS Provider&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;verticalAlign=bottom;" parent="1" vertex="1">
+          <mxGeometry x="309" y="537" width="490" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-40" value="CRUD" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;curved=0;exitX=1;exitY=0.75;exitDx=0;exitDy=0;" parent="1" source="3cUGfOyQUR-D_pFPik-B-1" target="3cUGfOyQUR-D_pFPik-B-22" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="219" y="252" />
+              <mxPoint x="219" y="438" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-1" value="&lt;b&gt;Client Applications&lt;/b&gt;&lt;div&gt;&lt;ul&gt;&lt;li style=&quot;text-align: left;&quot;&gt;Vendors&lt;/li&gt;&lt;li style=&quot;text-align: left;&quot;&gt;System Administrators&lt;/li&gt;&lt;li style=&quot;text-align: left;&quot;&gt;Ed-Fi integrated applications&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;" style="whiteSpace=wrap;html=1;aspect=fixed;" parent="1" vertex="1">
+          <mxGeometry x="69" y="147" width="140" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-39" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;curved=0;" parent="1" source="3cUGfOyQUR-D_pFPik-B-3" target="3cUGfOyQUR-D_pFPik-B-21" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-41" value="token&lt;div&gt;inspection&lt;/div&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;curved=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" parent="1" source="3cUGfOyQUR-D_pFPik-B-3" target="3cUGfOyQUR-D_pFPik-B-31" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="389" y="520" />
+              <mxPoint x="434" y="520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-3" value="Ed-Fi Data Management Service" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;align=center;fontSize=14;" parent="1" vertex="1">
+          <mxGeometry x="329" y="127" width="240" height="206" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-4" value="Ed-Fi Discovery API" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;fillColor=default;" parent="3cUGfOyQUR-D_pFPik-B-3" vertex="1">
+          <mxGeometry y="26" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-5" value="Ed-Fi&amp;nbsp;Descriptors API" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;fillColor=default;" parent="3cUGfOyQUR-D_pFPik-B-3" vertex="1">
+          <mxGeometry y="56" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-6" value="Ed-Fi&amp;nbsp;Resources API" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;fillColor=default;" parent="3cUGfOyQUR-D_pFPik-B-3" vertex="1">
+          <mxGeometry y="86" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-8" value="Ed-Fi&amp;nbsp;Change Queries API" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;fillColor=default;" parent="3cUGfOyQUR-D_pFPik-B-3" vertex="1">
+          <mxGeometry y="116" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-9" value="Ed-Fi&amp;nbsp;Profiles API" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;fillColor=default;" parent="3cUGfOyQUR-D_pFPik-B-3" vertex="1">
+          <mxGeometry y="146" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-10" value="Ed-Fi&amp;nbsp;Identity API" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;fillColor=default;" parent="3cUGfOyQUR-D_pFPik-B-3" vertex="1">
+          <mxGeometry y="176" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-18" value="Configuration Database" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" parent="1" vertex="1">
+          <mxGeometry x="689" y="353" width="80" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-20" value="" style="group" parent="1" vertex="1" connectable="0">
+          <mxGeometry x="649" y="87" width="102" height="121" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-15" value="Tenant Instance Databases" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" parent="3cUGfOyQUR-D_pFPik-B-20" vertex="1">
+          <mxGeometry x="22" width="80" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-14" value="Tenant Instance Databases" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" parent="3cUGfOyQUR-D_pFPik-B-20" vertex="1">
+          <mxGeometry x="12" y="11" width="80" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-13" value="Tenant Instance Databases" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" parent="3cUGfOyQUR-D_pFPik-B-20" vertex="1">
+          <mxGeometry y="21" width="80" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-37" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;curved=0;" parent="1" source="3cUGfOyQUR-D_pFPik-B-21" target="3cUGfOyQUR-D_pFPik-B-18" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-21" value="Ed-Fi Configuration Service" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;align=center;fontSize=14;" parent="1" vertex="1">
+          <mxGeometry x="409" y="397" width="220" height="86" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-22" value="Admin API?" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;fillColor=default;" parent="3cUGfOyQUR-D_pFPik-B-21" vertex="1">
+          <mxGeometry y="26" width="220" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-23" value="Tenant Management API?" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;fillColor=default;" parent="3cUGfOyQUR-D_pFPik-B-21" vertex="1">
+          <mxGeometry y="56" width="220" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-31" value="OpenID Provider" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;align=center;fontSize=14;" parent="1" vertex="1">
+          <mxGeometry x="379" y="557" width="220" height="116" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-32" value="OpenID Connect Core" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;fillColor=default;" parent="3cUGfOyQUR-D_pFPik-B-31" vertex="1">
+          <mxGeometry y="26" width="220" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-33" value="OpenID Connect Discovery" style="text;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;fillColor=default;" parent="3cUGfOyQUR-D_pFPik-B-31" vertex="1">
+          <mxGeometry y="56" width="220" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-34" value="OAuth Client Registration API" style="text;strokeColor=none;fillColor=default;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" parent="3cUGfOyQUR-D_pFPik-B-31" vertex="1">
+          <mxGeometry y="86" width="220" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-19" value="OpenID Database" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" parent="1" vertex="1">
+          <mxGeometry x="659" y="557" width="80" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-35" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;curved=0;" parent="1" source="3cUGfOyQUR-D_pFPik-B-33" target="3cUGfOyQUR-D_pFPik-B-19" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-36" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;curved=0;" parent="1" source="3cUGfOyQUR-D_pFPik-B-3" target="3cUGfOyQUR-D_pFPik-B-13" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-38" value="CRUD" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;curved=0;" parent="1" source="3cUGfOyQUR-D_pFPik-B-1" target="3cUGfOyQUR-D_pFPik-B-6" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="3cUGfOyQUR-D_pFPik-B-42" value="authentication" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;curved=0;entryX=-0.005;entryY=0.3;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="3cUGfOyQUR-D_pFPik-B-1" target="3cUGfOyQUR-D_pFPik-B-32" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="251" y="623" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="2ZB4XXBIGSUpJ7m5BPyF" name="DMS DB">
+    <mxGraphModel dx="1101" dy="838" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="do90hbiQsA3nd3YPqLk_-1" value="List" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;align=center;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="340" y="380" width="160" height="116" as="geometry" />
+        </mxCell>
+        <mxCell id="do90hbiQsA3nd3YPqLk_-2" value="Item 1" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" vertex="1" parent="do90hbiQsA3nd3YPqLk_-1">
+          <mxGeometry y="26" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="do90hbiQsA3nd3YPqLk_-3" value="Item 2" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" vertex="1" parent="do90hbiQsA3nd3YPqLk_-1">
+          <mxGeometry y="56" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="do90hbiQsA3nd3YPqLk_-4" value="Item 3" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" vertex="1" parent="do90hbiQsA3nd3YPqLk_-1">
+          <mxGeometry y="86" width="160" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

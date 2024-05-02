@@ -1,7 +1,7 @@
 # Project Tanager
 
-Design documents and discussions around Ed-Fi's "Project Tanager", which is
-building the next generation of Ed-Fi technology.
+Design documents and discussions around the Ed-Fi Alliance's "Project Tanager",
+which is building the next generation of the Ed-Fi Alliance Technology Suite.
 
 ![Scarlet Tanager, by Adam Jackson, no rights reserved](images/scarlet-tanager_by_adam-jackson_no-rights-reserved.jpg)
 
@@ -10,8 +10,10 @@ building the next generation of Ed-Fi technology.
     architectural vision
 * Products (Tanager is "project", these are the products):
   * [Data Management Service](https://github.com/Ed-Fi-Alliance-OSS/Data-Management-Service)
+  * Configuration Service - pending
 * Boilerplate
-  * [Code of Conduct](./CODE_OF_CONDUCT.md)
+  * [How to Contribute](./CONTRIBUTING.md)
+  * [Contributor Code of Conduct](./CODE_OF_CONDUCT.md)
   * [List of Contributors](./CONTRIBUTORS.md)
   * [Copyright and License Notices](./NOTICES.md)
   * [License](./LICENSE)
