@@ -113,14 +113,15 @@ After making some improvements to the VM, the results of running the test with 1
 
 | Table Name                | OperationName | Total Records  | ExecutionTime | Data Space Used (KB) | With new Indexes (KB) |
 |---------------------------|---------------|----------------|---------------|----------------------|-----------------------|
-| StudentSchoolAssociation  | INSERT        | 7000030        | 3:05:24       | 714712               | 43912                 |
+| StudentSchoolAssociation  | INSERT        | 7000030        | 3:05:24       | 435048               | 44104                 |
 
 With VARBINARY
 
 | Table Name                | OperationName | Total Records  | ExecutionTime | Data Space Used (KB) | With new Indexes (KB) |
 |---------------------------|---------------|----------------|---------------|----------------------|-----------------------|
 | StudentSchoolAssociation  | INSERT        | 10,000         | 00:02:15      | 4632                 | 1024                  |
-| StudentSchoolAssociation  | INSERT        | 1,000,000      | 03:05:24      | 714496               | 43552                 |
+| StudentSchoolAssociation  | INSERT        | 100,000        | 00:22:04      | 43744                | 4632                  |
+| StudentSchoolAssociation  | INSERT        | 1,000,000      | 03:13:02      | 435048               | 44104                 |
 
 With NVARCHAR
 
