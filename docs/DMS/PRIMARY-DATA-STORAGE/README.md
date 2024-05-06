@@ -208,7 +208,7 @@ The proof-of-concept process helped uncover some details that need to guide the
 implementation:
 
 - Compared to `varbinary`, using `varchar` for the JSON documents results in
-  higher performance and smaller storage requirements.
+  higher performance, albeit at the cost of approx 20% higher disk space usage.
 - The number of partitions can be configured at the application level, although
   it _must not_ be updated after deployment without downtime to re-organize the
   existing records. Partition function can be in C#.
