@@ -65,6 +65,14 @@ lowercased, and for ease of query construction the column names should be identi
 
 ## Implementation
 
+### Business Logic
+
+Insertion into query tables will be enabled at runtime by feature flag. The
+insertion must be in the same atomic transaction context as the core table
+inserts.
+
+### DDL
+
 The scripts below are for illustrative purposes only. Each table should only provide the queryable columns.
 
 ```sql

@@ -209,43 +209,52 @@ implementation:
 
 - Compared to `varbinary`, using `varchar` for the JSON documents results in
   higher performance and smaller storage requirements.
-- The _partition key_ should be defined in a SQL function that takes the
-  _primary key_ value as input, so that an implementation can modify the
-  partition key without having to recompile the C# application.
-- To avoid having the C# call out to the database to query the partition key
-  function, the application can call stored procedures. The stored procedures
-  will encapsulate the logic of looking up the partition key before performing
-  the relevant operation.
-- The stored procedures can also encapsulate details of writing to the three
-  tables. They treat all three writes as an atomic unit by providing appropriate
-  transaction management.
-- There should thus be three stored procedures, one each for
-  - Insert
-  - Update
-  - Delete
+- The number of partitions can be configured at the application level, although
+  it _must not_ be updated after deployment without downtime to re-organize the
+  existing records. Partition function can be in C#.
+- All operations across these tables need to be in a single atomic transaction.
+  - Open question: should the transaction be opened and closed in the business
+    layer or in the data access layer?
+  - Thinking ahead to the potential of query tables, they might be handled in a
+    different class than the main logic. In that case, if transactions are
+    handled in the data access layer, then it may make sense to have an internal
+    facade so that the business layer only has one call to make. The facade then
+    hides the complexity of transaction handling and making multiple repository
+    calls.
 
-The stored procedures _should not_ insert data into query tables. Insertion into
-query tables will be enabled at runtime by feature flag. They do imply that the
-application code should initialize a transaction _in the business logic layer_
-before calling _data storage layer_.
-
-The following sequence diagram gives a sense of the desired application design:
+The following sequence diagram gives a sense of the potential application design:
 
 ```mermaid
 sequenceDiagram
-    BusinessLayer->>+DataLayer: BeginTransaction()
-    DataLayer-->>BusinessLayer: transactionScope
-    BusinessLayer->>+DataLayer: Insert(doc, metadata, transactionScope)
-    DataLayer->>+Database: call dms.insert(...)
+    participant BusinessLayer
+    participant DataFacade
+    participant InsertCommand
+    participant QueryInsertCommand
+    participant DbDriver
+
+    BusinessLayer->>DataFacade: Insert(doc, metadata)
+    DataFacade->>DbDriver: StartTransaction()
+    DataFacade->>InsertCommand: Run(trans, doc, metadata)
+    InsertCommand->>DbDriver: Execute(trans, documentInsertStatement)
+    InsertCommand->>DbDriver: Execute(trans, aliasInsertStatement)
+    InsertCommand->>DbDriver: Execute(trans, referenceInsertStatement)
 
     alt Use Query Tables
-        BusinessLayer->>+DataLayer: InsertQueryTable(doc, transactionScope)
+      DataFacade->>QueryInsertCommand: Run(trans, doc)
+      QueryInsertCommand->>DbDriver: Execute(trans, insertStatement)
     end
 
-    BusinessLayer->>BusinessLayer: transactionScope.Commit()
+    break Any Errors
+      DataFacade->>DbDriver: Rollback()
+      DataFacade-->>BusinessLayer: errorDetail
+      BusinessLayer->BusinessLayer: Log(errorDetail)
+    end
+
+    DataFacade->>DbDriver: Commit()
+    DataFacade-->>BusinessLayer: success
 ```
 
-### Insert Stored Procedure
+### Insert Operation
 
 From DMS Core:
 
