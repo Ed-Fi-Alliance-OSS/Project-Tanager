@@ -1,4 +1,4 @@
-# DMS Feature: Primary Data Storage
+# Design Options for Data Management Service Data Storage
 
 ## Problems to solve via DB design
 

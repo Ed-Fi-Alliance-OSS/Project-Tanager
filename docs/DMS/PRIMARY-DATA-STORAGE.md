@@ -1,5 +1,12 @@
 # DMS Feature: Primary Data Storage
 
+> [!NOTE]
+> The application architecture will have a plugin system that enables others to
+> customize the database storage. The design described below will be implemented
+> with Microsoft SQL Server (MSSQL) and PostgreSQL plugins that come out of the
+> box with the Data Management Service. Other designs could be built and
+> implemented, so long as the REST API implementation remains unchanged.
+
 ## Problems to solve via DB design
 
 ### Existence and reference validation
@@ -43,9 +50,17 @@ do it whenever possible.
 We need to make sure that we design to meet performance goals, and test early and often to ensure that we are
 able to hit those goals.
 
-## Implementation
+## Solution
 
-### ER Diagram
+> [!TIP]
+> See [Design Options for Data Management Service Data Storage](./PRIMARY-DATA-STORAGE-alternatives.md)
+> for detailed analysis of potential solutions, including drawbacks and mitigating factors.
+
+### General Structure
+
+This is very much like the Meadowlark implementation of the PostgreSQL backend, except we want to take
+advantage of foreign key constraints for reference validation. We also want to introduce partitioning. All
+three tables use the sequential surrogate key pattern with size `BIGINT`.
 
 ```mermaid
 erDiagram
@@ -76,139 +91,6 @@ erDiagram
         JSON edfi_doc "The document"
     }
 ```
-
-### SQL DDL
-
-```
------------------ Documents Table ------------------
-
--- 16 partitions, 0 through 15
-IF NOT EXISTS (SELECT * FROM sys.partition_functions
-    WHERE name = 'partition_function_Documents')
-BEGIN
-    CREATE PARTITION FUNCTION partition_function_Documents(TINYINT)
-           AS RANGE RIGHT FOR VALUES (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
-END
-
-IF NOT EXISTS (SELECT * FROM sys.partition_schemes
-    WHERE name = 'partition_scheme_Documents')
-BEGIN
--- All on the primary filegroup
-CREATE PARTITION SCHEME partition_scheme_Documents
-  AS PARTITION partition_function_Documents
-  ALL TO ('PRIMARY');
-END
-
-IF NOT EXISTS (select object_id from sys.objects where object_id = OBJECT_ID(N'[dbo].[Documents]') and type = 'U')
-BEGIN
-CREATE TABLE [dbo].[Documents] (
-  id BIGINT IDENTITY(1,1),
-  document_partition_key TINYINT NOT NULL,
-  document_uuid UNIQUEIDENTIFIER NOT NULL,
-  resource_name VARCHAR(256) NOT NULL,
-  edfi_doc VARBINARY(MAX) NOT NULL,
-  PRIMARY KEY CLUSTERED (document_partition_key ASC, id ASC)
-  ON partition_scheme_Documents (document_partition_key)
-);
-END
-
--- edfi_doc stored as a pointer
-EXEC sp_tableoption 'dbo.Documents', 'large value types out of row', 1;
-
-
--- GET/UPDATE/DELETE by id lookup support, document_uuid uniqueness validation
-IF NOT EXISTS (SELECT name FROM sys.indexes WHERE name = N'UX_Documents_DocumentUuid')
-    CREATE UNIQUE NONCLUSTERED INDEX UX_Documents_DocumentUuid
-    ON [dbo].[Documents] (document_partition_key, document_uuid);
-
------------------- Aliases Table ------------------
-
--- 16 partitions, 0 through 15
-IF NOT EXISTS (SELECT * FROM sys.partition_functions
-    WHERE name = 'partition_function_Aliases')
-BEGIN
-CREATE PARTITION FUNCTION partition_function_Aliases(TINYINT)
-  AS RANGE RIGHT FOR VALUES (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
-END
-
-IF NOT EXISTS (SELECT * FROM sys.partition_schemes
-    WHERE name = 'partition_scheme_Aliases')
-BEGIN
--- All on the primary filegroup
-CREATE PARTITION SCHEME partition_scheme_Aliases
-  AS PARTITION partition_function_Aliases
-  ALL TO ('PRIMARY');
-END
-
-IF NOT EXISTS (select object_id from sys.objects where object_id = OBJECT_ID(N'[dbo].[Aliases]') and type = 'U')
-BEGIN
-CREATE TABLE [dbo].[Aliases] (
-  id BIGINT IDENTITY(1,1),
-  referential_partition_key TINYINT NOT NULL,
-  referential_id UNIQUEIDENTIFIER NOT NULL,
-  document_id BIGINT NOT NULL,
-  document_partition_key TINYINT NOT NULL,
-  CONSTRAINT FK_Aliases_Documents FOREIGN KEY (document_partition_key, document_id)
-    REFERENCES [dbo].[Documents](document_partition_key, id),
-  PRIMARY KEY CLUSTERED (referential_partition_key ASC, id ASC)
-  ON partition_scheme_Aliases (referential_partition_key)
-);
-END
-
--- Referential ID uniqueness validation and reference insert into References support
-IF NOT EXISTS (SELECT name FROM sys.indexes WHERE name = N'UX_Aliases_ReferentialId')
-    CREATE UNIQUE NONCLUSTERED INDEX UX_Aliases_ReferentialId
-    ON [dbo].[Aliases] (referential_partition_key, referential_id);
-
------------------- References Table ------------------
-
--- 16 partitions, 0 through 15
-IF NOT EXISTS (SELECT * FROM sys.partition_functions
-    WHERE name = 'partition_function_References')
-BEGIN
-CREATE PARTITION FUNCTION partition_function_References(TINYINT)
-  AS RANGE RIGHT FOR VALUES (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15);
-END
-
-IF NOT EXISTS (SELECT * FROM sys.partition_schemes
-    WHERE name = 'partition_scheme_References')
-BEGIN
--- All on the primary filegroup
-CREATE PARTITION SCHEME partition_scheme_References
-  AS PARTITION partition_function_References
-  ALL TO ('PRIMARY');
-END
-
-IF NOT EXISTS (select object_id from sys.objects where object_id = OBJECT_ID(N'[dbo].[References]') and type = 'U')
-BEGIN
-CREATE TABLE [dbo].[References] (
-  id BIGINT IDENTITY(1,1),
-  document_id BIGINT NOT NULL,
-  document_partition_key TINYINT NOT NULL,
-  referenced_alias_id BIGINT NOT NULL,
-  referenced_partition_key TINYINT NOT NULL,
-  CONSTRAINT FK_References_Documents FOREIGN KEY (document_partition_key, document_id)
-  REFERENCES [dbo].[Documents](document_partition_key, id),
-  CONSTRAINT FK_References_ReferencedAlias FOREIGN KEY (referenced_partition_key, referenced_alias_id)
-  REFERENCES [dbo].[Aliases](referential_partition_key, id),
-  PRIMARY KEY CLUSTERED (document_partition_key ASC, id ASC)
-  ON partition_scheme_References (document_partition_key)
-);
-END
-
--- DELETE/UPDATE by id lookup support
-IF NOT EXISTS (SELECT name FROM sys.indexes WHERE name = N'IX_References_DocumentId')
-    CREATE NONCLUSTERED INDEX UX_References_DocumentId
-    ON [dbo].[References] (document_partition_key, document_id);
-
-
-```
-
-### General Structure
-
-This is very much like the Meadowlark implementation of the PostgreSQL backend, except we want to take
-advantage of foreign key constraints for reference validation. We also want to introduce partitioning. All
-three tables use the sequential surrogate key pattern with size `BIGINT`.
 
 #### Documents Table
 
@@ -278,107 +160,7 @@ for a demo on experimenting with partitioning to find a good size. This will be 
 where we compute the `partition_key` from an appropriate GUID in the table to allow for partition elimination
 on queries and partition-aligned indexing.
 
-### Insert Operation
-
-From DMS Core:
-
-- JSON Document
-- Document Metadata
-- Document UUID - generated
-- Document Referential Id - extracted
-- If a subclass, the Document Referential Id in superclass form
-- Referential Ids of Document references - extracted
-
-Transaction:
-
-1. Insert the JSON Document, Document Metadata and Document UUID in the `Documents` table.
-   - Derive `document_partition_key` from `document_uuid`.
-   - Get the sequential id from the insert for the next operation.
-   - A uniqueness constraint violation on `document_uuid` means this should be retried as an update.
-1. Insert an entry in the `Aliases` table for the document.
-   - Derive `referential_partition_key` from `referential_id`.
-   - `document_id` is this document's sequential id from the `Documents` insert.
-   - `document_partition_key` id also from the `Documents` insert.
-   - If the document is a subclass, insert a second entry with `referential_id` in superclass form.
-   - A uniqueness constraint violation on `referential_id` on the first insert means this should be handled as
-     an update.
-   - A uniqueness constraint violation on `referential_id` on the superclass insert means failure because
-     there already exists a subclass with the same superclass identity.
-1. Insert each document reference on the document in the `References` table.
-   - `document_id` is this document's sequential id from the `Documents` insert.
-   - `document_partition_key` id also from the `Documents` insert.
-   - Determine `referenced_alias_id` and `referenced_partition_key` from a lookup on the `Aliases` table index
-     for `referential_id`.
-   - A missing `referential_id` lookup on `Aliases` indicates a reference validation failure.
-
-### Update Operation (no identity update)
-
-From DMS Core:
-
-- JSON Document
-- Document Metadata
-- Document UUID
-- Referential Ids of Document references - extracted
-
-Transaction:
-
-1. Find the document in the `Documents` table
-   - Derive `document_partition_key` from `document_uuid`.
-   - Find the document in `Documents` using the index on `document_uuid`.
-   - Get `id` as the document id.
-1. Delete the old document references
-   - Delete document references on the `References` table using the index on `document_id` and
-     `document_partition_key`.
-1. Insert the new document references
-   - Insert each document reference on the updated document as in the insert operation.
-1. Update the JSON document itself on the `Documents` table.
-
-### Update Operation (with identity update)
-
-From DMS Core:
-
-- JSON Document
-- Document Metadata
-- Document UUID
-- Document Referential Id - extracted
-- If a subclass, the Document Referential Id in superclass form
-- Referential Ids of Document references - extracted
-
-Transaction:
-
-1. Find the document in the `Documents` table
-   - Derive `document_partition_key` from `document_uuid`.
-   - Find the document in `Documents` using the index on `document_uuid`.
-   - Get `id` as the document id.
-1. Get the Aliases table entry for the document (don't worry about superclass entry)
-   - Find the alias(es) in `Aliases` using the index on `document_id`.
-   - Delete the original aliases entries for the `document_id`
-     - **_ Currently no index _**
-   - Add the new alias(es) to the `Aliases` table.
-   - A foreign key constraint violation means a cascading update is necessary
-     - **_ Needs review _**
-1. Delete the old document references
-   - Delete document references on the `References` table using the index on `document_id` and
-     `document_partition_key`.
-1. Insert the new document references
-   - Insert each document reference on the updated document as in the insert operation.
-1. Update the JSON document itself on the `Documents` table.
-
-### Delete Operation
-
-From DMS Core:
-
-- Document UUID
-
-Transaction:
-
-1. Follow update operation steps through deleting old document references.
-1. Delete the document's aliases in the `Aliases` table.
-   - A foreign key constraint violation indicates a reference validation failure due to the document having
-     references to it.
-1. Delete the document in the `Documents` table.
-
-### Query handling
+#### Query handling
 
 While the preferred method of query handling is via search engine, some deployments will not be able to handle
 the additional operational complexity. In these cases DMS can be configured to handle queries in the main
@@ -438,9 +220,198 @@ The query table schema will be pre-generated, as will the JSON Paths to the quer
 will be included with the API query field names in the ApiSchema.json file. The query field names will be all
 lowercased, and for ease of query construction the column names should be identical (i.e. not snake case).
 
-#### Query SQL
 
+### Planning ahead for performance considerations
+
+- The primary `Documents` table will use a `bigint` (64 bit integer) for the primary key.
+- Out of the box, the `Documents` will be split into 16 different partitions.
+  These partitions are in different files, thus reducing contention compared
+  to a single partition in one gigantic file.
+- A partition key column, based on the primary key, will improve indexing and
+  will help distribute all of the stored records evenly across the available
+  partitions.
+- An implementation must be able to modify to more or fewer partitions as
+  desired. In this design, the partition key limits the potential number of
+  partitions to 256.
+
+The development team has [executed initial
+experiments](../../../POC-Applications/POC.Databases/) to compare some aspects
+of performance between this structure and the ODS database from the ODS/API
+Platform v7. Similar records were inserted into three tables: `Student`,
+`StudentSchoolAssociation`, and `StudentSectionAssociation`. Running a virtual
+machine with SQL Server 2022 and Windows Defender disabled, large numbers of
+inserts were run and timed for direct comparison of the insert performance. The
+following tables summarize the initial findings with 1 million records:
+
+| Database | Insert Time | Storage (KB) |
+| -------- | ----------- | ------------ |
+| DMS      | 02:49:42    | 571,528      |
+| ODS      | 03:22:34    | 1,268,968    |
+
+The techniques used in these experiments do not provide perfect comparisons, but
+we believe these results are "essentially" comparable. And that comparison is
+very favorable, supporting the hypothesis of high performance with this database
+design.
+
+## Implementation
+
+The proof-of-concept process helped uncover some details that need to guide the
+implementation:
+
+- Compared to `varbinary`, using `varchar` for the JSON documents results in
+  higher performance and smaller storage requirements.
+- The _partition key_ should be defined in a SQL function that takes the
+  _primary key_ value as input, so that an implementation can modify the
+  partition key without having to recompile the C# application.
+- To avoid having the C# call out to the database to query the partition key
+  function, the application can call stored procedures. The stored procedures
+  will encapsulate the logic of looking up the partition key before performing
+  the relevant operation.
+- The stored procedures can also encapsulate details of writing to the three
+  tables. They treat all three writes as an atomic unit by providing appropriate
+  transaction management.
+- There should thus be three stored procedures, one each for
+  - Insert
+  - Update
+  - Delete
+
+The stored procedures _should not_ insert data into query tables. Insertion into
+query tables will be enabled at runtime by feature flag. They do imply that the
+application code should initialize a transaction _in the business logic layer_
+before calling _data storage layer_.
+
+The following sequence diagram gives a sense of the desired application design:
+
+```mermaid
+sequenceDiagram
+    BusinessLayer->>+DataLayer: BeginTransaction()
+    DataLayer-->>BusinessLayer: transactionScope
+    BusinessLayer->>+DataLayer: Insert(doc, metadata, transactionScope)
+    DataLayer->>+Database: call dms.insert(...)
+
+    alt Use Query Tables
+        BusinessLayer->>+DataLayer: InsertQueryTable(doc, transactionScope)
+    end
+
+    BusinessLayer->>BusinessLayer: transactionScope.Commit()
 ```
+
+### Insert Stored Procedure
+
+From DMS Core:
+
+- JSON Document
+- Document Metadata
+- Document UUID - generated
+- Document Referential Id - extracted
+- If a subclass, the Document Referential Id in superclass form
+- Referential Ids of Document references - extracted
+
+Transaction:
+
+1. **UPSERT** If the natural key already exists, call the Update stored procedure and return _its_ result.
+1. Insert the JSON Document, Document Metadata and Document UUID in the `Documents` table.
+   - Derive `document_partition_key` from `document_uuid`.
+   - Get the sequential id from the insert for the next operation.
+   - A uniqueness constraint violation on `document_uuid` means this should be retried as an update.
+1. Insert an entry in the `Aliases` table for the document.
+   - Derive `referential_partition_key` from `referential_id`.
+   - `document_id` is this document's sequential id from the `Documents` insert.
+   - `document_partition_key` id also from the `Documents` insert.
+   - If the document is a subclass, insert a second entry with `referential_id` in superclass form.
+   - A uniqueness constraint violation on `referential_id` on the first insert means this should be handled as
+     an update.
+   - A uniqueness constraint violation on `referential_id` on the superclass insert means failure because
+     there already exists a subclass with the same superclass identity.
+1. Insert each document reference on the document in the `References` table.
+   - `document_id` is this document's sequential id from the `Documents` insert.
+   - `document_partition_key` id also from the `Documents` insert.
+   - Determine `referenced_alias_id` and `referenced_partition_key` from a lookup on the `Aliases` table index
+     for `referential_id`.
+   - A missing `referential_id` lookup on `Aliases` indicates a reference validation failure.
+
+### Update Operation (no identity update)
+
+From DMS Core:
+
+- JSON Document
+- Document Metadata
+- Document UUID
+- Referential Ids of Document references - extracted
+
+Transaction:
+
+1. Find the document in the `Documents` table
+   - Derive `document_partition_key` from `document_uuid`.
+   - Find the document in `Documents` using the index on `document_uuid`.
+     - If the document does not exist, fail the transaction and return immediately.
+     - _This shouldn't happen, but let's make sure to throw a good error if it does._
+   - Get `id` as the document id.
+2. Delete the old document references
+   - Delete document references on the `References` table using the index on `document_id` and
+     `document_partition_key`.
+3. Insert the new document references
+   - Insert each document reference on the updated document as in the insert operation.
+4. Update the JSON document itself on the `Documents` table.
+
+### Update Operation (with identity update)
+
+From DMS Core:
+
+- JSON Document
+- Document Metadata
+- Document UUID
+- Document Referential Id - extracted
+- If a subclass, the Document Referential Id in superclass form
+- Referential Ids of Document references - extracted
+
+Transaction:
+
+1. Find the document in the `Documents` table
+   - Derive `document_partition_key` from `document_uuid`.
+   - Find the document in `Documents` using the index on `document_uuid`.
+     - If the document does not exist, fail the transaction and return immediately.
+   - Get `id` as the document id.
+1. Get the Aliases table entry for the document (don't worry about superclass entry)
+   - Find the alias(es) in `Aliases` using the index on `document_id`.
+   - Delete the original aliases entries for the `document_id`
+     - **_ Currently no index _**
+   - Add the new alias(es) to the `Aliases` table.
+   - A foreign key constraint violation means a cascading update is necessary
+     - **_ Needs review _**
+1. Delete the old document references
+   - Delete document references on the `References` table using the index on `document_id` and
+     `document_partition_key`.
+1. Insert the new document references
+   - Insert each document reference on the updated document as in the insert operation.
+1. Update the JSON document itself on the `Documents` table.
+
+### Delete Operation
+
+From DMS Core:
+
+- Document UUID
+
+Transaction:
+
+1. Follow update operation steps through deleting old document references.
+1. Delete the document's aliases in the `Aliases` table.
+   - A foreign key constraint violation indicates a reference validation failure due to the document having
+     references to it.
+1. Delete the document in the `Documents` table.
+
+### SQL DDL
+
+Use the SQL statements in the proof-of-concept code. Be sure to use the `VARCHAR` version
+rather than `VARBINARY`.
+
+## Drafts for Future Design Work
+
+### Query Support DDL
+
+The tables below are for illustrative purposes only. Each table should only provide the queryable columns.
+
+```sql
 -- Query table with search fields for Student documents
 IF NOT EXISTS (select object_id from sys.objects where object_id = OBJECT_ID(N'[dbo].[QueryStudent]') and type = 'U')
 BEGIN
@@ -480,7 +451,7 @@ FROM Documents d INNER JOIN QueryStudent q
   ON (d.partition_key = q.document_partition_key AND d.id = q.document_id);
 ```
 
-### Security
+### Security Design
 
 ```mermaid
 erDiagram
