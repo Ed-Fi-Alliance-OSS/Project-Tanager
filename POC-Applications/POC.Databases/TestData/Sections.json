@@ -1,0 +1,35 @@
+[
+    {
+        "courseOfferingReference": {
+            "localCourseCode": "ALG-1",
+            "schoolId": 255901001,
+            "schoolYear": 2022,
+            "sessionName": "2021-2022 Fall Semester"
+        },
+        "locationReference": {
+            "classroomIdentificationCode": "220",
+            "schoolId": 255901001
+        },
+        "locationSchoolReference": {
+            "schoolId": 255901001
+        },
+        "sectionIdentifier": "25590100102Trad220ALG112011",
+        "availableCredits": 1,
+        "educationalEnvironmentDescriptor": "uri://ed-fi.org/EducationalEnvironmentDescriptor#Classroom",
+        "sectionName": "Algebra 1",
+        "sectionTypeDescriptor": "uri://ed-fi.org/SectionTypeDescriptor#Attendance and Credit",
+        "sequenceOfCourse": 1,
+        "characteristics": [],
+        "classPeriods": [
+            {
+                "classPeriodReference": {
+                    "classPeriodName": "02 - Traditional",
+                    "schoolId": 255901001
+                }
+            }
+        ],
+        "courseLevelCharacteristics": [],
+        "offeredGradeLevels": [],
+        "programs": []
+    }
+]

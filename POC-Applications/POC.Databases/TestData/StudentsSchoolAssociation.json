@@ -1,0 +1,14 @@
+[
+    {
+        "schoolReference": {
+            "schoolId": 255901001
+        },
+        "studentReference": {
+            "studentUniqueId": "604822"
+        },
+        "entryDate": "2021-08-23",
+        "entryGradeLevelDescriptor": "uri://ed-fi.org/GradeLevelDescriptor#Ninth grade",
+        "alternativeGraduationPlans": [],
+        "educationPlans": []
+    }
+]

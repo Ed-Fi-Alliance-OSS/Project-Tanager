@@ -1,0 +1,18 @@
+[
+    {
+        "sectionReference": {
+            "localCourseCode": "ALG-1",
+            "schoolId": 255901001,
+            "schoolYear": 2022,
+            "sectionIdentifier": "25590100102Trad220ALG112011",
+            "sessionName": "2021-2022 Fall Semester"
+        },
+        "studentReference": {
+            "studentUniqueId": "604822"
+        },
+        "beginDate": "2021-08-23",
+        "endDate": "2021-12-17",
+        "homeroomIndicator": false,
+        "programs": []
+    }
+]
