@@ -12,7 +12,7 @@ of features is subject to further revision based on feedback.
 
 * [Resources API](./RESOURCES-API.md)
 * [Descriptors API](./DESCRIPTORS-API.md)
-* [Primary Data Storage](./PRIMARY-DATA-STORAGE.md)
+* [Primary Data Storage](./PRIMARY-DATA-STORAGE/)
 * [Cascading Key Updates](./CASCADING-UPDATES.md)
 * [Change Data Capture to Stream](./CDC-STREAMING.md)
 * [Read-only Search Database](./SEARCH-DATABASE.md)
