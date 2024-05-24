@@ -1,5 +1,13 @@
 # DMS Feature: Primary Data Storage
 
+This document describes the core relational document data storage used for data modifications.
+
+The application architecture will have a plugin system that enables others to customize the
+database storage. The design described below will be implemented with Microsoft SQL Server
+(MSSQL) and PostgreSQL plugins that come out of the box with the Data Management Service.
+Other designs could be built and implemented, so long as the _REST API implementation_ remains
+unchanged.
+
 ## Problems to solve via DB design
 
 ### Existence and reference validation
@@ -18,12 +26,17 @@ query on, and then have some way to index them into the json.
 One question is how performant does this need to be? If/when it becomes too slow, moving to a search engine
 would be the recommendation because if you want true performance you would use a separate read only store.
 
+_Also see [Queries Using the Relational Database](./RELATIONAL-QUERIES.md) and
+[DMS Feature: Read-only Search Database](../SEARCH-DATABASE.md)_
+
 ### Security
 
 The next thing that you need to be able to support is security. Following the ODS/API, we'll want
 Namespace-based for sure, Education Organization-based probably, and possibly Grade Level-based as well. In
 some ways this may be similar to query support, as we'll need to know the relevant fields to secure on for
 each resource.
+
+_Also see [Relational Support for Client Authorization](./RELATIONAL-SECURITY.md)._
 
 ### Streaming changes
 
@@ -43,9 +56,17 @@ do it whenever possible.
 We need to make sure that we design to meet performance goals, and test early and often to ensure that we are
 able to hit those goals.
 
-## Implementation
+## Solution
 
-### ER Diagram
+> [!TIP]
+> See [Design Options for Data Management Service Data Storage](./PRIMARY-DATA-STORAGE-alternatives.md)
+> for detailed analysis of potential solutions, including drawbacks and mitigating factors.
+
+### General Structure
+
+This is very much like the Meadowlark implementation of the PostgreSQL backend, except we want to take
+advantage of foreign key constraints for reference validation. We also want to introduce partitioning. All
+three tables use the sequential surrogate key pattern with size `BIGINT`.
 
 ```mermaid
 erDiagram
@@ -76,139 +97,6 @@ erDiagram
         JSON edfi_doc "The document"
     }
 ```
-
-### SQL DDL
-
-```
------------------ Documents Table ------------------
-
--- 16 partitions, 0 through 15
-IF NOT EXISTS (SELECT * FROM sys.partition_functions
-    WHERE name = 'partition_function_Documents')
-BEGIN
-    CREATE PARTITION FUNCTION partition_function_Documents(TINYINT)
-           AS RANGE RIGHT FOR VALUES (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
-END
-
-IF NOT EXISTS (SELECT * FROM sys.partition_schemes
-    WHERE name = 'partition_scheme_Documents')
-BEGIN
--- All on the primary filegroup
-CREATE PARTITION SCHEME partition_scheme_Documents
-  AS PARTITION partition_function_Documents
-  ALL TO ('PRIMARY');
-END
-
-IF NOT EXISTS (select object_id from sys.objects where object_id = OBJECT_ID(N'[dbo].[Documents]') and type = 'U')
-BEGIN
-CREATE TABLE [dbo].[Documents] (
-  id BIGINT IDENTITY(1,1),
-  document_partition_key TINYINT NOT NULL,
-  document_uuid UNIQUEIDENTIFIER NOT NULL,
-  resource_name VARCHAR(256) NOT NULL,
-  edfi_doc VARBINARY(MAX) NOT NULL,
-  PRIMARY KEY CLUSTERED (document_partition_key ASC, id ASC)
-  ON partition_scheme_Documents (document_partition_key)
-);
-END
-
--- edfi_doc stored as a pointer
-EXEC sp_tableoption 'dbo.Documents', 'large value types out of row', 1;
-
-
--- GET/UPDATE/DELETE by id lookup support, document_uuid uniqueness validation
-IF NOT EXISTS (SELECT name FROM sys.indexes WHERE name = N'UX_Documents_DocumentUuid')
-    CREATE UNIQUE NONCLUSTERED INDEX UX_Documents_DocumentUuid
-    ON [dbo].[Documents] (document_partition_key, document_uuid);
-
------------------- Aliases Table ------------------
-
--- 16 partitions, 0 through 15
-IF NOT EXISTS (SELECT * FROM sys.partition_functions
-    WHERE name = 'partition_function_Aliases')
-BEGIN
-CREATE PARTITION FUNCTION partition_function_Aliases(TINYINT)
-  AS RANGE RIGHT FOR VALUES (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
-END
-
-IF NOT EXISTS (SELECT * FROM sys.partition_schemes
-    WHERE name = 'partition_scheme_Aliases')
-BEGIN
--- All on the primary filegroup
-CREATE PARTITION SCHEME partition_scheme_Aliases
-  AS PARTITION partition_function_Aliases
-  ALL TO ('PRIMARY');
-END
-
-IF NOT EXISTS (select object_id from sys.objects where object_id = OBJECT_ID(N'[dbo].[Aliases]') and type = 'U')
-BEGIN
-CREATE TABLE [dbo].[Aliases] (
-  id BIGINT IDENTITY(1,1),
-  referential_partition_key TINYINT NOT NULL,
-  referential_id UNIQUEIDENTIFIER NOT NULL,
-  document_id BIGINT NOT NULL,
-  document_partition_key TINYINT NOT NULL,
-  CONSTRAINT FK_Aliases_Documents FOREIGN KEY (document_partition_key, document_id)
-    REFERENCES [dbo].[Documents](document_partition_key, id),
-  PRIMARY KEY CLUSTERED (referential_partition_key ASC, id ASC)
-  ON partition_scheme_Aliases (referential_partition_key)
-);
-END
-
--- Referential ID uniqueness validation and reference insert into References support
-IF NOT EXISTS (SELECT name FROM sys.indexes WHERE name = N'UX_Aliases_ReferentialId')
-    CREATE UNIQUE NONCLUSTERED INDEX UX_Aliases_ReferentialId
-    ON [dbo].[Aliases] (referential_partition_key, referential_id);
-
------------------- References Table ------------------
-
--- 16 partitions, 0 through 15
-IF NOT EXISTS (SELECT * FROM sys.partition_functions
-    WHERE name = 'partition_function_References')
-BEGIN
-CREATE PARTITION FUNCTION partition_function_References(TINYINT)
-  AS RANGE RIGHT FOR VALUES (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15);
-END
-
-IF NOT EXISTS (SELECT * FROM sys.partition_schemes
-    WHERE name = 'partition_scheme_References')
-BEGIN
--- All on the primary filegroup
-CREATE PARTITION SCHEME partition_scheme_References
-  AS PARTITION partition_function_References
-  ALL TO ('PRIMARY');
-END
-
-IF NOT EXISTS (select object_id from sys.objects where object_id = OBJECT_ID(N'[dbo].[References]') and type = 'U')
-BEGIN
-CREATE TABLE [dbo].[References] (
-  id BIGINT IDENTITY(1,1),
-  document_id BIGINT NOT NULL,
-  document_partition_key TINYINT NOT NULL,
-  referenced_alias_id BIGINT NOT NULL,
-  referenced_partition_key TINYINT NOT NULL,
-  CONSTRAINT FK_References_Documents FOREIGN KEY (document_partition_key, document_id)
-  REFERENCES [dbo].[Documents](document_partition_key, id),
-  CONSTRAINT FK_References_ReferencedAlias FOREIGN KEY (referenced_partition_key, referenced_alias_id)
-  REFERENCES [dbo].[Aliases](referential_partition_key, id),
-  PRIMARY KEY CLUSTERED (document_partition_key ASC, id ASC)
-  ON partition_scheme_References (document_partition_key)
-);
-END
-
--- DELETE/UPDATE by id lookup support
-IF NOT EXISTS (SELECT name FROM sys.indexes WHERE name = N'IX_References_DocumentId')
-    CREATE NONCLUSTERED INDEX UX_References_DocumentId
-    ON [dbo].[References] (document_partition_key, document_id);
-
-
-```
-
-### General Structure
-
-This is very much like the Meadowlark implementation of the PostgreSQL backend, except we want to take
-advantage of foreign key constraints for reference validation. We also want to introduce partitioning. All
-three tables use the sequential surrogate key pattern with size `BIGINT`.
 
 #### Documents Table
 
@@ -278,6 +166,94 @@ for a demo on experimenting with partitioning to find a good size. This will be 
 where we compute the `partition_key` from an appropriate GUID in the table to allow for partition elimination
 on queries and partition-aligned indexing.
 
+#### Query handling
+
+See [Queries Using the Relational Database](./RELATIONAL-QUERIES.md).
+
+### Planning ahead for performance considerations
+
+- The primary `Documents` table will use a `bigint` (64 bit integer) for the primary key.
+- Out of the box, the `Documents` will be split into 16 different partitions.
+  These partitions are in different files, thus reducing contention compared
+  to a single partition in one gigantic file.
+- A partition key column, based on the primary key, will improve indexing and
+  will help distribute all of the stored records evenly across the available
+  partitions.
+- An implementation must be able to modify to more or fewer partitions as
+  desired. In this design, the partition key limits the potential number of
+  partitions to 256.
+
+The development team has [executed initial
+experiments](../../../POC-Applications/POC.Databases/) to compare some aspects
+of performance between this structure and the ODS database from the ODS/API
+Platform v7. Similar records were inserted into three tables: `Student`,
+`StudentSchoolAssociation`, and `StudentSectionAssociation`. Running a virtual
+machine with SQL Server 2022 and Windows Defender disabled, large numbers of
+inserts were run and timed for direct comparison of the insert performance. The
+following tables summarize the initial findings with 1 million records:
+
+| Database | Insert Time | Storage (KB) |
+| -------- | ----------- | ------------ |
+| DMS      | 02:49:42    | 571,528      |
+| ODS      | 03:22:34    | 1,268,968    |
+
+The techniques used in these experiments do not provide perfect comparisons, but
+we believe these results are "essentially" comparable. And that comparison is
+very favorable, supporting the hypothesis of high performance with this database
+design.
+
+## Implementation
+
+The proof-of-concept process helped uncover some details that need to guide the
+implementation:
+
+- Compared to `varbinary`, using `varchar` for the JSON documents results in
+  higher performance, albeit at the cost of approx 20% higher disk space usage.
+- The number of partitions can be configured at the application level, although
+  it _must not_ be updated after deployment without downtime to re-organize the
+  existing records. Partition function can be in C#.
+- All operations across these tables need to be in a single atomic transaction.
+  - Open question: should the transaction be opened and closed in the business
+    layer or in the data access layer?
+  - Thinking ahead to the potential of query tables, they might be handled in a
+    different class than the main logic. In that case, if transactions are
+    handled in the data access layer, then it may make sense to have an internal
+    facade so that the business layer only has one call to make. The facade then
+    hides the complexity of transaction handling and making multiple repository
+    calls.
+
+The following sequence diagram gives a sense of the potential application design:
+
+```mermaid
+sequenceDiagram
+    participant BusinessLayer
+    participant DataFacade
+    participant InsertCommand
+    participant QueryInsertCommand
+    participant DbDriver
+
+    BusinessLayer->>DataFacade: Insert(doc, metadata)
+    DataFacade->>DbDriver: StartTransaction()
+    DataFacade->>InsertCommand: Run(trans, doc, metadata)
+    InsertCommand->>DbDriver: Execute(trans, documentInsertStatement)
+    InsertCommand->>DbDriver: Execute(trans, aliasInsertStatement)
+    InsertCommand->>DbDriver: Execute(trans, referenceInsertStatement)
+
+    alt Use Query Tables
+      DataFacade->>QueryInsertCommand: Run(trans, doc)
+      QueryInsertCommand->>DbDriver: Execute(trans, insertStatement)
+    end
+
+    break Any Errors
+      DataFacade->>DbDriver: Rollback()
+      DataFacade-->>BusinessLayer: errorDetail
+      BusinessLayer->BusinessLayer: Log(errorDetail)
+    end
+
+    DataFacade->>DbDriver: Commit()
+    DataFacade-->>BusinessLayer: success
+```
+
 ### Insert Operation
 
 From DMS Core:
@@ -291,6 +267,7 @@ From DMS Core:
 
 Transaction:
 
+1. **UPSERT** If the natural key already exists, call the Update stored procedure and return _its_ result.
 1. Insert the JSON Document, Document Metadata and Document UUID in the `Documents` table.
    - Derive `document_partition_key` from `document_uuid`.
    - Get the sequential id from the insert for the next operation.
@@ -325,13 +302,15 @@ Transaction:
 1. Find the document in the `Documents` table
    - Derive `document_partition_key` from `document_uuid`.
    - Find the document in `Documents` using the index on `document_uuid`.
+     - If the document does not exist, fail the transaction and return immediately.
+     - _This shouldn't happen, but let's make sure to throw a good error if it does._
    - Get `id` as the document id.
-1. Delete the old document references
+2. Delete the old document references
    - Delete document references on the `References` table using the index on `document_id` and
      `document_partition_key`.
-1. Insert the new document references
+3. Insert the new document references
    - Insert each document reference on the updated document as in the insert operation.
-1. Update the JSON document itself on the `Documents` table.
+4. Update the JSON document itself on the `Documents` table.
 
 ### Update Operation (with identity update)
 
@@ -349,20 +328,22 @@ Transaction:
 1. Find the document in the `Documents` table
    - Derive `document_partition_key` from `document_uuid`.
    - Find the document in `Documents` using the index on `document_uuid`.
+     - If the document does not exist, fail the transaction and return immediately.
    - Get `id` as the document id.
 1. Get the Aliases table entry for the document (don't worry about superclass entry)
    - Find the alias(es) in `Aliases` using the index on `document_id`.
    - Delete the original aliases entries for the `document_id`
      - **_ Currently no index _**
    - Add the new alias(es) to the `Aliases` table.
-   - A foreign key constraint violation means a cascading update is necessary
-     - **_ Needs review _**
 1. Delete the old document references
    - Delete document references on the `References` table using the index on `document_id` and
      `document_partition_key`.
 1. Insert the new document references
    - Insert each document reference on the updated document as in the insert operation.
 1. Update the JSON document itself on the `Documents` table.
+
+> [!NOTE]
+> TODO: describe desired cascading behavior.
 
 ### Delete Operation
 
@@ -378,132 +359,10 @@ Transaction:
      references to it.
 1. Delete the document in the `Documents` table.
 
-### Query handling
+> [!NOTE]
+> TODO: describe desired cascading behavior.
 
-While the preferred method of query handling is via search engine, some deployments will not be able to handle
-the additional operational complexity. In these cases DMS can be configured to handle queries in the main
-datastore at a cost of performance.
+### SQL DDL
 
-Queries are handled by resource-specific "query" tables that include each searchable field. These tables are
-not well suited to partitioning, but are no worse than the ODS/API in table size per resource.
-
-```mermaid
-erDiagram
-
-    Documents {
-        bigint id PK "Sequential key pattern, clustered"
-        tinyint partition_key PK "Partition key for this table, derived from document_uuid"
-        Guid document_uuid "API resource id, unique non-clustered, partition-aligned"
-        string project_name "Example: Ed-Fi (for DS)"
-        string resource_name "Example: Student"
-        string resource_version "Example: 5.0.0"
-        JSON edfi_doc "The document"
-    }
-    QuerySchool ||--|| Documents : ""
-    QuerySchool {
-        bigint id PK "Sequential key pattern, clustered"
-        bigint document_id FK "School document being indexed"
-        tinyint document_partition_key FK "Partition key of School document being indexed"
-        string schoolid "SchoolId of the school"
-        string nameofinstitution "Name of the school"
-        string etcetera
-    }
-    QueryStudent ||--|| Documents : ""
-    QueryStudent {
-        bigint id PK "Sequential key pattern, clustered"
-        bigint document_id FK "Student document being indexed"
-        tinyint document_partition_key FK "Partition key of Student document being indexed"
-        string firstname "First name of student"
-        string lastsurname "Last surname of student"
-        string etcetera
-    }
-```
-
-For example, `QueryStudent` has a foreign key to the `Documents` table with a row per Student document. Because
-the query tables include the `Documents` partition key, query tables act as a cross-partition index on the
-Documents table while avoiding the downsides of an actual cross-partition index. For this reason, "Get All"
-queries will use these tables as well.
-
-The other columns on a query table are a list of queryable columns that are available to an API user for
-GET-by-query. Pagination will operate on query tables only. Like the ODS/API there will be no indexes on
-individual query fields, preferring insert performance over ad hoc query performance. Deployments needing fast
-ad hoc query performance should consider using DMS's search engine option.
-
-The next question is how this tables get populated. The best way would be via a separate process so as not to
-slow down insert performance inserts. However, in a deployment where a search engine is not an option, a
-separate process may not be viable either. In this case, we'll need to extract the queryable fields from the
-document before insert.
-
-The query table schema will be pre-generated, as will the JSON Paths to the queryable elements. The JSON Paths
-will be included with the API query field names in the ApiSchema.json file. The query field names will be all
-lowercased, and for ease of query construction the column names should be identical (i.e. not snake case).
-
-#### Query SQL
-
-```
--- Query table with search fields for Student documents
-IF NOT EXISTS (select object_id from sys.objects where object_id = OBJECT_ID(N'[dbo].[QueryStudent]') and type = 'U')
-BEGIN
-CREATE TABLE [dbo].[QueryStudent] (
-  id BIGINT IDENTITY(1,1),
-  document_partition_key TINYINT NOT NULL,
-  document_id BIGINT NOT NULL,
-  studentUniqueId VARCHAR(256) NULL,
-  personId VARCHAR(256) NULL,
-  birthCity VARCHAR(256) NULL,
-  birthDate DATETIME2 NULL,
-  birthInternationalProvince VARCHAR(256) NULL,
-  dateEnteredUS DATETIME2 NULL,
-  firstName VARCHAR(256) NULL,
-  generationCodeSuffix VARCHAR(256) NULL,
-  lastSurname VARCHAR(256) NULL,
-  maidenName VARCHAR(256) NULL,
-  middleName VARCHAR(256) NULL,
-  personalTitlePrefix VARCHAR(256) NULL,
-  preferredFirstName VARCHAR(256) NULL,
-  preferredLastSurname VARCHAR(256) NULL,
-  CONSTRAINT FK_QueryStudent_Documents FOREIGN KEY (document_partition_key, document_id)
-    REFERENCES [dbo].[Documents](partition_key, id),
-  PRIMARY KEY CLUSTERED (id)
-);
-END
-
--- Example SQL query for a lastSurname. Join includes partition elimination on Documents table
-SELECT d.edfi_doc
-FROM Documents d INNER JOIN QueryStudent q
-  ON (d.partition_key = q.document_partition_key AND d.id = q.document_id)
-WHERE q.lastSurname = 'Williams';
-
--- Example SQL query for a "GET ALL". Acts as a cross-partition index for all Student documents
-SELECT d.edfi_doc
-FROM Documents d INNER JOIN QueryStudent q
-  ON (d.partition_key = q.document_partition_key AND d.id = q.document_id);
-```
-
-### Security
-
-```mermaid
-erDiagram
-    Documents {
-        bigint id PK "Sequential key pattern, clustered"
-        tinyint partition_key PK "Partition key for this table, derived from document_uuid"
-        Guid document_uuid "API resource id, unique non-clustered, partition-aligned"
-        string project_name "Example: Ed-Fi (for DS)"
-        string resource_name "Example: Student"
-        string resource_version "Example: 5.0.0"
-        JSON edfi_doc "The document"
-    }
-    StudentSchoolAssociationSecurity ||--|| Documents : ""
-    StudentSchoolAssociationSecurity {
-        bigint id PK "Sequential key pattern, clustered"
-        bigint document_id FK "SSA document indexed for security"
-        tinyint document_partition_key FK "Partition key of SSA document indexed for security"
-        string student_usi "Student unique id in this SSA document"
-        string school_id "School id in this SSAdocument"
-        string et_cetera
-    }
-```
-
-We expect that security will be handled structurally the same way as queries, with sidecar tables generated
-per resource with the fields relevant to security extracted into columns. In these cases however, indexes on
-the security fields may be required.
+Use the SQL statements in the proof-of-concept code. Be sure to use the `VARCHAR` version
+rather than `VARBINARY`. Do not apply any foreign key cascades in the initial work.
