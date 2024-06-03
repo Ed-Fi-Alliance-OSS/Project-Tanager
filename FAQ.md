@@ -9,9 +9,26 @@ some of the most common below.
 
 ## Q: What does the future look like for the legacy ODS/API Platform?
 
-The Ed-Fi Alliance plans to continue support through school year 2027-2028.
+The Ed-Fi Alliance plans to continue support for the ODS/API Platform through school year 2027-2028.
 
-![Support plan by year](./images/faq-years-table.jpg)
+```mermaid
+gantt
+    dateFormat  YYYY-MM
+    section ODS/API 5.4
+        active :a1, 2024-08, 1y
+
+    section ODS/API 6.2
+        active :a2, 2024-08, 2y
+        negotiable :after a2 2026-08, 1y
+
+    section ODS/API 7.x
+        active :a3, 2024-08, 4y
+        negotiable :after a3, 2028-08, 1y
+
+    section DMS
+        testing :a4, 2025-08, 1y
+        production :after a4, 2026-08, 3y
+```
 
 As show in the table above:
 
@@ -43,23 +60,50 @@ another stand-alone bug fix or patch release to 6.1.
 
 Goal timeline:
 
-1. Preview release in September, in time for the Ed-Fi Summit 2024. The goal is
-   to have something people can use in basic scenarios, functional and
+1. _Preview release_ in September, in time for the Ed-Fi Summit 2024. The goal is
+   to have something people can use in basic scenarios, something functional and
    performant enough to give feedback on core Ed-Fi API functionality.
-2. Production-ready release in spring 2025, with enough features to satisfy a
-   typical Local Education Agency deployment.
-3. Production-ready release for State Education Agency evaluation later in 2025.
-4. In production for school year 2026-2027.
+2. _Release candidate 1_ in spring 2025, with enough features to satisfy a typical
+   deployment for a Local Education Agency. :exclamation:Only recommended for
+   those who are engaged with the Project Tanager Technical Workgroup.
+3. _Release candidate 2_ in fall 2025, with enough features to satisfy a typical
+   deployment for a State Education Agency.
+4. Potential _Release 1.0_ in spring 2026, available for production usage in
+   school year 2026-2027.
 
-At this time, we do not have enough insight into the effort ahead to give a firm
-estimate of the functionality included in each of these goals. We will work with
-the community to solidify the feature prioritization through the upcoming
-Project Tanager Technical Workgroup.
+The first release candidate will be fully-compatible with the _must have_
+requirements described in the [Ed-Fi API Design and Implementation Guidelines,
+4.0](https://edfi.atlassian.net/wiki/spaces/EFAPIGUIDE/pages/144867329/Ed-Fi+API+Design+and+Implementation+Guidelines).
+The second release candidate will expand further into the _should have_ and
+_optional_ requirements and features. State Education Agencies (SEA) frequently
+have more detailed technical requirements for client authorization and for
+access to raw data for warehousing and reporting. Tentatively, those features
+will be given a longer timeline; this will provide more opportunity for
+co-development with the SEA community.
 
-Many adopters may choose to run a parallel year of testing with the new software
-while continuing to run the legacy platform.
+The final release will not have complete parity with the optional features in
+the ODS/API Platform (see note below). The Project Tanager Technical Workgroup
+and/or Technical Advisory Group (TAG) will help guide prioritization of
+features.
 
-![Data Management Service timeline](./images/dms-timeline.jpg)
+```mermaid
+timeline
+    Fall 2024 : Preview
+         : General Testing
+    Spring 2025 : Release Candidate 1
+         : Testing LEA context
+    Fall 2025 : Release Candidate 2
+         : Testing SEA context
+    Spring 2026 : 1.0
+         : Early adopters
+```
+
+> [!NOTE]
+> An example of an ODS/API feature that is _not_ planned for the Data Management
+> Service: `link` elements in the `xyzReference` sections when retrieving a
+> resource with a `GET` request. See [Deprecation of
+> Links](https://edfi.atlassian.net/wiki/spaces/EFAPIGUIDE/pages/133791871/GET+Requests#Deprecation-of-Links)
+> for more information.
 
 ## Q: Will integrations built for the ODS/API continue to work with the new system?
 
