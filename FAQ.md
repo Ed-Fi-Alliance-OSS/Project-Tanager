@@ -87,6 +87,7 @@ and/or Technical Advisory Group (TAG) will help guide prioritization of
 features.
 
 ```mermaid
+%%{init: { 'theme': 'neutral' } }%%
 timeline
     Fall 2024 : Preview
          : General Testing
