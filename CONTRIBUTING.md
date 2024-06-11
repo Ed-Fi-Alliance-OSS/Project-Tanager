@@ -26,7 +26,12 @@ and [Configuration
 Service](https://tracker.ed-fi.org/issues/?jql=project%20%3D%20cs%20AND%20issuetype%20%3D%20Epic%20ORDER%20BY%20fixVersion).
 These links will take you to open epics; from there you can dig into epics of
 interest to find tickets. In general, when looking for ticket to work on, we
-recommend looking for the  `up-for-grabs` label or looking for tickets in the
+recommend looking for the `up-for-grabs` label or looking for tickets in the
 _next_ planned release. Please coordinate directly with the Ed-Fi Alliance tech
 team if you are interested in contributing to a feature or fix in the _current_
 release, to ensure that we do not accidentally duplicate effort.
+
+## Testing
+
+Please read our
+[Testng Guidelines](./docs/DMS/TESTING.md) for guidance on automated test expectations for all contributed code.
