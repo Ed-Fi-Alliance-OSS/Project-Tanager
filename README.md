@@ -6,7 +6,7 @@ which is building the next generation of the Ed-Fi Alliance Technology Suite.
 > [!TIP]
 > For detailed documentation, see [Ed-Fi Alliance Project
 > Tanager](https://ed-fi-alliance-oss.github.io/project-tanager), or browse the
-> [pages/docs](pages/docs) directory tree.
+> [docs](docs) directory tree.
 
 * [How to Contribute](./CONTRIBUTING.md)
 * [Contributor Code of Conduct](./CODE_OF_CONDUCT.md)
