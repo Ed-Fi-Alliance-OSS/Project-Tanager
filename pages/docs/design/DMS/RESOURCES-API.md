@@ -1,4 +1,6 @@
-# DMS Feature: Resources API
+# Resources API
+
+:::note
 
 Braindump:
 
@@ -8,3 +10,5 @@ Braindump:
 * Test for API parity early and often:
   * Smoketest utility
   * Performance testing tool
+
+:::

@@ -1,4 +1,6 @@
-# DMS Feature: Read-only Search Database
+# Read-only Search Database
+
+:::note
 
 Braindump:
 
@@ -9,3 +11,5 @@ Braindump:
     transaction context. Slower API response, but eliminates management of the
     streaming platform. Is that a compromise that anyone would willingly make?
 * Consider case sensitivity carefully.
+
+:::

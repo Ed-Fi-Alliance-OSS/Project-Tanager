@@ -1,7 +1,10 @@
+---
+description: Logging policy for Project Tanager-related products
+---
+
 # Logging Policy
 
-This section describes the logging policy in the Meadowlark API source code. In
-general, this policy seeks to balance the goals of providing sufficient
+This approach seeks to balance the goals of providing sufficient
 information for an administrator to understand the health of the system and
 understand user interaction with the system with the equally important goals of
 protecting sensitive data and avoiding excessive log storage size.
@@ -70,15 +73,18 @@ logged.
   * Includes anonymized HTTP request payloads for debugging integration
     problems.
 
-> [!TIP] Anonymized Payloads
-> When vendor API clients encounter data integration
-> failures, the support teams often want to know about the failed payload, and this
-> information is not always readily available from the maintainers of the client
-> application. Providing anonymized payloads meets the support need "half way"
-> in that the system administrator and/or a support team member can see
-> the _structure_ of the messages sent, without being able to see the
-> detailed _content_. In many cases, this will be sufficient to understand why a
-> request failed.
+:::tip[Anonymized Payloads]
+
+When vendor API clients encounter data integration
+failures, the support teams often want to know about the failed payload, and this
+information is not always readily available from the maintainers of the client
+application. Providing anonymized payloads meets the support need "half way"
+in that the system administrator and/or a support team member can see
+the _structure_ of the messages sent, without being able to see the
+detailed _content_. In many cases, this will be sufficient to understand why a
+request failed.
+
+:::
 
 ## Examples
 

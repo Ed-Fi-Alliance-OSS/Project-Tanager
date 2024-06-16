@@ -1,4 +1,8 @@
-# DMS Testing Guidelines
+---
+description: Covering unit, integration, and end-to-end testing
+---
+
+# Testing Guidelines
 
 When contributing code to a Project Tanager project it is crucial to ensure that
 the code is well tested. The Data Management Service has three types of test

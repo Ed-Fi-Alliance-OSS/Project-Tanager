@@ -1,7 +1,14 @@
-# Authentication and Authorization Requirements
+---
+description: Authentication and Authorization Requirements
+---
 
-> [!Note]
-> Work in progress.
+# Auth
+
+:::note
+
+Work in progress.
+
+:::
 
 All HTTP requests to Ed-Fi services, except for endpoints from the Ed-Fi
 Discovery API, must be authenticated using an OAuth 2.0 (bearer) access token.

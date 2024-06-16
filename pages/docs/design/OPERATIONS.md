@@ -1,3 +1,7 @@
+---
+description: Cross-cutting operational design and policy
+---
+
 # Operational Concerns
 
 These notes generally apply to any application developed as part of Project

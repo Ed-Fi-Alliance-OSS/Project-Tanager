@@ -1,4 +1,4 @@
-# DMS Feature: Generate OpenAPI documentation
+# Generate OpenAPI documentation
 
 Generating OpenAPI documentation for the Data Management Service
 (DMS) can be accomplished through two methods.

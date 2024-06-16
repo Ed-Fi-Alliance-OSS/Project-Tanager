@@ -1,4 +1,10 @@
+---
+title: Configuration Service
+---
+
 # Ed-Fi Configuration Service Features and Design
+
+:::note
 
 Braindump:
 
@@ -13,3 +19,5 @@ Braindump:
   * Is that sufficiently secure?
 * Need sys admin authorization.
 * Must support key rotation procedure
+
+:::

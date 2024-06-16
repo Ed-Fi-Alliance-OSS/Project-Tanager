@@ -1,4 +1,6 @@
-# DMS Feature: Descriptors API
+# Descriptors API
+
+:::note
 
 Braindump:
 
@@ -7,3 +9,5 @@ Braindump:
 * Test early and often
 * Nice to have: script and/or management endpoint inside the container for
   loading default descriptor set.
+
+:::

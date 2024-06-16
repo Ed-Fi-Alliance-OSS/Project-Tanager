@@ -46,14 +46,7 @@ const config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/ed-fi-alliance-oss/ed-fi-alliance-oss.github.io/tree/main/packages/docs/',
-        },
-        blog: {
-          showReadingTime: true,
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/ed-fi-alliance-oss/ed-fi-alliance-oss.github.io/tree/main/blog/',
+            'https://github.com/ed-fi-alliance-oss/project-tanager/tree/gh-pages-poc/pages/docs/',
         },
         theme: {
           customCss: './src/css/custom.css',
@@ -75,13 +68,12 @@ const config = {
           srcDark: 'img/ed-fi-logo-light.webp',
         },
         items: [
-          // {to: '/getting-started', label: 'Getting Started', position: 'left'},
           {to: 'https://ed-fi-alliance-oss.github.io/blog', label: 'Developer Blog', position: 'left'},
           {
             type: 'docSidebar',
             sidebarId: 'tutorialSidebar',
             position: 'left',
-            label: 'Documentation',
+            label: 'Tanager Docs',
           },
           {
             href: 'https://techdocs.ed-fi.org',

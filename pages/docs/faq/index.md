@@ -103,12 +103,15 @@ timeline
          : Early adopters
 ```
 
-> [!NOTE]
-> An example of an ODS/API feature that is _not_ planned for the Data Management
-> Service: `link` elements in the `xyzReference` sections when retrieving a
-> resource with a `GET` request. See [Deprecation of
-> Links](https://edfi.atlassian.net/wiki/spaces/EFAPIGUIDE/pages/133791871/GET+Requests#Deprecation-of-Links)
-> for more information.
+:::warning
+
+An example of an ODS/API feature that is _not_ planned for the Data Management
+Service: `link` elements in the `xyzReference` sections when retrieving a
+resource with a `GET` request. See [Deprecation of
+Links](https://edfi.atlassian.net/wiki/spaces/EFAPIGUIDE/pages/133791871/GET+Requests#Deprecation-of-Links)
+for more information.
+
+:::
 
 ## Q: Will integrations built for the ODS/API continue to work with the new system?
 

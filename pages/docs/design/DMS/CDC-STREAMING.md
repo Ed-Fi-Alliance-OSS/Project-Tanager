@@ -1,4 +1,6 @@
-# DMS Feature: Change Data Capture to Stream
+# Change Data Capture to Stream
+
+:::note
 
 Braindump:
 
@@ -9,3 +11,5 @@ Braindump:
 * Review at least one other streaming platform to see if it has any implications
   for application design.
 * Review and document security considerations.
+
+:::

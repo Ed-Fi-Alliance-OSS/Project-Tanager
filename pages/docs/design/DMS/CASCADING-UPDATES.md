@@ -1,4 +1,6 @@
-# DMS Feature: Cascading Updates
+# Cascading Updates
+
+:::note
 
 Braindump
 
@@ -10,3 +12,5 @@ Braindump
 * Also need to think about a tangential issue with streaming, as mentioned in
   the Meadowlark docs: [Reference Validation
   Correctness](https://github.com/Ed-Fi-Exchange-OSS/Meadowlark/blob/main/docs/design/reference-validation-correctness/README.md)
+
+:::

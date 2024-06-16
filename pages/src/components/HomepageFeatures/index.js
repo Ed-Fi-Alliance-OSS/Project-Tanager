@@ -29,7 +29,7 @@ export default function HomepageFeatures() {
             </p>
             <ul>
               <li>
-                <Link to="docs/">Data Management Service</Link>
+                <Link to="docs/dms">Data Management Service</Link>
               </li>
               <li>Configuration Service - pending</li>
             </ul>
@@ -38,19 +38,19 @@ export default function HomepageFeatures() {
             <Heading as="h2"> Boilerplate</Heading>
             <ul>
               <li>
-                <Link to="docs/">How to Contribute</Link>
+                <Link to="https://github.com/Ed-Fi-Alliance-OSS/Project-Tanager/blob/main/CONTRIBUTING.md">How to Contribute</Link>
               </li>
               <li>
-                <Link to="docs/">Contributor Code of Conduct</Link>
+                <Link to="https://github.com/Ed-Fi-Alliance-OSS/Project-Tanager/blob/main/CONTRIBUTING.md">Contributor Code of Conduct</Link>
               </li>
               <li>
-                <Link to="docs/">List of Contributors</Link>
+                <Link to="https://github.com/Ed-Fi-Alliance-OSS/Project-Tanager/blob/main/CONTRIBUTING.md">List of Contributors</Link>
               </li>
               <li>
-                <Link to="docs/">Copyright and License Notices</Link>
+                <Link to="https://github.com/Ed-Fi-Alliance-OSS/Project-Tanager/blob/main/NOTICES.md">Copyright and License Notices</Link>
               </li>
               <li>
-                <Link to="docs/">License</Link>
+                <Link to="https://github.com/Ed-Fi-Alliance-OSS/Project-Tanager/blob/main/LICENSE">License</Link>
               </li>
             </ul>
           </div>

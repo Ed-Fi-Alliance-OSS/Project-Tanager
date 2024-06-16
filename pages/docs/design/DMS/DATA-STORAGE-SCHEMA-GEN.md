@@ -1,4 +1,4 @@
-# DMS Feature: Data Storage Schema Generation and Deployment
+# Data Storage Schema Generation and Deployment
 
 ## Problems to solve
 

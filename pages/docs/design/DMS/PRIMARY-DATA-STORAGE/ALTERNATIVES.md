@@ -18,7 +18,7 @@ query on, and then have some way to index them into the json.
 One question is how performant does this need to be? If/when it becomes too slow, moving to a search engine
 would be the recommendation because if you want true performance you would use a separate read only store.
 
-### Security
+### Document Security
 
 The next thing that you need to be able to support is security. Following the ODS/API, we'll want
 Namespace-based for sure, Education Organization-based probably, and possibly Grade Level-based as well. In
@@ -197,12 +197,12 @@ All three will be implemented as transactions.
 1. Insert an entry in the `Aliases` table for the document. If the document is a subclass, insert a second
 entry with a derived superclass version of the `referential_id`.
 1. Insert each document reference on the document in the `References` table.
-* Notes:
-   * A PK constraint violation on `Documents` indicates this should be handled as an update, not an insert.
-   * A PK constraint violation on the first insert into `Aliases` means this should be handled as an update.
-   * A PK constraint violation on a superclass insert into `Aliases` means there already exists a subclass
-     with the same superclass identity.
-   * A FK constraint violation on `References` indicates a reference validation failure.
+   * Notes:
+      * A PK constraint violation on `Documents` indicates this should be handled as an update, not an insert.
+      * A PK constraint violation on the first insert into `Aliases` means this should be handled as an update.
+      * A PK constraint violation on a superclass insert into `Aliases` means there already exists a subclass
+        with the same superclass identity.
+      * A FK constraint violation on `References` indicates a reference validation failure.
 
 ##### Update (ignoring identity updates)
 
@@ -210,9 +210,9 @@ entry with a derived superclass version of the `referential_id`.
 1. Delete the document's current document references (indexed) in the `References` table.
 1. Insert each document reference on the updated document in the `References` table.
 1. Updates the JSON document itself on the `Documents` table.
-* Notes:
-   * A FK constraint violation on `References` indicates a reference validation failure on an updated
-reference.
+   * Notes:
+      * A FK constraint violation on `References` indicates a reference validation failure on an updated
+   reference.
 
 ##### Delete
 
@@ -224,9 +224,9 @@ reference.
 1. Delete the document's document references (indexed) in the `References` table.
 1. Delete the document's aliases in the `Aliases` table.
 1. Delete the document in the `Documents` table.
-* Notes:
-   *  A FK constraint violation on `Aliases` indicates a failure because the document is being referenced by
-another document.
+   * Notes:
+      *  A FK constraint violation on `Aliases` indicates a failure because the document is being referenced by
+   another document.
 
 #### Query handling
 
@@ -374,29 +374,29 @@ erDiagram
     }
 ```
 
-#### How insert/update/delete will work
+#### Opt B: How insert/update/delete will work
 
 All three will be implemented as transactions. Partition key usage is omitted for brevity, but is derivable
 from the `document_uuid` or `reference_id` traceable to each action.
 
-##### Insert
+##### Opt B: Insert
 
 1. Insert the document in the `Documents` table.
-    *  Get the sequential id for the next insert
+    * Get the sequential id for the next insert
 1. Insert an entry in the `Aliases` table for the document.
     * Get the sequential id for the next insert.
     * If the document is a subclass, insert a second entry with a derived superclass version of the
       `referential_id`. (Don't need this sequential id for next insert.)
 1. Insert each document reference on the document in the `References` table.
-    * Via INSERT with SELECT WHERE on `Aliases.referential_id` to determine `referenced_alias_id`.
-* Notes:
-   * A PK constraint violation on `Documents` indicates this should be handled as an update, not an insert.
-   * A PK constraint violation on the first insert into `Aliases` means this should be handled as an update.
-   * A PK constraint violation on a superclass insert into `Aliases` means there already exists a subclass
-     with the same superclass identity.
-   * A FK constraint violation on `References` indicates a reference validation failure.
+   * Notes:
+      * Via INSERT with SELECT WHERE on `Aliases.referential_id` to determine `referenced_alias_id`.
+      * A PK constraint violation on `Documents` indicates this should be handled as an update, not an insert.
+      * A PK constraint violation on the first insert into `Aliases` means this should be handled as an update.
+      * A PK constraint violation on a superclass insert into `Aliases` means there already exists a subclass
+        with the same superclass identity.
+      * A FK constraint violation on `References` indicates a reference validation failure.
 
-##### Update (ignoring identity updates)
+##### Opt B: Update (ignoring identity updates)
 
 1. Find the document in `Documents` by `document_uuid` from request.
 1. Delete the document's current document references in the `References` table.
@@ -406,11 +406,11 @@ from the `document_uuid` or `reference_id` traceable to each action.
     * Via INSERT with SELECT WHERE on `Aliases.referential_id` to determine `References.referenced_alias_id`,
       save and reuse `References.parent_alias_id`.
 1. Updates the JSON document itself on the `Documents` table.
-* Notes:
-   * A FK constraint violation on `References` indicates a reference validation failure on an updated
-reference.
+   * Notes:
+      * A FK constraint violation on `References` indicates a reference validation failure on an updated
+   reference.
 
-##### Delete
+##### Opt B: Delete
 
 1. Find the document in `Documents` by `document_uuid` from request.
 1. Delete the document's document references in the `References` table.
@@ -418,9 +418,9 @@ reference.
       determine `References.parent_alias_id`.
 1. Delete the document's aliases in the `Aliases` table.
 1. Delete the document in the `Documents` table.
-* Notes:
-   *  A FK constraint violation on `Aliases` indicates a failure because the document is being referenced by
-another document.
+   * Notes:
+      *  A FK constraint violation on `Aliases` indicates a failure because the document is being referenced by
+   another document.
 
 ### Option C - One table per resource
 
@@ -547,14 +547,13 @@ partitions with partition-aligned GUID indexes via simulation.
 
 A plan to test it via script:
 
-- Create the DB schema, including query tables for 2 resources with 4 or 5 query fields.
-- Insert a million rows into each table to start. (We'd really like to get more like 100 million in order to
+* Create the DB schema, including query tables for 2 resources with 4 or 5 query fields.
+* Insert a million rows into each table to start. (We'd really like to get more like 100 million in order to
   get the right order of magnitude for large districts, but a test like that takes a long time.) Use randomly
   generated GUIDs.
-  - Monitor index fragmentation with the tools from [this
+  * Monitor index fragmentation with the tools from [this
     presentation](https://www.youtube.com/watch?v=nc4CMo7VSPo), and do index maintenance as necessary
-- Review insert performance.
-- Review query performance with a couple of likely scenarios.
-- Review storage requirements.
-- Review index maintenance requirements.
-
+* Review insert performance.
+* Review query performance with a couple of likely scenarios.
+* Review storage requirements.
+* Review index maintenance requirements.

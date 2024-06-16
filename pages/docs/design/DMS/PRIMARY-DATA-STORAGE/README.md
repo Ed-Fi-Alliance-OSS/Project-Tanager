@@ -1,4 +1,4 @@
-# DMS Feature: Primary Data Storage
+# Primary Data Storage
 
 This document describes the core relational document data storage used for data modifications.
 
@@ -29,7 +29,7 @@ would be the recommendation because if you want true performance you would use a
 _Also see [Queries Using the Relational Database](./RELATIONAL-QUERIES.md) and
 [DMS Feature: Read-only Search Database](../SEARCH-DATABASE.md)_
 
-### Security
+### Document Security
 
 The next thing that you need to be able to support is security. Following the ODS/API, we'll want
 Namespace-based for sure, Education Organization-based probably, and possibly Grade Level-based as well. In
@@ -58,9 +58,12 @@ able to hit those goals.
 
 ## Solution
 
-> [!TIP]
-> See [Design Options for Data Management Service Data Storage](./PRIMARY-DATA-STORAGE-alternatives.md)
-> for detailed analysis of potential solutions, including drawbacks and mitigating factors.
+:::tip
+
+See [Design Options for Data Management Service Data Storage](./PRIMARY-DATA-STORAGE-alternatives.md)
+for detailed analysis of potential solutions, including drawbacks and mitigating factors.
+
+:::
 
 ### General Structure
 
@@ -147,8 +150,8 @@ non-unique, non-clustered and partition-aligned to support removal on document d
 The benefit of this design is that by putting all documents in a single table regardless of resource, we can
 use three simple tables to provide reference validation via referential integrity between any two documents
 using their extracted referential_id(s). If we split the tables up by resource, we will also require a
-specific join table for every resource-pair participating in a reference, which 1) greatly increases
-complexity and 2) is redundant because referential_id already encodes the resource type.
+specific join table for every resource-pair participating in a reference, which (1) greatly increases
+complexity and (2) is redundant because referential_id already encodes the resource type.
 
 #### Why partitioning?
 
@@ -342,8 +345,11 @@ Transaction:
    - Insert each document reference on the updated document as in the insert operation.
 1. Update the JSON document itself on the `Documents` table.
 
-> [!NOTE]
-> TODO: describe desired cascading behavior.
+:::note
+
+TODO: describe desired cascading behavior.
+
+:::
 
 ### Delete Operation
 
@@ -359,8 +365,11 @@ Transaction:
      references to it.
 1. Delete the document in the `Documents` table.
 
-> [!NOTE]
-> TODO: describe desired cascading behavior.
+:::note
+
+TODO: describe desired cascading behavior.
+
+:::
 
 ### SQL DDL
 

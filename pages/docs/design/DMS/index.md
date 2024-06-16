@@ -1,3 +1,7 @@
+---
+title: Data Management Service
+---
+
 # Ed-Fi Data Management Service Features and Design
 
 ## Features

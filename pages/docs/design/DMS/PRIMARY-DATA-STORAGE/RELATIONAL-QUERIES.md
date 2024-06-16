@@ -1,7 +1,10 @@
-# DMS Feature: Queries Using the Relational Database
+# Queries Using the Relational Database
 
-> [!TIP]
-> See [DMS Feature: Primary Data Storage](./README.md) for detailed background on the database design.
+:::tip
+
+See [DMS Feature: Primary Data Storage](./README.md) for detailed background on the database design.
+
+:::
 
 While the preferred method of query handling is via [search engine](../SEARCH-DATABASE.md), some
 deployments will not be able to handle the additional operational complexity. In these cases DMS can

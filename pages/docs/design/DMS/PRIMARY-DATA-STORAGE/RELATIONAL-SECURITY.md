@@ -1,7 +1,10 @@
-# DMS Feature: Relational Support for Client Authorization
+# Relational Support for Client Authorization
 
-> [!NOTE]
-> Draft design notes
+:::note
+
+Draft design notes
+
+:::
 
 ```mermaid
 erDiagram
