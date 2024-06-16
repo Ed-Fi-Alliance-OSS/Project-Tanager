@@ -1,3 +1,7 @@
+---
+sidebar_position: 1
+---
+
 # Ed-Fi ODS/API and Data Management Service FAQ
 
 The recent Ed-Fi blog post New Cloud-Native Functionality Coming to the Ed-Fi

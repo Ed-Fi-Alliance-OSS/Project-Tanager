@@ -1,3 +1,7 @@
+---
+sidebar_position: 0
+---
+
 # Introducing Project Tanager
 
 Project Tanager will build a suite of applications that implement relevant Ed-Fi
@@ -13,9 +17,12 @@ software that will be "Ed-Fi compatible". The remainder of this document
 describes Project Tanager's motivation and architectural vision at the level of
 technical implementation.
 
-> [!TIP]
-> "Project Tanager" is a project code name, not a product name. There
-> will never be a "Tanager 1.0", for example.
+:::tip
+
+"Project Tanager" is a project code name, not a product name. There
+will never be a "Tanager 1.0", for example.
+
+:::
 
 ## Motivation
 
@@ -224,9 +231,12 @@ flowchart LR
 * [Ed-Fi Configuration Service Features and Design](./CS/README.md)
 * [Authentication and Authorization Requirements](./AUTH.md)
 
-> [!NOTE]
-> As with most software projects, these design documents are intended to help
-> think through and communicate about features before and while they are being
-> developed. Efforts will be made to keep them true to the implementation, but
-> please beware that some implementation details may necessarily stray from the
-> initial vision described in these files.
+:::note
+
+As with most software projects, these design documents are intended to help
+think through and communicate about features before and while they are being
+developed. Efforts will be made to keep them true to the implementation, but
+please beware that some implementation details may necessarily stray from the
+initial vision described in these files.
+
+:::
