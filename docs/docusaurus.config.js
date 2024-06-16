@@ -134,15 +134,15 @@ const config = {
             items: [
               {
                 label: 'Tutorial',
-                to: '/docs/intro',
+                to: 'https://ed-fi-alliance-oss.github.io/docs/intro',
               },
               {
                 label: 'Data Exchange Standards',
-                to: '/docs/data-exchange',
+                to: 'https://ed-fi-alliance-oss.github.io/docs/data-exchange',
               },
               {
                 label: 'Technology Suite',
-                to: '/docs/technology-suite',
+                to: 'https://ed-fi-alliance-oss.github.io/docs/technology-suite',
               },
             ],
           },

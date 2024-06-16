@@ -60,7 +60,7 @@ able to hit those goals.
 
 :::tip
 
-See [Design Options for Data Management Service Data Storage](./PRIMARY-DATA-STORAGE-alternatives.md)
+See [Design Options for Data Management Service Data Storage](./ALTERNATIVES.md)
 for detailed analysis of potential solutions, including drawbacks and mitigating factors.
 
 :::
@@ -186,9 +186,8 @@ See [Queries Using the Relational Database](./RELATIONAL-QUERIES.md).
   desired. In this design, the partition key limits the potential number of
   partitions to 256.
 
-The development team has [executed initial
-experiments](../../../POC-Applications/POC.Databases/) to compare some aspects
-of performance between this structure and the ODS database from the ODS/API
+The development team has executed initial experiments to compare some aspects of
+performance between this structure and the ODS database from the ODS/API
 Platform v7. Similar records were inserted into three tables: `Student`,
 `StudentSchoolAssociation`, and `StudentSectionAssociation`. Running a virtual
 machine with SQL Server 2022 and Windows Defender disabled, large numbers of

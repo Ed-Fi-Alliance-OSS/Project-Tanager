@@ -40,11 +40,11 @@ connection string with your own.
 In Project Tanager, integration tests end with the suffix `Tests.Integration`.
 Some packages our integration tests projects utilize:
 
-- [Nunit]("https://nunit.org/") General .Net testing framework
-- [Fakeiteasy]("https://fakeiteasy.github.io/") For mocking / stubbing objects
-- [Impromptuinterface]("https://github.com/ekonbenefits/impromptu-interface")
+- [Nunit](https://nunit.org/) General .Net testing framework
+- [Fakeiteasy](https://fakeiteasy.github.io/) For mocking / stubbing objects
+- [Impromptuinterface](https://github.com/ekonbenefits/impromptu-interface)
   Wrap any object with static interface
-- [Respawn]("https://github.com/jbogard/Respawn") - Reset database between test
+- [Respawn](https://github.com/jbogard/Respawn) - Reset database between test
   runs
 
 ## End to End Tests
@@ -53,7 +53,7 @@ End to End (E2E) Tests are the most high level test meant to mimic exactly how
 the application will be utilized by api clients in real world scenarios. All E2E
 tests are executed directly against the API and no "backdoor" data manipulation
 is performed before, during or after a test. Our E2E tests are created with the
-[Reqnroll]("https://reqnroll.net/") test automation framework and are presented
+[Reqnroll](https://reqnroll.net/) test automation framework and are presented
 in a series of `.feature` files written in the standard Gherkin syntax
 (_Given-When-Then_) and should be understandable to non programmers. At run
 time, each `.feature` file is processed in turn by spinning up a docker
@@ -63,8 +63,8 @@ always starting with the _Given_ statement at the beginning of the file.
 In Project Tanager, E2E tests end with the suffix `Tests.E2E`. Some packages our
 E2E tests utilize:
 
-- [Nunit]("https://nunit.org/") General .Net testing framework
-- [Reqnroll]("https://reqnroll.net/") Framework for Gherkin style automated E2WE
+- [Nunit](https://nunit.org/) General .Net testing framework
+- [Reqnroll](https://reqnroll.net/) Framework for Gherkin style automated E2WE
   tests
-- [Testcontainers]("https://dotnet.testcontainers.org/") Easily create and
+- [Testcontainers](https://dotnet.testcontainers.org/) Easily create and
   destroy docker containers for testing purposes

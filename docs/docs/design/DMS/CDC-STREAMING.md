@@ -4,7 +4,7 @@
 
 Braindump:
 
-* Related question in [Primary Data Storage](./PRIMARY-DATA-STORAGE.md): where
+* Related question in [Primary Data Storage](./DATA-STORAGE-SCHEMA-GEN.md): where
   to store JSON for streaming. One primary table or an outbox table?
 * Debezium, Kafka, Kafka Connect.
 * Simple demonstration of data lake style storage.

@@ -145,8 +145,8 @@ The Ed-Fi Alliance is launching a technical workgroup that will meet monthly for
 the next year, helping with prioritization, review, and testing of the software.
 
 Anyone wishing to contribute at the level of design or application code level is
-invited to review the [Project Tanager design repository](./) and the [DMS
+invited to review the [Project Tanager design repository](https://github.com/Ed-Fi-Alliance-OSS/Project-Tanager) and the [DMS
 Project](https://tracker.ed-fi.org/secure/RapidBoard.jspa?rapidView=261&view=planning&issueLimit=100)
 in Ed-Fi Tracker (Ed-Fi community account required) to understand current and
-upcoming work. Please see [How to Contribute](./CONTRIBUTING.md) for more
+upcoming work. Please see [How to Contribute](https://github.com/Ed-Fi-Alliance-OSS/Project-Tanager/blob/main/CONTRIBUTING.md) for more
 information.
