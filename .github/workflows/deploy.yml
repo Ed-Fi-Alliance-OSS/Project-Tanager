@@ -14,17 +14,21 @@ jobs:
   build:
     name: Build Docusaurus
     runs-on: ubuntu-latest
+    run:
+      working-directory: ./docs
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - uses: actions/setup-node@v4
         with:
           node-version: 18
           cache: npm
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: npm install
+
       - name: Build website
         run: npm run build
 
