@@ -91,3 +91,8 @@
     var(--ifm-color-emphasis-100) 100%
   );
 }
+
+
+.DocCardList--smaller h2 {
+  font-size: 1.2rem;
+}
