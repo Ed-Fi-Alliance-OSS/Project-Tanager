@@ -10,13 +10,16 @@ of features is subject to further revision based on feedback.
 
 ### Preview Release
 
-* [Resources API](./RESOURCES-API.md)
-* [Descriptors API](./DESCRIPTORS-API.md)
-* [Primary Data Storage](./PRIMARY-DATA-STORAGE/)
-* [Cascading Key Updates](./CASCADING-UPDATES.md)
-* [Change Data Capture to Stream](./CDC-STREAMING.md)
-* [Read-only Search Database](./SEARCH-DATABASE.md)
-* Configuration Retrieval and Caching
+* APIs
+  * [Resources API](./RESOURCES-API.md)
+  * [Descriptors API](./DESCRIPTORS-API.md)
+* Data Storage
+  * [Primary Data Storage](./PRIMARY-DATA-STORAGE/)
+  * [Data Storage Schema Generation and Deployment](./DATA-STORAGE-SCHEMA-GEN.md)
+  * [Cascading Key Updates](./CASCADING-UPDATES.md)
+  * [Change Data Capture to Stream](./CDC-STREAMING.md)
+  * [Read-only Search Database](./SEARCH-DATABASE.md)
+* [Configuration](./CONFIGURATION.md)
 * Authentication and Authorization
 
 While the streaming and read-only capabilities are not strictly necessary, it is
