@@ -210,7 +210,7 @@ appear to be useful in prototype testing:
 
 The custom transformation developed for Project Meadowlark has the unwieldy name
 `com.github.edfiexchangeoss.meadowlark.kafka.connect.transforms.GenerateIndexFromResource`.
-This will be replace for Project Tanager with
+This will be replaced for Project Tanager with
 `org.ed-fi.kafka.connect.transforms.GenerateIndexFromResource`.
 
 ### Data Replication Strategy
