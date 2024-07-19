@@ -404,3 +404,7 @@ app-secret.yaml
 
 # Mac OS
 .DS_Store
+
+
+.docusaurus/
+docs/build/

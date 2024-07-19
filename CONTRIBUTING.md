@@ -10,9 +10,9 @@ Please read our [Code of Conduct](./CODE_OF_CONDUCT.md) to help insure that we
 co-create a constructive environment and safe space for all to engage
 together.
 
-Then, head over to [Code Contribution
-Guidelines](https://github.com/Ed-Fi-Alliance-OSS/Software-Development/blob/main/CONTRIBUTING.md)
-for detailed information on process and procedure for pitching in.
+Then, head over to [Ed-Fi Software
+Development](https://github.com/Ed-Fi-Alliance-OSS/Software-Development) for
+detailed information on process and procedure for pitching in.
 
 > [!TIP]
 > Don't forget to setup and use Git commit signing _before_ creating a pull request.
@@ -33,5 +33,5 @@ release, to ensure that we do not accidentally duplicate effort.
 
 ## Testing
 
-Please read our
-[Testng Guidelines](./docs/DMS/TESTING.md) for guidance on automated test expectations for all contributed code.
+Please read our [Testing Guidelines](./docs/DMS/TESTING.md) for guidance on
+automated test expectations for all contributed code.
