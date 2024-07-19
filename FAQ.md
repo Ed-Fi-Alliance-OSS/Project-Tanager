@@ -9,7 +9,8 @@ some of the most common below.
 
 ## Q: What does the future look like for the legacy ODS/API Platform?
 
-The Ed-Fi Alliance plans to continue support for the ODS/API Platform through school year 2027-2028.
+The Ed-Fi Alliance plans to continue support for the ODS/API Platform through
+school year 2027-2028.
 
 ```mermaid
 gantt
@@ -30,9 +31,9 @@ gantt
         production :after a4, 2026-08, 3y
 ```
 
-As show in the table above:
+As shown in the table above:
 
-* Ed-Fi ODS/API Platform (“ODS/API”) version 5.4, coming out in summer 2024,
+* Ed-Fi ODS/API Platform ("ODS/API") version 5.4, coming out in summer 2024,
   will be supported for one more school year. The 5.x line of code was first
   released in 2020, for the 2021-2022 school year. It supported Data Standard 3
   (current: 3.3).
@@ -109,7 +110,7 @@ timeline
 ## Q: Will integrations built for the ODS/API continue to work with the new system?
 
 The Data Management Service will be a fully compatible Ed-Fi API implementation.
-Client applications that interact with the REST API will continue to work.
+Client applications that interact with the REST API will continue to work*.
 
 The backend data store will be very different from the ODS/API. Existing
 database integrations will not be able to work directly with the core set of
@@ -121,16 +122,22 @@ with the community to create a pathway that allows agencies to leverage their
 existing data integrations; for example, there is a proposal to build database
 views that look like the tables from the ODS database.
 
+\* Caveats: the base URLs will be different in the Data Management Service
+compared to the ODS/API. The differences between the two can easily be bridged
+if needed by changing client code to query the root endpoint (Discovery API),
+or with special redirection rules in an API Gateway application sitting in
+front of the Data Management Service.
+
 ## Q: Will integrations built for the Admin API continue to work with the new system?
 
 Yes – if referring to the Admin API specification. No – if referring to the
-specific software. The Data Management Service will have a vastly different
-database system than the ODS/API, including restructuring of the data currently
-housed in the EdFi_Admin and EdFi_Security databases. The project will introduce
-a new application, tentatively called the Ed-Fi Configuration Service. The plan
-is to implement the Admin API specification (version 2), so that applications
-and scripts developed on this specification can interact seamlessly either with
-the platform of today or of tomorrow.
+specific software called "Admin API". The Data Management Service will have a
+vastly different database system than the ODS/API, including restructuring of
+the data currently housed in the EdFi_Admin and EdFi_Security databases. The
+project will introduce a new application, tentatively called the Ed-Fi
+Configuration Service. The plan is to implement the Admin API specification
+(version 2), so that applications and scripts developed on this specification
+can interact seamlessly either with the platform of today or of tomorrow.
 
 ## Q: How can I / my team get involved?
 
