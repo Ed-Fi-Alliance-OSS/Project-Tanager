@@ -71,76 +71,79 @@ three tables use the sequential surrogate key pattern with size `BIGINT`.
 ```mermaid
 erDiagram
     References }o--|| Aliases : "Referenced document alias"
-    References }o--|| Documents : "Parent document of reference"
+    References }o--|| Documents : "Both parent and referenced document"
     References {
-        bigint id PK "Sequential key pattern, clustered"
-        tinyint document_partition_key PK "Partition key, same as Documents.document_partition_key of parent document"
-        bigint document_id FK "Document id of parent document, non-unique non-clustered partition-aligned"
-        bigint referenced_alias_id FK "Alias of document being referenced"
-        tinyint referenced_partition_key FK "Partition key of Aliases table, derived from Aliases.referential_id"
+        bigint Id PK "Sequential key pattern, clustered"
+        tinyint ParentDocumentPartitionKey PK "Partition key, same as Documents.DocumentPartitionKey of parent document"
+        bigint ParentDocumentId FK "Document id of parent document, non-unique non-clustered partition-aligned"
+        tinyint ReferencedDocumentPartitionKey PK "Partition key, same as Documents.DocumentPartitionKey of referenced document"
+        bigint ReferencedDocumentId FK "Document id of referenced document, non-unique non-clustered partition-aligned"
+        Uuid ReferentialId FK "Referential ID of the document being referenced"
+        tinyint ReferentialPartitionKey FK "Partition key of Aliases table, derived from Aliases.ReferentialId"
     }
     Aliases }o--|| Documents : "2 rows with same FK to Documents if subclass, 1 row otherwise"
     Aliases {
-        bigint id PK "Sequential key pattern, clustered"
-        Guid referential_id "Extracted or superclassed document identity, unique non-clustered, partition-aligned"
-        tinyint referential_partition_key PK "Partition key for this table, derived from referential_id"
-        bigint document_id FK "The aliased document"
-        tinyint document_partition_key FK "Partition key of Documents table, derived from Documents.document_uuid"
+        bigint Id PK "Sequential key pattern, clustered"
+        Uuid ReferentialId "Extracted or superclassed document identity, unique non-clustered, partition-aligned"
+        tinyint ReferentialPartitionKey PK "Partition key for this table, derived from ReferentialId"
+        bigint DocumentId FK "Document id of aliased document"
+        tinyint DocumentPartitionKey FK "Partition key of Documents table, derived from Documents.DocumentUuid"
     }
     Documents {
-        bigint id PK "Sequential key pattern, clustered"
-        tinyint document_partition_key PK "Partition key for this table, derived from document_uuid"
-        Guid document_uuid "API resource id, unique non-clustered, partition-aligned"
-        string project_name "Example: Ed-Fi (for DS)"
-        string resource_name "Example: Student"
-        string resource_version "Example: 5.0.0"
-        JSON edfi_doc "The document"
+        bigint Id PK "Sequential key pattern, clustered"
+        tinyint DocumentPartitionKey PK "Partition key for this table, derived from DocumentUuid"
+        Uuid DocumentUuid "API resource id, unique non-clustered, partition-aligned"
+        string ProjectName "Example: Ed-Fi (for DS)"
+        string ResourceName "Example: Student"
+        string ResourceVersion "Example: 5.0.0"
+        JSON EdfiDoc "The document"
     }
 ```
 
 #### Documents Table
 
-The `Documents` table holds all of the documents for all of the entities. `id` is the sequential surrogate
-primary key. `document_uuid` is the external GUID expressed in the API as the resource id. It will be indexed
+The `Documents` table holds all of the documents for all of the entities. `Id` is the sequential surrogate
+primary key. `DocumentUuid` is the external GUID expressed in the API as the resource id. It will be indexed
 as unique and non-clustered to support both document_uuid uniqueness validation as well as direct access for
-GET/UPDATE/DELETE by id operations. `document_partition_key` is included as part of the primary key. It is
-derived from the `document_uuid`, either as a modulo or by taking low-order bits, and maps to a partition
-number. This will allow the index on `document_uuid` to be partition-aligned.
+GET/UPDATE/DELETE by id operations. `DocumentPartitionKey` is included as part of the primary key. It is
+derived from the `DocumentUuid`, either as a modulo or by taking low-order bits, and maps to a partition
+number. This will allow the index on `DocumentUuid` to be partition-aligned.
 
 `Documents` also includes metadata about the document, such as project name, resource name and resource
-version. The table will also include the document itself as `edfi_doc`, which will be stored compressed and
+version. The table will also include the document itself as `EdfiDoc`, which will be stored compressed and
 off-row.
 
 #### Aliases Table
 
-The `Aliases` table is a partitioned table that maps documents to their referential id(s). It also has `id` as
+The `Aliases` table is a partitioned table that maps documents to their referential id(s). It also has `Id` as
 a sequential surrogate primary key.
 
-`referential_id` is a UUIDv5 (see [RFC 4122](https://datatracker.ietf.org/doc/html/rfc4122#section-4.3)) with
+`ReferentialId` is a UUIDv5 (see [RFC 4122](https://datatracker.ietf.org/doc/html/rfc4122#section-4.3)) with
 an Ed-Fi namespace ID as the "namespace" and the resource name + the extracted document identity as the
 "name". This concept of a deterministic hash UUID allows DMS to determine both document identities and
 document references independent of data in the DB. Each document has at least one referential id. Only
 subclass documents have a second referential id, which is the document identity in the form of its superclass.
-`referential_id` will be indexed as unique and non-clustered to support referential_id uniqueness validation.
+`ReferentialId` will be indexed as unique and non-clustered to support referential_id uniqueness validation.
 
-`referential_partition_key` is included as part of the primary key. It is derived from the `referential_id`,
+`ReferentialPartitionKey` is included as part of the primary key. It is derived from the `ReferentialId`,
 either as a modulo or by taking low-order bits, and maps to a partition number. This will allow the index on
-`referential_id` to be partition-aligned.
+`ReferentialId` to be partition-aligned.
 
-`Aliases` has a foreign key reference back to the document with this `referential_id`.
+`Aliases` has a foreign key reference back to the document with this `ReferentialId`.
 
 Delete attempts from the `Aliases` table validate that a document is not referenced by another document.
 
 #### References Table
 
-The `References` table stores every document reference. It also has `id` as a sequential surrogate primary
-key. It shares `document_partition_key` as its own partition kay as part of the primary key.
+The `References` table stores every document reference. It also has `Id` as a sequential surrogate primary
+key. It shares `DocumentPartitionKey` as its own partition kay as part of the primary key.
 
-The table is composed of a `document_id` foreign key reference back to the `Documents` table for the parent
-document of the reference, and a `referenced_alias_id` foreign key reference back to the `Aliases` table for
-the document being referenced. The purpose of the `Aliases` foreign key constraint is to perform reference
-validation. Insert attempts into this table validate reference existence. `document_id` will be indexed as
-non-unique, non-clustered and partition-aligned to support removal on document deletes and updates.
+The table is composed of both a `ParentDocumentId` and `ReferencedDocumentId` foreign key reference back to
+the `Documents` table for the parent and referenced documents in the reference. A `ReferentialId` provides a
+foreign key reference back to the `Aliases` table for the document being referenced. The purpose of the
+`Aliases` foreign key constraint is to perform reference validation. Insert attempts into this table validate
+reference existence. `ParentDocumentId` will be indexed as non-unique, non-clustered and partition-aligned to support
+removal on document deletes and updates.
 
 #### Why not a table per resource?
 
