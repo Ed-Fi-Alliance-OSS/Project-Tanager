@@ -26,7 +26,7 @@ Tanager.
 ### Production Release
 
 * Extension Support
-* Profile Support
+* [Profile Support](./PROFILES.md)
 * Change Queries API
 * Multi-tenancy
 * Optimistic Concurrency (etags)
