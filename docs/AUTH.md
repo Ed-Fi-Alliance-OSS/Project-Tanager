@@ -19,13 +19,19 @@ that platform hosts may choose from among available managed services. Through
 use of various OAuth 2 specifications, the application code for accepting and
 inspecting bearer tokens should be interoperable with any platform. However,
 each platform has its own unique client management system and its own style of
-supporting custom claims.
+supporting custom claims. Until further experiment is performed, it is not clear
+if custom claims can be expressed in the same way in all platforms, or if they
+may have some naming convention applied. So far, Google searches have not
+surfaced details on how custom claims are emitted in JSON Web Tokens created by
+the major platforms.
 
 To that end, the Data Management Service and the Configuration Service will need
-to have customized translation layers: a Mapper class that can translate between
-an IdP's idiom and an internal token representation, and a Gateway class for
-interacting with the remote IdP when managing client credentials. (Also see:
-[Plugin Architecture](./PLUGIN.md)).
+to have customized translation layers:
+
+* A Gateway class for interacting with the remote IdP when managing client
+  credentials. (Also see: [Plugin Architecture](./PLUGIN.md)).
+* Potentially, a Mapper class that can translate between an IdP's idiom and an
+  internal token representation,
 
 Initially, the project will develop support for using
 [Keycloak](https://www.keycloak.org/) as the OAuth Identity Provider.
