@@ -3,6 +3,10 @@
 These notes generally apply to any application developed as part of Project
 Tanager.
 
+## Configuration
+
+See [Configuration](./CONFIGURATION.md)
+
 ## Deployment
 
 The software built in Project Tanager will be designed for operation on-premises

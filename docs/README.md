@@ -123,12 +123,12 @@ flowchart LR
 
     subgraph Third Party Software
         gateway[API Gateway]
-        openid[OpenID Provider]
+        idp[Identity Provider]
 
-        gateway -->|maybe...| openid
+        gateway -->|maybe...| idp
     end
 
-    client -->|/oauth/token| openid
+    client -->|/oauth/token| idp
 
     client -->|/ed-fi/students| gateway
     gateway -->|/ed-fi/students| DMS
@@ -138,14 +138,14 @@ Key components of this system are:
 
 * **Client App**: any application or script that wants to connect to the Ed-Fi
   API host, written in any programming language. The Client App must request an
-  access token from the OpenID Provider and use that token when issuing requests
-  to the Ed-Fi Data Management Service (via the API Gateway).
+  access token from the Identity Provider (IdP) and use that token when issuing
+  requests to the Ed-Fi Data Management Service (via the API Gateway).
 * **API Gateway**: commercial or open-source software for managing and routing
   HTTP requests. In some situations, the API gateway may be able to use the
-  OpenID provider to check the validity of an access token before
+  Identity Provider to check the validity of an access token before
   forwarding the HTTP request to the Data Management Service.
-* **OpenID Provider**: commercial or open-source software that supports OpenID
-  Connect, which is an extension to the OAuth 2.0 standard.
+* **Identity Provider**: commercial or open-source software that supports the
+  OAuth 2.0 standard.
 * **Data Management Service**: an Ed-Fi API host. It is the direct analogue to
   the Ed-Fi ODS/API application, which supports HTTP requests based on the Ed-Fi
   Resources API, Descriptor API, and other API definitions.
@@ -176,17 +176,17 @@ flowchart LR
 
     subgraph Third Party Software
         gateway[API Gateway]
-        openid[OpenID Provider]
+        idp[Identity Provider]
 
-        gateway -->|maybe...| openid
+        gateway -->|maybe...| idp
     end
 
-    client -->|/oauth/token| openid
+    client -->|/oauth/token| idp
 
     client -->|/admin-api/clients| gateway
     gateway -->|/admin-api/clients| CS
 
-    CS --> |/connect/register| openid
+    CS --> |/connect/register| idp
 ```
 
 ### Populating Downstream Data Stores
