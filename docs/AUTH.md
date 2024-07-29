@@ -19,7 +19,7 @@ that platform hosts may choose from among available managed services. Through
 use of various OAuth 2 specifications, the application code for accepting and
 inspecting bearer tokens should be interoperable with any platform. However,
 each platform has its own unique client management system and its own style of
-supporting custom claims. Until further experiment is performed, it is not clear
+supporting custom claims. Until further experiments are performed, it is not clear
 if custom claims can be expressed in the same way in all platforms, or if they
 may have some naming convention applied. So far, Google searches have not
 surfaced details on how custom claims are emitted in JSON Web Tokens created by
