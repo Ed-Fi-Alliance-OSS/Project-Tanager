@@ -20,7 +20,7 @@ of features is subject to further revision based on feedback.
   * [Change Data Capture to Stream](./CDC-STREAMING.md)
   * [Read-only Search Database](./SEARCH-DATABASE.md)
 * [Configuration](./CONFIGURATION.md)
-* Authentication and Authorization
+* [Authorization in the Data Management Service](./DMS-AUTH.md)
 
 While the streaming and read-only capabilities are not strictly necessary, it is
 important that we have early progress toward these motivating goals for Project
@@ -33,6 +33,7 @@ Tanager.
 * Change Queries API
 * Multi-tenancy
 * Optimistic Concurrency (etags)
+* [Generate OpenAPI Specification](./OPEN-API.md)
 
 ### Future Consideration
 
