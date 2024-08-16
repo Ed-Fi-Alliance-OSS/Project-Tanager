@@ -59,7 +59,7 @@ flowchart LR
       Aurora[(Aurora)]
       OpenSearch[(OpenSearch)]
 
-      CDC[Kinesis Data Stream] --> Aurora
+      Aurora --> CDC[Kinesis Data Stream]
       Transform["λ (Transform)"]
       CDC --> Transform
       Transform --> OpenSearch
