@@ -57,9 +57,9 @@ When processing a valid `POST` request with this payload, the DMS will:
    1. Insert the document itself into `dms.document`, using a random UUID as the
       `documentuuid`, and returning the auto-generated `documentId` (int64).
 
-      | id  | documentpartitionkey | documentuuid                         | resourcename |
-      | --- | -------------------- | ------------------------------------ | ------------ |
-      | 147 | 3                    | 409b5ef7-8e28-47fe-89ae-1d94bcaf8265 | courseOffering      |
+      | id  | documentpartitionkey | documentuuid                         | resourcename   |
+      | --- | -------------------- | ------------------------------------ | -------------- |
+      | 147 | 3                    | 409b5ef7-8e28-47fe-89ae-1d94bcaf8265 | courseOffering |
 
    2. Insert the newly assigned `documentId` and calculated `referentialId` into
       `dms.alias`.
@@ -90,8 +90,10 @@ When processing a valid `POST` request with this payload, the DMS will:
 
 ## Processing a PUT Request
 
-With respect to a document's references and descriptors, there validation
+With respect to a document's references and descriptors, the validation
 process is essentially the same as described in the POST section.
+
+### Cascading Referential Id Changes
 
 But what about updates to a natural key in the document, when the document is
 referenced by other documents? By default, these updates are only allowed on a
@@ -172,6 +174,22 @@ update the JSON documents.
 > optimization is necessary. If needed, then look to the Project Meadowlark
 > [Design for Offline Cascading
 > Updates](https://github.com/Ed-Fi-Exchange-OSS/Meadowlark/tree/main/docs/design/offline-cascading-updates)
+
+### Allowable Key Updates
+
+By default, most resources do not allow modification of natural keys, and hence
+do no allow cascading updates. There is a small set of domain entities in the
+Ed-Fi Unified Data Model that allow natural key (aka "identity") updates. An
+implementation host should be able to opt-in to allow other updates. The
+database operations described above will work for _all_ resources, so a
+mechanism is needed in application code to restrict to those that are allowed by
+the standard and to any others that the hosting providers has opted into.
+
+> [!TIP]
+> In C#, the ApiSchema.json file contains a flag `allowIdentityUpdates` to
+> indicate which entities can be updated. An appSettings key with comma
+> separated list can be used to specify other entities that should allow
+> identity updates.
 
 ## Processing a DELETE Request
 
