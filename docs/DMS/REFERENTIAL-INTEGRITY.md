@@ -115,65 +115,11 @@ operations:
    1. This update should cascade into `dms.reference`, so that its
       `referentialId` values are auto-updated.
 
-> [!WARNING]
-> TODO: add this cascading update to foreign key. The limitation on which
-> resources allow cascades will be in C#, rather than hard-coded into the
-> database structure.
-
-### Updating the JSON Document
-
-So much for the referential integrity. However, there is a problem: _the
-referencing documents still contain the old natural key value(s)_. The system
-now need to update all of the JSON documents that still contain the old value.
-For example, on changing a `sessionName`, the referencing `Sections` need to
-have their JSON documents updated to match the new `sessionName`. And anything
-that references that `Section` will also need to change... for example,
-`StudentSectionAssociation` and `StudentSectionAttendanceEvent` must be updated.
-
-This update can be performed with a single SQL statement, where the
-`@documentId` placeholder is the `dms.document.id` value for the `Session` being
-modified, and the `@newSessionName` is the new value to set:
-
-```sql
-update dms.document
-set edfidoc = jsonb_set(edfidoc, '{sessionReference, sessionName}', '"@newSessionName"')
-from (
-	select parentdocumentid as id from dms.reference where referenceddocumentid = @documentId
-) as sub
-where document.id = sub.id;
-```
-
-> [!TIP]
-> In MSSQL, it appears that
-> [`JSON_MODIFY`](https://learn.microsoft.com/en-us/sql/t-sql/functions/json-modify-transact-sql?view=sql-server-ver16)
-> is the equivalent to PostgreSQL's `jsonb_set`.
-
-If the school is storing positive attendance for a section, and the
-`sessionName` changes deep into the school year, then this could be a large
-number of records to modify. In the Glendale sample database:
-
-* The `Session` with the most `Sections` is "Traditional-Spring Semester" with
-  16,340 `Sections`.
-* There are 174,205 `StudentSectionAssociation` records for that `Session`.
-* There are 93 instructional days in that `Session`
-* With positive attendance, there would be 93 x 174,205 = 16,201,065
-  `StudentSectionAttendanceEvent` records.
-* For a total of 16,391,610 JSON documents to update (plus any other table that
-  refers to `Session`).
-
-How long will it take to update those 16 million records? Even in the ODS/API
-this would take a long time. As an initial experiment, in Glendale, the
-`Session` mentioned above was modified. Nearly 900,000 records were affected,
-and it took about 5.5 minutes in SQL Server on a developer workstation. It may
-be valuable to provide an offline update function that will allow a quick
-response to the API client, followed by an eventually-consistent process to
-update the JSON documents.
-
 > [!NOTE]
-> The idea of an offline update has been deferred unless and until further
-> optimization is necessary. If needed, then look to the Project Meadowlark
-> [Design for Offline Cascading
-> Updates](https://github.com/Ed-Fi-Exchange-OSS/Meadowlark/tree/main/docs/design/offline-cascading-updates)
+> The changes above preserve the referential integrity of the relationships, but
+> they do nothing to update the documents that are retrieved with `GET`
+> requests. For more on this topic, see [DMS Feature: Cascading Updates into JSON
+> Documents](./CASCADING-JSON.md)
 
 ### Allowable Key Updates
 
