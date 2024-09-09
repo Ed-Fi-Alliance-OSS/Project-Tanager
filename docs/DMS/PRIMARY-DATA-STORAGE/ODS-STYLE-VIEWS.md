@@ -32,7 +32,7 @@ SELECT
 FROM
  dms.document
 WHERE
- resourcename LIKE '%Descriptor'
+ isdescriptor = true
 ```
 
 #### BarrierToInternetAccessInResidenceDescriptor View
