@@ -95,7 +95,7 @@ Once determined this is an identity update operation, in the single transaction 
 	 1. If this is an identity change, add this to the list of updates to cascade. Remember original and update
 	 versions, and projectName and resourceName.
 
-1. If there is an additional updates in the list, go back to step 2 with it.
+1. If there is an additional update in the list, go back to step 2 with it.
 
 ### Core Library
 
