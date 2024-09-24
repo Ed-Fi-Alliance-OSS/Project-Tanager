@@ -99,9 +99,9 @@ Once determined this is an identity update operation, in the single transaction 
 
 ### Core Library
 
-The core library takes the old original document, the new original document, and the referencing document.
-Using the DMS ApiSchema, it returns an updated referencing document and whether this update is itself an
-identity update.
+The core library takes the old original document, the new original document, and the referencing document (all
+with projectName/resourceName). Using the DMS ApiSchema, it returns an updated referencing document and
+whether this update is itself an identity update.
 
    1. Get the `identityJsonPaths` from ApiSchema for the original document.
    1. Extract the identity values from the original and the updated document.
