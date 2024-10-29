@@ -153,3 +153,22 @@ end
     oauth/token-->a1
     end
 ```
+
+```mermaid
+---
+title: Authorization flow
+---
+flowchart TD
+ subgraph DMS
+        a1[Authorization Middleware] --> a2[Retrieve ClaimSet Details]
+        a2 --> a3[Compare Incoming Resource and Action, and Retrieve Auth Strategy]
+        a3 --> a4[Direct to Appropriate Auth Strategy Handler]
+        a4 --> a5{Is Request Authorized?}
+        a5 --YES--> a6[Proceed with CRUD operation]
+        a5 --NO--> a7[Return an appropriate error response]
+    end
+
+    subgraph Client
+        data[Request to /data/ed-fi/students] --> a1
+    end
+```
