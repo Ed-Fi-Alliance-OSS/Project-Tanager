@@ -9,7 +9,7 @@ Also see [Authentication and Authorization Requirements](../AUTH.md)
 
 In order to keep the JWT from becoming unreasonably large, and to prevent
 managing detailed permissions within the OAuth 2.0 provider, these schemes may
-use a role and/or "claimset" name that can then be mapped to detailed
+use a "claimset" scope. This scope can then be mapped to detailed
 information.
 
 For example, a client of the Resources API might be granted the "SIS Vendor"
