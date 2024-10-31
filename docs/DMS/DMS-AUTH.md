@@ -108,6 +108,8 @@ The client provides its client ID and secret to the oauth/token endpoint on DMS.
 The system then authenticates these credentials using a third-party
 authentication provider(`Keycloak`), which returns a token upon successful
 authentication.
+> [!NOTE]
+> For more details on configuring the DMS client and token information, please refer to [Configure client on Keycloak](https://github.com/Ed-Fi-Alliance-OSS/Data-Management-Service/blob/DMS-81/eng/docker-compose/KEYCLOAK-SETUP.md)
 
 ### 2. Token Validator and Interpreter
 
