@@ -120,8 +120,11 @@ needs an index on `ClaimSetName`.
 * `GET /v2/claimSets/{id}/export`
 * `GET /v2/claimSets`
   * Return the simple response body defined in the Admin API specification.
+  * Includes paging operations.
 * `GET /v2/claimSets?hydrated=true`
   * Returns the entire CLOB, with the same response as the `/export` endpoint.
+  * Needs to support the normal paging operations, though `offset` and `limit`
+    should _not_ be required fields.
 * `GET /v2/claimSets/{id}`
   * Return the simple response body defined in the Admin API specification.
 * `GET /v2/claimSets/{id}?hydrated=true`
@@ -173,3 +176,16 @@ subject to change based on community feedback.
 * `/v2/claimSets/{claimSetId}/resourceClaimActions`
 * `/v2/claimSets/{claimSetId}/resourceClaimActions/{resourceClaimId}`
 * `/v2/claimSets/{claimSetId}/resourceClaimActions/{resourceClaimId}`
+
+## Summary of Changes Compared to Admin API 2.2 Specification
+
+* `offset` and `limit` should not be required parameters
+* `PUT` requests will require the presence of the matching `id` attribute in the
+  request body.
+* Both `POST` and `PUT` on `/v2/claimSets` will support use of the
+  `resourceClaims` attribute.
+* A `GET` request to `/v2/claimSets` or `/v2/claimSets/{id}` will return the
+  `resourceClaims` array _if_ query string parameter `hydrated` is received with
+  value `true`.
+
+Thus, we have begun defining elements of an Admin API **3.0** specification.
