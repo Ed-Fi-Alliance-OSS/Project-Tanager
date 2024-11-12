@@ -102,7 +102,7 @@ determine if this is a viable long-term direction. Initially, the key goal is to
 enable the DMS to retrieve claimset information from the Configuration Service.
 This is essentially the same as the export operation. We will modify the GET all
 and GET by id endpoints to accept a query parameter that returns the "fully
-hydrated" claimsets.
+hydrated" claimsets (with query string parameter `verbose`).
 
 > [!TIP]
 > [admin-api-2.2.0.yaml](https://github.com/Ed-Fi-Alliance-OSS/Ed-Fi-API-Standards/blob/main/api-specifications/admin-api/admin-api-2.2.0.yaml)
@@ -121,13 +121,13 @@ needs an index on `ClaimSetName`.
 * `GET /v2/claimSets`
   * Return the simple response body defined in the Admin API specification.
   * Includes paging operations.
-* `GET /v2/claimSets?hydrated=true`
+* `GET /v2/claimSets?verbose=true`
   * Returns the entire CLOB, with the same response as the `/export` endpoint.
   * Needs to support the normal paging operations, though `offset` and `limit`
     should _not_ be required fields.
 * `GET /v2/claimSets/{id}`
   * Return the simple response body defined in the Admin API specification.
-* `GET /v2/claimSets/{id}?hydrated=true`
+* `GET /v2/claimSets/{id}?verbose=true`
   * Returns the entire CLOB, with the same response as the `/export` endpoint.
 * `POST /v2/claimSets`
   * In the Admin API interface, only the `name` is used. Continue supporting
@@ -185,7 +185,7 @@ subject to change based on community feedback.
 * Both `POST` and `PUT` on `/v2/claimSets` will support use of the
   `resourceClaims` attribute.
 * A `GET` request to `/v2/claimSets` or `/v2/claimSets/{id}` will return the
-  `resourceClaims` array _if_ query string parameter `hydrated` is received with
+  `resourceClaims` array _if_ query string parameter `verbose` is received with
   value `true`.
 
 Thus, we have begun defining elements of an Admin API **3.0** specification.
