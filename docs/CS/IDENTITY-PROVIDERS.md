@@ -1,8 +1,12 @@
 # Notes on Identity Providers
 
+The Configuration Service will need to be interoperable with many different
+identity providers, each of which has its own standard for how to create new
+client credentials.
+
 ## Keycloak
 
-[Add Custom CLaims from User Attributes in
+[Add Custom Claims from User Attributes in
 Keycloak](https://datmt.com/backend/how-to-add-custom-claims-from-user-attributes-in-keycloak)
 
 ## AWS Cognito
