@@ -8,12 +8,17 @@ document (e.g. SchoolId, EducationServiceCenterId, Namespace) with a list of aut
 each client. Additionally, EducationOrganizations form a hierarchy (e.g. Schools are a part of a
 LocalEducationAgency) where a higher-level client authorization applies to lower level security attributes.
 
+EducationOrganization-based security also extends the authorization hierarchy down to the Student level. This
+flows through Associations such as StudentSchoolAssociation to define the student data that is authorized for
+a client, based on their EducationOrganization permissions.
+
 The design of Client Authorizations is covered in [DMS-AUTH](DMS-AUTH.md).
 
 The scope of the problem is to determine how the DMS will:
 
 - Efficiently extract the security attributes of a document.
 - Understand the hierarchy of EducationOrganizations.
+- Understand the extension of the EducationOrganization hierarchy down to the Student level.
 - Efficiently apply a client's authorizations to POST, PUT, GET and DELETE actions, including to a search
   engine datastore.
 
@@ -24,15 +29,16 @@ The scope of the problem is to determine how the DMS will:
 DMS needs to know which resources have security attributes and where those attributes are located on the
 document. These attributes then need to be extracted into a `securityAttributes` object.
 
-MetaEd will provide this information in the ResourceSchema in ApiSchema.json for any EducationOrganizations
-and Namespace fields on a resource. There will be an entry for each type of security attribute for the
-resource along with the attribute JsonPath. For example, Course has an EducationOrganization superclass
-reference and so the SecurityAttribute would look like this:
+MetaEd will provide this information in the ResourceSchema in ApiSchema.json for any EducationOrganization,
+Student, and Namespace field on a resource. There will be an entry for each type of security attribute for the
+resource along with the attribute JsonPath. This is independent of run-time security configuration to allow
+for support of all configurations. For example, Course has an EducationOrganization superclass reference and
+so the SecurityAttribute would look like this:
 
 ```json
 "courses": {
   "securityAttributes": {
-    "educationOrganizationId": [
+    "EducationOrganization": [
       "$.educationOrganizationReference.educationOrganizationId"
     ]
   }
@@ -45,7 +51,7 @@ name:
 ```json
 "disciplineActions": {
   "securityAttributes": {
-    "schoolId": [
+    "School": [
       "$.responsibilitySchoolReference.schoolId"
     ]
   }
@@ -57,18 +63,30 @@ Similarly, Credentials has a Namespace and would look like:
 ```json
 "credentials": {
   "securityAttributes": {
-    "namespace": [
+    "Namespace": [
       "$.namespace"
     ]
   }
 }
 ```
 
-The `securityAttributes` object can have multiple attributes (e.g. schoolId, localEducationAgencyId,
-educationOrganizationNetworkId) and each entry is an array to allow for multiple JsonPaths.
+And finally, StudentGradebookEntry has a Student and would look like:
 
-Note that this scheme requires MetaEd to have hardcoded knowledge of Namespace and the various
-EducationOrganizations in the Data Standard. Hardcoding of EducationOrganizations can be minimized by
+```json
+"credentials": {
+  "securityAttributes": {
+    "StudentUniqueId": [
+      "$.studentReference.studentUniqueId"
+    ]
+  }
+}
+```
+
+The `securityAttributes` object can have multiple attributes (for example EducationOrganization, School, and
+StudentUniqueId) - and each entry is an array to allow for multiple JsonPaths.
+
+Note that this scheme requires MetaEd to have hardcoded knowledge of Namespace, StudentUniqueId and the
+various EducationOrganizations in the Data Standard. Hardcoding of EducationOrganizations can be minimized by
 detection via the EducationOrganization Abstract Entity rather than hardcoding each individual
 EducationOrganization subclass, the number of which changes as the Data Standard evolves.
 
@@ -105,35 +123,35 @@ ApiSchema.json. An example:
 
 ```json
 {
-  "educationOrganizationId": ["12"],
-  "schoolId": ["34", "56"],
-  "educationOrganizationNetworkId": ["78"],
-  "communityOrganizationId": ["90"],
-  "namespace": ["uri://ed-fi.org"]
+  "EducationOrganization": ["12"],
+  "School": ["34", "56"],
+  "EducationOrganizationNetwork": ["78"],
+  "CommunityOrganization": ["90"],
+  "Namespace": ["uri://ed-fi.org"]
 }
 ```
 
 The extracted object will be used for the authorization of the POST/PUT action, and passed to the backend
 along with the document.
 
-### EducationOrganization Parent-Child Relationships
-
-As EducationOrganizations are POSTed, DMS will use the `educationOrganizationHierarchy` from ApiSchema.json to
-maintain a lookup table for parent-child EducationOrganization identifiers. For example, when a School with
-SchoolId 123 and LocalEducationAgencyId 456 is POSTed, after all validations are completed DMS will add School
-123 as a child of LocalEducationAgency 456 to its internal hierarchy. These relationships will be stored in
-the backend as well as cached.
-
-### Backend Storage
-
 Relational backends will add a `SecurityAttributes` JSON column to the Documents table for storage of the
 extracted security attributes. This column will not be indexed, nor will it be searched on in the relational
 store. It will be propagated to Kafka via Debezium like all Document columns, and so will be indexed with the
 document in OpenSearch/Elasticsearch.
 
-Relational backends will also add an `EducationOrganizationHierarchy` table that will persist
-EducationOrganization parent-child relationship information. This will be a simple, non-partitioned table
-looking something like this:
+### EducationOrganization Parent-Child Relationships
+
+As EducationOrganizations are POSTed, DMS will use the `educationOrganizationHierarchy` from ApiSchema.json to
+build and maintain a lookup table for parent-child EducationOrganization identifiers. For example, when a
+School with SchoolId 123 and LocalEducationAgencyId 456 is POSTed, after all validations are completed DMS
+will add School 123 as a child of LocalEducationAgency 456 to its internal hierarchy. These relationships will
+be stored in the backend as well as cached.
+
+#### EducationOrganizationHierarchy Backend Storage
+
+Relational backends will add an `EducationOrganizationHierarchy` table that will persist EducationOrganization
+parent-child relationship information. This will be a simple, non-partitioned table looking something like
+this:
 
 ```mermaid
 erDiagram
@@ -147,24 +165,47 @@ erDiagram
     }
 ```
 
+#### EducationOrganizationHierarchy Caching
+
+DMS will keep the EducationOrganization hierarchy information from the backend into an
+EducationOrganizationHierarchy cache, which will be shaped for easy lookup. It will be a dictionary mapping a
+single EducationOrganization to a list of it and all of its descendants. For example, if EducationOrganization
+#1 was a SEA, #10 and #11 LEAs, and #100 and #110 Schools, the cache might look something like this:
+
+```json
+{
+  "1": ["1", "10", "100", "11", "110"],
+  "10": ["10", "100"],
+  "11": ["11", "110"],
+  "100": ["100"],
+  "110": ["110"]
+}
+```
+
+This cache will have the usual requirements around hot/cold, local/distributed, and updating/invalidation.
+
 ### Client Authorization
 
-Clients are configured to have authorizations for certain EducationOrganizations and Namespaces. DMS will take
-the EducationOrganization authorizations and expand them in a cache to include any sub-categories. What
-follows depends on the type of action:
+Clients are configured to have authorizations for certain EducationOrganizations. These are included in the
+client claimset. DMS will take the EducationOrganization authorizations and expand them using the
+EducationOrganizationHierarchy cache to include all child EducationOrganizations.
 
-#### POST/PUT
+Below are the steps taken for client authorization for each type of action. Note these are general steps, and
+there will be variations based on configuration.
+
+#### POST/PUT Actions
 
 DMS compares the expanded authorizations to the security attributes extracted from the provided document. If
 they do not match, the action is not authorized.
 
-#### GET by Query
+#### GET by Query Action
 
 For search engine query handlers, DMS adds a filter to the query of the expanded authorizations that are
-relevant for the current resource. For relational queries, see
+relevant for the current resource. Typically these would be `terms` filters, which allow for an array of ids
+matching on EducationOrganization, StudentUniqueId, etc. For relational queries, see
 [RELATIONAL-QUERIES](PRIMARY-DATA-STORAGE/RELATIONAL-QUERIES.md) for what the filtering would look like.
 
-#### DELETE/GET by Id
+#### DELETE/GET by Id Actions
 
 DMS retrieves the document from the backend, along with its security attributes. If they do not match the
 expanded authorizations, the action is not authorized.
