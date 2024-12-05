@@ -145,7 +145,7 @@ As EducationOrganizations are POSTed, DMS will use the `educationOrganizationHie
 build and maintain a lookup table for parent-child EducationOrganization identifiers. For example, when a
 School with SchoolId 123 and LocalEducationAgencyId 456 is POSTed, after all validations are completed DMS
 will add School 123 as a child of LocalEducationAgency 456 to its internal hierarchy. These relationships will
-be stored in the backend as well as cached.
+be stored in the backend datastore as well as the search engine.
 
 #### EducationOrganizationHierarchy Backend Storage
 
@@ -169,8 +169,8 @@ erDiagram
 
 DMS will keep the EducationOrganization hierarchy information from the backend into an
 EducationOrganizationHierarchy cache, which will be shaped for easy lookup. It will be a dictionary mapping a
-single EducationOrganization to a list of it and all of its descendants. For example, if EducationOrganization
-#1 was a SEA, #10 and #11 LEAs, and #100 and #110 Schools, the cache might look something like this:
+single EducationOrganization to a list of it and all of its descendants. For example, if we had an EducationOrganization hierarchy
+where #1 was a SEA, #10 and #11 were LEAs, and #100 and #110 were Schools, the cache might look something like this:
 
 ```json
 {
@@ -182,13 +182,69 @@ single EducationOrganization to a list of it and all of its descendants. For exa
 }
 ```
 
-This cache will have the usual requirements around hot/cold, local/distributed, and updating/invalidation.
+#### EducationOrganizationHierarchy Search Engine Storage
+
+Opensearch and Elasticsearch both have a feature called "Terms Lookup" that makes it advantageous to store a
+denormalized version of the EducationOrganizationHierarchy table in the search engine:
+
+* [Opensearch Terms Lookup](https://opensearch.org/docs/latest/query-dsl/term/terms/#terms-lookup)
+* [Elasticsearch Terms
+  Lookup](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-terms-query.html#query-dsl-terms-lookup)
+
+The idea is to store the EducationOrganization hierarchy information from the backend into an
+EducationOrganizationHierarchy index in the search engine, with one document per EducationOrganization. The id
+of the document will be an EducationOrganizationId, and the document will consist of a list of that
+EducationOrganizationId and all of its descendants. For example, if we had an EducationOrganization hierarchy
+where #1 was a SEA, #10 and #11 were LEAs, and #100 and #110 were Schools, the documents in the
+EducationOrganizationHierarchy index might look like this:
+
+```json
+{
+  id: 1,
+  hierarchy: [1, 10, 100, 11, 110]
+},
+{
+  id: 10,
+  hierarchy: [10, 100]
+},
+{
+  id: 11,
+  hierarchy: [11, 110]
+},
+{
+  id: 100,
+  hierarchy: [100]
+},
+{
+  id: 110,
+  hierarchy: [110]
+}
+```
+
+With the EducationOrganizationHierarchy data shaped this way, the level of indirection provided by the "Terms
+Lookup" search engine feature makes a filter query from DMS simple. For example, a filter of CourseOfferings
+by School for SEA #1 would look like:
+
+```json
+GET courseOfferings/_search
+{
+  "query": {
+    "terms": {
+      "schoolId": {
+        "index": "EducationOrganizationHierarchy",
+        "id": "1",
+        "path": "hierarchy"
+      }
+    }
+  }
+}
+```
 
 ### Client Authorization
 
 Clients are configured to have authorizations for certain EducationOrganizations. These are included in the
-client claimset. DMS will take the EducationOrganization authorizations and expand them using the
-EducationOrganizationHierarchy cache to include all child EducationOrganizations.
+client claimset. For non-search engine queries, DMS will take the EducationOrganization authorizations and
+expand them using the EducationOrganizationHierarchy cache to include all child EducationOrganizations.
 
 Below are the steps taken for client authorization for each type of action. Note these are general steps, and
 there will be variations based on configuration.
@@ -200,10 +256,11 @@ they do not match, the action is not authorized.
 
 #### GET by Query Action
 
-For search engine query handlers, DMS adds a filter to the query of the expanded authorizations that are
-relevant for the current resource. Typically these would be `terms` filters, which allow for an array of ids
-matching on EducationOrganization, StudentUniqueId, etc. For relational queries, see
-[RELATIONAL-QUERIES](PRIMARY-DATA-STORAGE/RELATIONAL-QUERIES.md) for what the filtering would look like.
+For search engine query handlers, DMS adds a "Terms Lookup" filter to the query with the authorized
+EducationOrganizationIds that are relevant for the current resource. These filters would use the appropriate
+search engine index for the resource to match on EducationOrganization, StudentUniqueId, etc. For relational
+queries, see [RELATIONAL-QUERIES](PRIMARY-DATA-STORAGE/RELATIONAL-QUERIES.md) for what the filtering would
+look like.
 
 #### DELETE/GET by Id Actions
 
