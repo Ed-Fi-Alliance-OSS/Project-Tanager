@@ -139,7 +139,8 @@ extracted security attributes. This column will not be indexed, nor will it be s
 store. It will be propagated to Kafka via Debezium like all Document columns, and so will be indexed with the
 document in OpenSearch/Elasticsearch.
 
-### EducationOrganization Parent-Child Relationships
+### EducationOrganization Attributes
+#### EducationOrganization Parent-Child Relationships
 
 As EducationOrganizations are POSTed, DMS will use the `educationOrganizationHierarchy` from ApiSchema.json to
 build and maintain a lookup table for parent-child EducationOrganization identifiers. For example, when a
@@ -165,23 +166,6 @@ erDiagram
     }
 ```
 
-#### EducationOrganizationHierarchy Caching
-
-DMS will keep the EducationOrganization hierarchy information from the backend into an
-EducationOrganizationHierarchy cache, which will be shaped for easy lookup. It will be a dictionary mapping a
-single EducationOrganization to a list of it and all of its descendants. For example, if we had an EducationOrganization hierarchy
-where #1 was a SEA, #10 and #11 were LEAs, and #100 and #110 were Schools, the cache might look something like this:
-
-```json
-{
-  "1": ["1", "10", "100", "11", "110"],
-  "10": ["10", "100"],
-  "11": ["11", "110"],
-  "100": ["100"],
-  "110": ["110"]
-}
-```
-
 #### EducationOrganizationHierarchy Search Engine Storage
 
 Opensearch and Elasticsearch both have a feature called "Terms Lookup" that makes it advantageous to store a
@@ -192,11 +176,11 @@ denormalized version of the EducationOrganizationHierarchy table in the search e
   Lookup](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-terms-query.html#query-dsl-terms-lookup)
 
 The idea is to store the EducationOrganization hierarchy information from the backend into an
-EducationOrganizationHierarchy index in the search engine, with one document per EducationOrganization. The id
-of the document will be an EducationOrganizationId, and the document will consist of a list of that
-EducationOrganizationId and all of its descendants. For example, if we had an EducationOrganization hierarchy
-where #1 was a SEA, #10 and #11 were LEAs, and #100 and #110 were Schools, the documents in the
-EducationOrganizationHierarchy index might look like this:
+EducationOrganizationHierarchyTermsLookup index in the search engine, with one document per
+EducationOrganization. The id of the document will be an EducationOrganizationId, and the document will
+consist of a list of that EducationOrganizationId and all of its descendants. For example, if we had an
+EducationOrganization hierarchy where #1 was a SEA, #10 and #11 were LEAs, and #100 and #110 were Schools, the
+documents in the EducationOrganizationHierarchyTermsLookup index might look like this:
 
 ```json
 {
@@ -221,9 +205,9 @@ EducationOrganizationHierarchy index might look like this:
 }
 ```
 
-With the EducationOrganizationHierarchy data shaped this way, the level of indirection provided by the "Terms
-Lookup" search engine feature makes a filter query from DMS simple. For example, a filter of CourseOfferings
-by School for SEA #1 would look like:
+With the EducationOrganizationHierarchyTermsLookup data shaped this way, the level of indirection provided by
+the "Terms Lookup" search engine feature makes a filter query from DMS simple. For example, a filter of
+CourseOfferings by School for SEA #1 would look like:
 
 ```json
 GET courseOfferings/_search
@@ -231,7 +215,7 @@ GET courseOfferings/_search
   "query": {
     "terms": {
       "schoolId": {
-        "index": "EducationOrganizationHierarchy",
+        "index": "EducationOrganizationHierarchyTermsLookup",
         "id": "1",
         "path": "hierarchy"
       }
@@ -240,19 +224,88 @@ GET courseOfferings/_search
 }
 ```
 
+The DMS backend will need to populate a table that is the source of the documents that go into the
+EducationOrganizationHierarchy index. This simple, non-partitioned EducationOrganizationHierarchyTermsLookup
+table should look something like this:
+
+```mermaid
+erDiagram
+
+    EducationOrganizationHierarchyTermsLookup {
+        int primary_key PK "Sequential key pattern, clustered"
+        string id "The EducationOrganization Id"
+        JSON hierarchy "The hierarchy array"
+    }
+```
+This table will be managed in parallel with the EducationOrganizationHierarchy table. Addition and removal of
+hierarchy array elements will be done through datastore JSON functions. The documents will be pushed to the
+search engine via the normal Debezium process.
+
+
+### Student Attributes
+#### Student-EducationOrganization Relationships
+
+EducationOrganization-based security must also be able to secure on documents that have a Student attribute.
+This is typically done through the StudentSchoolAssociation resource.
+
+Much like the EducationOrganizationHierarchy, as StudentSchoolAssociations are POSTed, DMS will track these
+Student-EducationOrganization relationships in the backend datastore as well as the search engine.
+
+#### Student Backend Storage
+
+Relational backends will add a `StudentEducationOrganizationRelationship` table that will persist
+Student-EducationOrganization relationship information. This will be a simple, non-partitioned table looking
+something like this:
+
+```mermaid
+erDiagram
+
+    StudentEducationOrganizationRelationship {
+        int id PK "Sequential key pattern, clustered"
+        string educationOrganizationId "indexed"
+        string studentId "indexed"
+    }
+```
+
+Note that EducationOrganizationHierarchy will need to be used to insert a row into the
+StudentEducationOrganizationRelationship table for every level of EducationOrganization the Student is
+associated with.
+
+#### Student Search Engine Storage
+
+Much like the EducationOrganizationHierarchyTermsLookup search engine index, there will a
+StudentEducationOrganizationRelationshipTermsLookup index based on the same Student-EducationOrganization
+relationship information. The DMS backend will populate a simple, non-partitioned source table named
+StudentEducationOrganizationRelationshipTermsLookup, which should look something like this:
+
+```mermaid
+erDiagram
+
+    StudentEducationOrganizationRelationshipTermsLookup {
+        int primary_key PK "Sequential key pattern, clustered"
+        string id "The EducationOrganization Id"
+        JSON students "The students array"
+    }
+```
+This table will be managed in parallel with the StudentEducationOrganizationRelationship table, with addition
+and removal of array elements done through datastore JSON functions. The documents will be pushed to the
+search engine via the normal Debezium process.
+
 ### Client Authorization
 
 Clients are configured to have authorizations for certain EducationOrganizations. These are included in the
 client claimset. For non-search engine queries, DMS will take the EducationOrganization authorizations and
-expand them using the EducationOrganizationHierarchy cache to include all child EducationOrganizations.
+expand them using the EducationOrganizationHierarchy table in the backend datastore to include all child
+EducationOrganizations. For performance, these EducationOrganizationHierarchy lookups should probably be
+cold-cached by DMS.
 
 Below are the steps taken for client authorization for each type of action. Note these are general steps, and
 there will be variations based on configuration.
 
 #### POST/PUT Actions
 
-DMS compares the expanded authorizations to the security attributes extracted from the provided document. If
-they do not match, the action is not authorized.
+DMS compares the expanded EducationOrganization authorizations to the security attributes extracted from the
+provided document. If they do not match, the action is not authorized.
 
 #### GET by Query Action
 
@@ -265,4 +318,4 @@ look like.
 #### DELETE/GET by Id Actions
 
 DMS retrieves the document from the backend, along with its security attributes. If they do not match the
-expanded authorizations, the action is not authorized.
+expanded EducationOrganization authorizations, the action is not authorized.
