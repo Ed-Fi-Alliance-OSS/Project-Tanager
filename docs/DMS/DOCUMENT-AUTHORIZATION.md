@@ -105,15 +105,9 @@ EducationOrganization resource hierarchy in ApiSchema. This will be a project-le
     "EducationServiceCenter",
     "CommunityOrganization",
     "CommunityProvider"
-  ],
-  "CommunityOrganization": [
-    "CommunityProvider"
   ]
 }
 ```
-
-Which shows that `CommunityProvider` and `CommunityOrganization` are both categories of
-`EducationOrganization` and that `CommunityProvider` is also a sub-category of `CommunityOrganization`.
 
 ### Security Attribute Extraction
 
