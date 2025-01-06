@@ -189,3 +189,7 @@ subject to change based on community feedback.
   value `true`.
 
 Thus, we have begun defining elements of an Admin API **3.0** specification.
+
+## Sample File
+
+[sis-vendor-claimset.json](./sis-vendor-claimset.json) this file was exported from the ODS/API using Admin API 2.
