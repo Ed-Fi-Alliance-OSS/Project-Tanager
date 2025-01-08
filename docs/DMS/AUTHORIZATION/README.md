@@ -1,37 +1,25 @@
 # Authorization in the Data Management Service
 
 > [!TIP]
-> Also see [Authentication and Authorization Requirements](../AUTH.md)
+> Also see the global [Authentication and Authorization Requirements](../AUTH.md)
 
-The Data Management Service will reproduce the authorization _strategies_ [employed by the Ed-Fi ODS / API](./AUTHORIZATION/ODS-API.md). The _mechanisms_, however, will necessarily differ due to the new database design and the decision to use JSON Web Tokens (JWT) instead of a random string bearer token.
+Client authentication will be performed using an OAuth 2.0 compatible identity provider (IdP). The initial release of the Data Management Service (DMS) will support [Keycloak](https://www.keycloak.org/) out of the box, and it will be built for extensibility to [support other providers](../../AUTH.md#multiplicity-of-providers).
 
-> [!WARNING]
-> This document does not yet address how to handle education organizations or relationship based authorization. It also does not describe an analogy to the new [extensible authorization filtering](https://docs.ed-fi.org/reference/ods-api/7.3/whats-new/whats-new-in-this-release#extensible-authorization-filtering) in ODS / API v7.3.
+The DMS intended primarily for system interaction, not user interaction. Therefore it will initially support only two-legged OAuth using the `client_credentials` grant type.
 
-## Authorization Claims
+The IdP will be expected to create a signed [JSON Web Token](https://jwt.io) containing information about the client, which can be used for authorization to:
 
-The out of the box authorization strategies depend on one or more of the following pieces of information:
+* The API itself
+* Specific Ed-Fi Descriptors and Resources ("endpoint authorization")
+* Specific documents ("row level authorization")
 
-* education organization(s)
-* namespaces
-* resources (e.g. the things managed by the API)
-* actions (create, read, update, delete, read changes)
-* authorization strategies
+The Data Management Service will reproduce the authorization _strategies_ [employed by the Ed-Fi ODS / API](./ODS-API-AUTHORIZATION.md). The _mechanisms_, however, will necessarily differ due to the new database design and the decision to use JWTs instead of a random string bearer token.
 
-Ideally, a JSON Web Token would encode all of the information needed to grant authorization for a client access request. But an Ed-Fi API needs too much information; storing it all in the JWT would create a very large token that would contribute to significant network traffic.
+The following detailed design documents build on each other successively.
 
-### ClaimSet and Scope
-
-A pre-built combination of resources, actions, and authorization strategies is called a _claimset_ in Ed-Fi API systems. Also see [Claimset Management](../CS/CLAIMSET-MGMT.md). A given deployment typically has a small number of claimsets, with potentially many clients using the same claimset. The DMS will expect to find the claimset's unique name as a _scope_, which will be included in the JWT as a claim. For example, the JWT may contain `"scope": "SIS-Vendor"` to grant access to the "SIS-Vendor" claimset.
-
-Using the OAuth concept of _scope_ opens the future possibility of using three-legged OAuth and allowing the client to request a claimset by using the Scope parameter in their initial token request.
-
-The DMS thus must lookup the details of the claimset, since those details are not included in the token. Furthermore, the OAuth Identity Provider (IdP) will not store this information; the DMS will need to pull this information from the DMS Configuration Service, as described in a section below.
-
-> ![NOTE]
-> Claimset names in the ODS/API Platform often have spaces in them. These spaces will be
-> replaced with a short dash `-` for DMS, since space is used as a separator for multiple
-> scopes in a JWT.
+* [Client Authorization](../../AUTH.md#client-authorization)
+* [Resource Authorization](./RESOURCE-AUTHORIZATION.md)
+* [Document Authorization](./DOCUMENT-AUTHORIZATION.md)
 
 ### Namespaces
 
