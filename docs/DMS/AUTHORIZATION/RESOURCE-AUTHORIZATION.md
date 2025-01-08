@@ -16,9 +16,10 @@ authorization for a client access request. But an Ed-Fi API needs too much
 information; storing it all in the JWT would create a very large token that
 would contribute to significant network traffic.
 
-This document is concerned primarily with _resources_ and _actions_, which
-define the "resource authorization" strategy. [DMS Document
-Authorization](./DOCUMENT-AUTHORIZATION.md) covers the other topics.
+This document is concerned primarily with _resources_, _actions_, and
+_authorization strategies_. [DMS Document
+Authorization](./DOCUMENT-AUTHORIZATION.md) document-level authorization using
+based on education organization and/or namespace.
 
 ## Claimset as a Scope
 
@@ -46,7 +47,11 @@ there is no need to reconcile competing claimsets at runtime.
 > will be replaced with a short dash `-` for DMS, since space is used as a
 > separator for multiple scopes in a JWT.
 
-## Authorizing Access to a Resource
+The definition of a claimset includes all three components discussed here:
+resource name, available actions, and authorization strategies. The notes below
+build on each other successively to develop the full set of requirements.
+
+## Resources
 
 ### Basic Scenario
 
@@ -88,7 +93,7 @@ Status code 403, `Forbidden`.
 > There are grouping concepts in claimsets. These need to be investigated and
 > documented here. For example: `EducationOrganization` and `ManagedDescriptors`.
 
-## Authorizing Actions
+## Actions
 
 The following simplified example adds the concept of _actions_, which correspond
 to HTTP verbs. In this example, the client is allowed to issue a POST request to
