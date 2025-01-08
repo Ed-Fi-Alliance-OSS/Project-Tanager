@@ -82,7 +82,8 @@ This includes the audience, issuer, and expiration date.
 
 Ensure that there is an appropriate _role_ claim. Look for a claim labeled
 `http://schemas.microsoft.com/ws/2008/06/identity/claims/role`, which should
-contain an array of values.
+contain an array of values. The expected value will be configurable (examples:
+`dms-client`, `dms-config-client`).
 
 ## Implementation Notes
 
