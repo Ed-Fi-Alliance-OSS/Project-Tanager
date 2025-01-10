@@ -1,0 +1,738 @@
+{
+  "resourceClaims": [
+    {
+      "id": 1,
+      "name": "types",
+      "actions": [
+        {
+          "name": "Read",
+          "enabled": true
+        }
+      ],
+      "_defaultAuthorizationStrategiesForCRUD": [
+        {
+          "actionId": 2,
+          "actionName": "Read",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 1,
+              "authStrategyName": "NoFurtherAuthorizationRequired",
+              "isInheritedFromParent": false
+            }
+          ]
+        }
+      ],
+      "authorizationStrategyOverridesForCRUD": [],
+      "children": []
+    },
+    {
+      "id": 5,
+      "name": "people",
+      "actions": [
+        {
+          "name": "Create",
+          "enabled": true
+        },
+        {
+          "name": "Delete",
+          "enabled": true
+        },
+        {
+          "name": "Update",
+          "enabled": true
+        },
+        {
+          "name": "Read",
+          "enabled": true
+        }
+      ],
+      "_defaultAuthorizationStrategiesForCRUD": [
+        {
+          "actionId": 1,
+          "actionName": "Create",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 1,
+              "authStrategyName": "NoFurtherAuthorizationRequired",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 2,
+          "actionName": "Read",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 2,
+              "authStrategyName": "RelationshipsWithEdOrgsAndPeople",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 3,
+          "actionName": "Update",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 2,
+              "authStrategyName": "RelationshipsWithEdOrgsAndPeople",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 4,
+          "actionName": "Delete",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 1,
+              "authStrategyName": "NoFurtherAuthorizationRequired",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 5,
+          "actionName": "ReadChanges",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 9,
+              "authStrategyName": "RelationshipsWithEdOrgsAndPeopleIncludingDeletes",
+              "isInheritedFromParent": false
+            }
+          ]
+        }
+      ],
+      "authorizationStrategyOverridesForCRUD": [],
+      "children": []
+    },
+    {
+      "id": 10,
+      "name": "primaryRelationships",
+      "actions": [
+        {
+          "name": "Read",
+          "enabled": true
+        },
+        {
+          "name": "Create",
+          "enabled": true
+        },
+        {
+          "name": "Delete",
+          "enabled": true
+        },
+        {
+          "name": "Update",
+          "enabled": true
+        }
+      ],
+      "_defaultAuthorizationStrategiesForCRUD": [
+        {
+          "actionId": 1,
+          "actionName": "Create",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 3,
+              "authStrategyName": "RelationshipsWithEdOrgsOnly",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 2,
+          "actionName": "Read",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 2,
+              "authStrategyName": "RelationshipsWithEdOrgsAndPeople",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 3,
+          "actionName": "Update",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 2,
+              "authStrategyName": "RelationshipsWithEdOrgsAndPeople",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 4,
+          "actionName": "Delete",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 2,
+              "authStrategyName": "RelationshipsWithEdOrgsAndPeople",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 5,
+          "actionName": "ReadChanges",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 9,
+              "authStrategyName": "RelationshipsWithEdOrgsAndPeopleIncludingDeletes",
+              "isInheritedFromParent": false
+            }
+          ]
+        }
+      ],
+      "authorizationStrategyOverridesForCRUD": [],
+      "children": []
+    },
+    {
+      "id": 7,
+      "name": "assessmentMetadata",
+      "actions": [
+        {
+          "name": "Create",
+          "enabled": true
+        },
+        {
+          "name": "Update",
+          "enabled": true
+        },
+        {
+          "name": "Read",
+          "enabled": true
+        },
+        {
+          "name": "Delete",
+          "enabled": true
+        }
+      ],
+      "_defaultAuthorizationStrategiesForCRUD": [
+        {
+          "actionId": 1,
+          "actionName": "Create",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 4,
+              "authStrategyName": "NamespaceBased",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 2,
+          "actionName": "Read",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 4,
+              "authStrategyName": "NamespaceBased",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 3,
+          "actionName": "Update",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 4,
+              "authStrategyName": "NamespaceBased",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 4,
+          "actionName": "Delete",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 4,
+              "authStrategyName": "NamespaceBased",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 5,
+          "actionName": "ReadChanges",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 4,
+              "authStrategyName": "NamespaceBased",
+              "isInheritedFromParent": false
+            }
+          ]
+        }
+      ],
+      "authorizationStrategyOverridesForCRUD": [],
+      "children": []
+    },
+    {
+      "id": 6,
+      "name": "relationshipBasedData",
+      "actions": [
+        {
+          "name": "Create",
+          "enabled": true
+        },
+        {
+          "name": "Delete",
+          "enabled": true
+        },
+        {
+          "name": "Read",
+          "enabled": true
+        },
+        {
+          "name": "Update",
+          "enabled": true
+        }
+      ],
+      "_defaultAuthorizationStrategiesForCRUD": [
+        {
+          "actionId": 1,
+          "actionName": "Create",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 2,
+              "authStrategyName": "RelationshipsWithEdOrgsAndPeople",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 2,
+          "actionName": "Read",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 2,
+              "authStrategyName": "RelationshipsWithEdOrgsAndPeople",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 3,
+          "actionName": "Update",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 2,
+              "authStrategyName": "RelationshipsWithEdOrgsAndPeople",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 4,
+          "actionName": "Delete",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 2,
+              "authStrategyName": "RelationshipsWithEdOrgsAndPeople",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 5,
+          "actionName": "ReadChanges",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 9,
+              "authStrategyName": "RelationshipsWithEdOrgsAndPeopleIncludingDeletes",
+              "isInheritedFromParent": false
+            }
+          ]
+        }
+      ],
+      "authorizationStrategyOverridesForCRUD": [],
+      "children": []
+    },
+    {
+      "id": 97,
+      "name": "educationContent",
+      "actions": [
+        {
+          "name": "Read",
+          "enabled": true
+        },
+        {
+          "name": "Create",
+          "enabled": true
+        },
+        {
+          "name": "Delete",
+          "enabled": true
+        },
+        {
+          "name": "Update",
+          "enabled": true
+        }
+      ],
+      "_defaultAuthorizationStrategiesForCRUD": [
+        {
+          "actionId": 1,
+          "actionName": "Create",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 4,
+              "authStrategyName": "NamespaceBased",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 2,
+          "actionName": "Read",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 4,
+              "authStrategyName": "NamespaceBased",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 3,
+          "actionName": "Update",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 4,
+              "authStrategyName": "NamespaceBased",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 4,
+          "actionName": "Delete",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 4,
+              "authStrategyName": "NamespaceBased",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 5,
+          "actionName": "ReadChanges",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 4,
+              "authStrategyName": "NamespaceBased",
+              "isInheritedFromParent": false
+            }
+          ]
+        }
+      ],
+      "authorizationStrategyOverridesForCRUD": [],
+      "children": []
+    },
+    {
+      "id": 2,
+      "name": "systemDescriptors",
+      "actions": [
+        {
+          "name": "Read",
+          "enabled": true
+        }
+      ],
+      "_defaultAuthorizationStrategiesForCRUD": [
+        {
+          "actionId": 1,
+          "actionName": "Create",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 4,
+              "authStrategyName": "NamespaceBased",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 2,
+          "actionName": "Read",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 1,
+              "authStrategyName": "NoFurtherAuthorizationRequired",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 3,
+          "actionName": "Update",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 4,
+              "authStrategyName": "NamespaceBased",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 4,
+          "actionName": "Delete",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 4,
+              "authStrategyName": "NamespaceBased",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 5,
+          "actionName": "ReadChanges",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 1,
+              "authStrategyName": "NoFurtherAuthorizationRequired",
+              "isInheritedFromParent": false
+            }
+          ]
+        }
+      ],
+      "authorizationStrategyOverridesForCRUD": [],
+      "children": []
+    },
+    {
+      "id": 9,
+      "name": "educationStandards",
+      "actions": [
+        {
+          "name": "Delete",
+          "enabled": true
+        },
+        {
+          "name": "Create",
+          "enabled": true
+        },
+        {
+          "name": "Read",
+          "enabled": true
+        },
+        {
+          "name": "Update",
+          "enabled": true
+        }
+      ],
+      "_defaultAuthorizationStrategiesForCRUD": [
+        {
+          "actionId": 1,
+          "actionName": "Create",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 4,
+              "authStrategyName": "NamespaceBased",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 2,
+          "actionName": "Read",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 1,
+              "authStrategyName": "NoFurtherAuthorizationRequired",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 3,
+          "actionName": "Update",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 4,
+              "authStrategyName": "NamespaceBased",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 4,
+          "actionName": "Delete",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 4,
+              "authStrategyName": "NamespaceBased",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 5,
+          "actionName": "ReadChanges",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 1,
+              "authStrategyName": "NoFurtherAuthorizationRequired",
+              "isInheritedFromParent": false
+            }
+          ]
+        }
+      ],
+      "authorizationStrategyOverridesForCRUD": [],
+      "children": []
+    },
+    {
+      "id": 4,
+      "name": "educationOrganizations",
+      "actions": [
+        {
+          "name": "Read",
+          "enabled": true
+        }
+      ],
+      "_defaultAuthorizationStrategiesForCRUD": [
+        {
+          "actionId": 1,
+          "actionName": "Create",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 1,
+              "authStrategyName": "NoFurtherAuthorizationRequired",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 2,
+          "actionName": "Read",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 1,
+              "authStrategyName": "NoFurtherAuthorizationRequired",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 3,
+          "actionName": "Update",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 1,
+              "authStrategyName": "NoFurtherAuthorizationRequired",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 4,
+          "actionName": "Delete",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 1,
+              "authStrategyName": "NoFurtherAuthorizationRequired",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 5,
+          "actionName": "ReadChanges",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 1,
+              "authStrategyName": "NoFurtherAuthorizationRequired",
+              "isInheritedFromParent": false
+            }
+          ]
+        }
+      ],
+      "authorizationStrategyOverridesForCRUD": [],
+      "children": []
+    },
+    {
+      "id": 3,
+      "name": "managedDescriptors",
+      "actions": [
+        {
+          "name": "Read",
+          "enabled": true
+        },
+        {
+          "name": "Update",
+          "enabled": true
+        },
+        {
+          "name": "Delete",
+          "enabled": true
+        },
+        {
+          "name": "Create",
+          "enabled": true
+        }
+      ],
+      "_defaultAuthorizationStrategiesForCRUD": [
+        {
+          "actionId": 1,
+          "actionName": "Create",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 4,
+              "authStrategyName": "NamespaceBased",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 2,
+          "actionName": "Read",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 1,
+              "authStrategyName": "NoFurtherAuthorizationRequired",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 3,
+          "actionName": "Update",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 4,
+              "authStrategyName": "NamespaceBased",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 4,
+          "actionName": "Delete",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 4,
+              "authStrategyName": "NamespaceBased",
+              "isInheritedFromParent": false
+            }
+          ]
+        },
+        {
+          "actionId": 5,
+          "actionName": "ReadChanges",
+          "authorizationStrategies": [
+            {
+              "authStrategyId": 1,
+              "authStrategyName": "NoFurtherAuthorizationRequired",
+              "isInheritedFromParent": false
+            }
+          ]
+        }
+      ],
+      "authorizationStrategyOverridesForCRUD": [],
+      "children": []
+    }
+  ],
+  "id": 1,
+  "name": "SIS Vendor",
+  "_isSystemReserved": true,
+  "_applications": []
+}

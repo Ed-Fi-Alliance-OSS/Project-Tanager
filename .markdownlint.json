@@ -1,0 +1,20 @@
+{
+  "default": true,
+  "line-length": false,
+  "no-inline-html": {
+    "allowed_elements": [
+      "kbd",
+      "details",
+      "summary",
+      "br",
+      "iframe",
+      "sup"
+    ]
+  },
+  "emphasis-style": {
+    "style": "underscore"
+  },
+  "ul-style": {
+    "style": "asterisk"
+  }
+}

@@ -20,7 +20,7 @@ of features is subject to further revision based on feedback.
   * [Change Data Capture to Stream](./CDC-STREAMING.md)
   * [Read-only Search Database](./SEARCH-DATABASE.md)
 * [Configuration](./CONFIGURATION.md)
-* [Authorization in the Data Management Service](./DMS-AUTH.md)
+* [Authorization in the Data Management Service](./AUTHORIZATION/README.md)
 
 While the streaming and read-only capabilities are not strictly necessary, it is
 important that we have early progress toward these motivating goals for Project
