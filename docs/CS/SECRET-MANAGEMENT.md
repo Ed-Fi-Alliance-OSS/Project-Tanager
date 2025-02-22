@@ -4,7 +4,7 @@ Keycloak does not provide a built-in setting for client secret expiration. To
 enforce secret rotation and prevent expired credentials from being used for
 token issuance, we have a few options:
 
-## **Client Attributes for Metadata**
+## Client Attributes for Metadata
 
 Use custom client attributes to store a `secret_expiry` timestamp. The vendor
 application create response will also include secret_expiry, similar to token expiry.
