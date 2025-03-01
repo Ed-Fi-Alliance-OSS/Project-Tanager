@@ -20,13 +20,14 @@ In the ODS/API and the Admin API applications, the security metadata is stored i
 
 * **ResourceClaims** - Represent nodes in a hierarchy with 3 types of claims represented: resources (representing data management API endpoints), domains (for organizing related resource claims into logical groups) and services (functional areas of the API, such as identity).
 
-* **Actions** - Represents different actions that can be performed on resources such as Create, Read, Update and Delete (CRUD), but is also extensible for other use cases (such as ReadChanges for clients performing change processing or the ReadHistory offered by the Nebraska DOE Longitudinal API).
+* **Actions** - Operations that can be performed on resources such as Create, Read, Update and Delete (CRUD), but is also extensible for other use cases (such as ReadChanges for clients performing change processing or the ReadHistory offered by the Nebraska DOE Longitudinal API).
 
-* **AuthorizationStrategies** - Represents different approaches that can be used for performing authorization beyond the basic actions such as associating an API caller with students through school responsibilities rather than enrollment).
+* **AuthorizationStrategies** - Predefined data filters that limit which items of a resource are available to an API client. For example, one authorization strategy limits an API client's access to student data based on _enrollments_ while another uses _school responsibility_ associations.
 
-* **ClaimSets** - Represents a pre-defined set of specific resource permissions and strategies that can be assigned to API clients, also sometimes called a “role”.
+* **ClaimSets** - Represents pre-defined sets of action permissions and authorization strategies to be applied to various resources. Conceptually this is equivalent to a "role".
 
-The remaining tables capture metadata related to the association of these entities.
+The remaining tables capture metadata related to the association of these
+entities.
 
 ```mermaid
 erDiagram
