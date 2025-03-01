@@ -16,8 +16,17 @@ the operations allowed by an API client in the following dimensions:
 
 ### Database Model
 
-In the ODS/API and the Admin API applications, these data are stored in the
-`EdFi_Security` database with the following model:
+In the ODS/API and the Admin API applications, the security metadata is stored in the `EdFi_Security` database modeled relationally using the following 4 core entities:
+
+* **ResourceClaims** - Represent nodes in a hierarchy with 3 types of claims represented: resources (representing data management API endpoints), domains (for organizing related resource claims into logical groups) and services (functional areas of the API, such as identity).
+
+* **Actions** - Represents different actions that can be performed on resources such as Create, Read, Update and Delete (CRUD), but is also extensible for other use cases (such as ReadChanges for clients performing change processing or the ReadHistory offered by the Nebraska DOE Longitudinal API).
+
+* **AuthorizationStrategies** - Represents different approaches that can be used for performing authorization beyond the basic actions such as associating an API caller with students through school responsibilities rather than enrollment).
+
+* **ClaimSets** - Represents a pre-defined set of specific resource permissions and strategies that can be assigned to API clients, also sometimes called a “role”.
+
+The remaining tables capture metadata related to the association of these entities.
 
 ```mermaid
 erDiagram
@@ -68,25 +77,48 @@ or resourceClaimActions operations.
 
 ## Proposed Approach
 
-## Data Model
+### Data Model
 
 The DMS Configuration Service needs to support client tools built to interact
-with Admin API 2. The service could duplicate the normalized database structure
-from the ODS/API - or, it could take a more "NoSQL" like approach, as done in
-the DMS. This inverts the legacy order, where the CLOB operations are wrappers
-around the fine-grained tables. Instead, the CLOB resources could become the
-real resources, so long as a PUT operation can be added to the interface
-(`PUT /v2/claimSets/{id}/import`), with the same payload as `POST /v2/claimSets/import`.
+with Admin API 2. One of the challenges of moving to a full-JSON-based resource claim hierarchy is the management of the identities of the _entities_ of the existing security metadata model described earlier.
 
-Proposed database model:
+Thus, DMS will use a hybrid model that retains those entity tables exactly as they currently appear in the `EdFi_Security` database with the following exceptions:
+
+* The self-recursive `ParentResourceClaimId` column of the `ResourceClaims` table will be removed in favor of managing the hierarchy in JSON.
+
+* The `ActionUri` in the `Actions` table has not shown to provide any particular value above the more succinct `ActionName` and will be dropped from the model.
+
+The security metadata stored in the join tables of the EdFi_Security database will be managed using JSON in a new table named "ClaimsHierarchy".
+
+The DMS Configuration Service data model for managing security metadata will be as follows:
 
 ```mermaid
 erDiagram
+  ResourceClaim {
+    ResourceClaimId int
+    ResourceName varchar(255)
+    ClaimName varchar(850)
+  }
+  Action {
+    ActionId int
+    ActionName varchar(255)
+  }
+  AuthorizationStrategy {
+    AuthorizationStrategyId int
+    AuthorizationStrategyName varchar(255)
+    DisplayName varchar(255)
+  }
   ClaimSet {
-    int Id
-    varchar(255) ClaimSetName
-    bit IsSystemReserved
-    json ResourceClaims
+    ClaimSetId int
+    ClaimSetName varchar(255)
+    IsEdFiPreset bit
+    ForApplicationUseOnly bit
+  }
+  ClaimsHierarchy {
+    ClaimsHierarchyId int
+    ProjectName varchar(20)
+    Version varchar(10)
+    Hierarchy jsonb
   }
 ```
 
@@ -98,11 +130,64 @@ erDiagram
 
 The DMS Configuration Service will not, initially, support all of the Admin API
 endpoints. Further discussion with the affected community members is needed to
-determine if this is a viable long-term direction. Initially, the key goal is to
-enable the DMS to retrieve claimset information from the Configuration Service.
-This is essentially the same as the export operation. We will modify the GET all
-and GET by id endpoints to accept a query parameter that returns the "fully
-hydrated" claimsets (with query string parameter `verbose`).
+determine if this is a viable long-term direction.
+
+Initially, the key goal is to enable the DMS to retrieve claim set information
+from the Configuration Service. However, the DMS represents a
+different type of consumer -- one that is consuming the security metadata for the
+purpose of making authorization decisions. The Admin API has been designed for
+consumers performing security metadata management. For this reason, the DMS Configuration Service will implement a new endpoint that supports this use case:
+
+* `GET /v2/authorizations?claimSetName=SIS%20Vendor`
+  * Returns a JSON response containing all the resources accessible to API clients assigned to the specified claim set, along with the authorization metadata for making authorization decisions and applying necessary authorization-based data filtering.
+
+  The structure of the response body will be as follows:
+
+  ```json
+  {
+    "resources": [ ],
+    "authorizations": [ ]
+  }
+  ```
+
+  The objects in the `resources` array will be structured as follows:
+
+  ```json
+  {
+    "name": "http://ed-fi.org/ods/identity/claims/ed-fi/academicSubjectDescriptor",
+    "authorization": 1
+  }
+  ```
+
+  The objects in `authorizations` array will be structured as follows:
+
+  ```json
+  {
+    "id": 1,
+    "actions": [
+      "name": "Create",
+      "authorizationStrategies": [
+        {
+          "name": "NamespaceBased"
+        }
+      ],
+      "name": "Read",
+      "authorizationStrategies": [
+        {
+          "name": "NoFurtherAuthorizationRequired"
+        }
+      ],
+      ...
+    ]
+  }
+  ```
+
+  An observant reader will notice that this response does not include a
+  hierarchy. The resource claim hierarchy, along with defaults and overrides at
+  different levels, pertains to security metadata management but is not required
+  for authorization _decisions_. While the API response accounts for these
+  concepts, consumers will only receive the information necessary for making
+  authorization decisions.
 
 > [!TIP]
 > [admin-api-2.2.0.yaml](https://github.com/Ed-Fi-Alliance-OSS/Ed-Fi-API-Standards/blob/main/api-specifications/admin-api/admin-api-2.2.0.yaml)
