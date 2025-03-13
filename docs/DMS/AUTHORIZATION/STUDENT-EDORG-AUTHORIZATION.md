@@ -61,7 +61,6 @@ erDiagram
         tinyint DocumentPartitionKey PK "Partition key for this table, derived from DocumentUuid"
         _ _ "Other Document columns"
         jsonb StudentSchoolAuthorizationEdOrgIds "Nullable, array of EducationOrganizationIds through StudentSchoolAssociation"
-
         jsonb OtherAuthorizationPathwayEdOrgIds "Nullable, example of array of EducationOrganizationIds for another pathway"
     }
     StudentIdSecurableDocument {
@@ -129,4 +128,20 @@ Assuming this is a document with StudentId, using the StudentSchoolAssociationAu
 
 # Search Engine Query with Authorization Filters
 
-**** Describe algorithm, include AND/OR examples for joining multiple pathway filters to express an Auth Strategy
+## Search Engine Indexing Strategy
+
+When the Document table is replicated into the search engine, the EducationOrganizationIds for each authorization pathway will be indexed.
+
+```json
+    {
+      "DocumentUuid": "...",
+      "ProjectName": "...",
+      "ResourceName": "...",
+      "EdfiDoc": "...",
+      // other fields
+      "StudentSchoolAuthorizationEdOrgIds":["...", "...", "..."]
+      "OtherAuthorizationPathwayEdOrgIds":["...", "...", "..."]
+    }
+```
+
+*** 
