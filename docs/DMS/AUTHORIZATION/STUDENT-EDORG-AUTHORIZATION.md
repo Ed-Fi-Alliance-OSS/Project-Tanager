@@ -77,14 +77,19 @@ What about when a StudentSchoolAssociation record gets created after a document 
 
 ## Authorization Algorithm for Create/Update/Delete/Get-by-ID of a document with StudentIds
 
-**** Needs a second pass
-
 Assuming this is a document with StudentId, using the StudentSchoolAssociationAuthorization strategy:
 
-1. Get the EducationOrganizationHierarchy for this student as a list of EducationOrganizationIds, via the backend.
-   * This means we need a way to query the backend for EducationOrganizationHierarchy for one or more StudentIds, via the StudentSchoolAssociationAuthorization and EducationOrganizationHierarchy tables. At some point this will need to be cacheable-friendly.
-2. Compare the EducationOrganizationIds with client authorizations.
+* Create/Update
+  1. In DMS Core, get the StudentSchoolAuthorizationEdOrgIds array for this student, via the backend. This means we need a new interface to query the backend for EducationOrganizationIds for StudentId-securable documents for specific authorization pathway(s).
+  2. DMS Core compares the StudentSchoolAuthorizationEdOrgIds with client authorizations and allow or deny.
 
+* Get-by-ID
+  1. DMS core calls the backend with the request. We need the Get-By-Id interface to be told when the Document is StudentId-securable using specific authorization pathway(s). Backend returns the document along with StudentSchoolAuthorizationEdOrgIds.
+  2. DMS Core compares the StudentSchoolAuthorizationEdOrgIds with client authorizations and allow or deny.
+
+* Delete
+  1. DMS core calls the backend with the request. We need the Delete interface to be told when the Document is StudentId-securable using specific authorization pathway(s), along with client authorizations. (Yeah, not thrilled about this.)
+  2. Backend compares the StudentSchoolAuthorizationEdOrgIds with client authorizations and allow or deny.
 
 ## Synchronization between StudentSchoolAssociation document (Document table), StudentSchoolAssociationAuthorization, StudentIdSecurableDocument, and StudentId-Securable document (Document table)
 
