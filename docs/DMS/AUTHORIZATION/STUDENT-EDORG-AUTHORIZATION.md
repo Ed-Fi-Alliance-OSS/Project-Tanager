@@ -49,7 +49,10 @@ Updates to a StudentSchoolAssociation Document will require corresponding update
 
 Our search engine support will require the introduction of denormalized EducationOrganizationId arrays on the Document table (omitted above, shown below). This information will be similar to that provided by StudentSchoolAssociationAuthorization, with one column per authorization pathway. In this case, the column would be StudentSchoolAuthorizationEdOrgIds, a JSONB column containing a simple array of EducationOrganizationIds for a Student, derived from StudentSchoolAssociation and constructed from StudentSchoolAssociationAuthorization. This denormalized array is what will be used for authorization filtering on search engine queries.
 
-Additionally, we will need a non-partitioned table StudentIdSecurableDocument that will act as an index into the Document table for all StudentId-securable documents. This will provide efficient access to StudentId-securable Documents for synchronization of StudentSchoolAuthorizationEdOrgIds.
+
+When a new StudentId-securable document is inserted, the backend will need to lookup the StudentId on the StudentSchoolAssociationAuthorization table and apply the StudentSchoolAuthorizationEdOrgIds to the document.
+
+Additionally, we will need a non-partitioned table StudentIdSecurableDocument that will act as an index into the Document table for all StudentId-securable documents. This will provide efficient access to StudentId-securable Documents for synchronization when StudentSchoolAuthorizationEdOrgIds change. When a new StudentId-securable Document is inserted, the backend will add this record. The FK will be cascade deleted when a StudentId-securable document is deleted.
 
 ```mermaid
 erDiagram
@@ -63,7 +66,7 @@ erDiagram
 
         jsonb OtherAuthorizationPathwayEdOrgIds "Nullable, example of array of EducationOrganizationIds for another pathway"
     }
-      StudentIdSecurableDocument {
+    StudentIdSecurableDocument {
         bigint Id PK "Sequential key pattern, clustered"
         string StudentId "Indexed for lookup by StudentId"
         bigint StudentIdSecurableDocumentId FK "FK to a StudentId-securable document as Document.Id with delete cascade"
@@ -71,11 +74,7 @@ erDiagram
     }
 ```
 
-When a new document with StudentId is inserted, need to lookup StudentSchoolAssociationAuthorization table and link it if it exists. Note you can hit an FK constraint violation here by trying to delete a StudentSchoolAssociation while it's being used for security. Need to null out StudentSchoolAssociationAuthorizationId and StudentSchoolAuthorizationEdOrgIds instead.
-
-What about when a StudentSchoolAssociation record gets created after a document with StudentId is already there? Need a lookup table with all documents with a securable StudentId? Then a trigger on change to StudentSchoolAssociationAuthorization could update all Document.StudentSchoolAssociationAuthorizationId and Document.StudentSchoolAuthorizationEdOrgIds columns.
-
-## Authorization Algorithm for Create/Update/Delete/Get-by-ID of a document with StudentIds
+## Authorization Algorithm for Create/Update/Delete/Get-by-ID of a StudentId-Securable document
 
 Assuming this is a document with StudentId, using the StudentSchoolAssociationAuthorization strategy:
 
