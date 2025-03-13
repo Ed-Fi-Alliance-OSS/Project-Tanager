@@ -20,6 +20,7 @@ erDiagram
         bigint Id PK "Sequential key pattern, clustered"
         bigint StudentId "Indexed for lookup by StudentId"
         bigint HierarchySchoolId FK "FK to EducationOrganizationHierarchy.EducationOrganizationId with delete cascade"
+        jsonb StudentSchoolAuthorizationEdOrgIds "Denormalized array of EdOrgIds for the Student, derived from EducationOrganizationHierarchy"
         bigint StudentSchoolAssociationId FK "FK to derived-from StudentSchoolAssociation Document as Document.Id with delete cascade"
         tinyint StudentSchoolAssociationPartitionKey FK "Partition key of StudentSchoolAssociation Document"
     }
@@ -37,18 +38,15 @@ erDiagram
     }
 ```
 
-StudentSchoolAssociationAuthorization records are created/updated along with StudentSchoolAssociation documents. The HierarchySchoolId FK will be used to access the full hierarchy of EducationOrganizations the School is a part of. The StudentSchoolAssociationId FK is for syncing updates and deletes of StudentSchoolAssociation documents, via the Document.Id from the initial insert of the StudentSchoolAssociation Document.
+StudentSchoolAssociationAuthorization records are created/updated along with StudentSchoolAssociation documents. The HierarchySchoolId FK will be used to access the full hierarchy of EducationOrganizations the School is a part of via EducationOrganizationHierarchy. The StudentSchoolAuthorizationEdOrgIds column will be a JSONB column with a simple denormalized array taken from EducationOrganizationHierarchy for the School. The StudentSchoolAssociationId FK is for syncing updates and deletes of StudentSchoolAssociation Documents via their Document.id
 
-Updates to a StudentSchoolAssociation Document will require corresponding updates to the StudentSchoolAssociationAuthorization table. This includes updates due to a cascade.
+Updates to a StudentSchoolAssociation Document will require corresponding updates to the StudentSchoolAssociationAuthorization table. This includes updates due to a cascade. We will need a way for core to communicate to the backend on insert/update/delete of a StudentSchoolAssociation that this is the StudentSchoolAssociationAuthorization pathway, along with the extracted StudentId and SchoolId for insert/update.
 
-* Not designed here: We will need a way for core to communicate to the backend on insert/update/delete of a StudentSchoolAssociation that this is the StudentSchoolAssociationAuthorization pathway, along with the extracted StudentId and SchoolId for insert/update. We will also need to communicate when a document is StudentId securable.
-
-* Also, need to make sure EducationOrganizationHierarchy is indexed appropriately.
+Also, we need to make sure EducationOrganizationHierarchy is indexed on EducationOrganizationId.
 
 # Denormalization for Search Engine Support
 
-Our search engine support will require the introduction of denormalized EducationOrganizationId arrays on the Document table (omitted above, shown below). This information will be similar to that provided by StudentSchoolAssociationAuthorization, with one column per authorization pathway. In this case, the column would be StudentSchoolAuthorizationEdOrgIds, a JSONB column containing a simple array of EducationOrganizationIds for a Student, derived from StudentSchoolAssociation and constructed from StudentSchoolAssociationAuthorization. This denormalized array is what will be used for authorization filtering on search engine queries.
-
+Our search engine support will require the introduction of denormalized EducationOrganizationId arrays on the Document table (omitted from diagram above, but shown below). This information will be copied from the denormalized row provided by StudentSchoolAssociationAuthorization, with one column per authorization pathway. In this case, the Document column would be StudentSchoolAuthorizationEdOrgIds, a JSONB column containing a simple array of EducationOrganizationIds for a Student, derived from StudentSchoolAssociation. This denormalized array is what will be used for authorization filtering on search engine queries.
 
 When a new StudentId-securable document is inserted, the backend will need to lookup the StudentId on the StudentSchoolAssociationAuthorization table and apply the StudentSchoolAuthorizationEdOrgIds to the document.
 
@@ -92,42 +90,35 @@ Assuming this is a document with StudentId, using the StudentSchoolAssociationAu
 
 ## Synchronization between StudentSchoolAssociation document (Document table), StudentSchoolAssociationAuthorization, StudentIdSecurableDocument, and StudentId-Securable document (Document table)
 
-
-**** Continue StudentIdSecurableDocument refinement here, look at putting EdOrgId array directly onto StudentSchoolAssociationAuthorization
-
-Note: This version assumes frequent recalc of EdOrgId array for a Student, derived from StudentSchoolAssociationAuthorization and EducationOrganizationHierarchy. May want to change to denormalize EdOrgId array directly onto StudentSchoolAssociationAuthorization. This will require additional synchronization for changes to EducationOrganizationHierarchy.
-
 * StudentSchoolAssociation (Document table)
   * Create
     1. Insert StudentSchoolAssociation document into Document
     2. Insert derived row into StudentSchoolAssociationAuthorization
     3. Compute EdOrgId array for Student from SchoolId and EducationOrganizationHierarchy
-    4. Insert EdOrgId array into each StudentId-Securable Document
+    4. Include EdOrgId array on StudentSchoolAssociationAuthorization row
+    5. Update EdOrgId array on each StudentId-Securable Document, using StudentIdSecurableDocument
 
   * Update (including cascade)
     1. Update StudentSchoolAssociation document in Document
     2. Detect changes to either StudentId or SchoolId - StudentSchoolAssociation allows identity updates
        1. If none, done.
-       2. If change to StudentId, treat as Delete and Create
-       3. If change to SchoolId, compute and insert EdOrgId array into each StudentId-Securable Document
+       2. If change to StudentId or SchoolId, treat as Delete and Create
 
   * Delete
-    1. Null out EdOrgId array in each StudentId-Securable Document
+    1. Null out EdOrgId array in each StudentId-Securable Document, using StudentIdSecurableDocument
     2. Delete StudentSchoolAssociation document
     3. Delete cascade will remove StudentSchoolAssociationAuthorization row
 
 * StudentId-securable Document (Document table)
   * Create
-    1. Insert StudentId-securable document into Document
-    2. Lookup StudentSchoolAssociationAuthorization for Student
-    3. Compute EdOrgId array for Student from SchoolId and EducationOrganizationHierarchy
-    4. Insert EdOrgId array into each StudentId-Securable Document
+    1. Lookup EdOrgId array on StudentSchoolAssociationAuthorization for StudentId
+    2. Insert StudentId-securable document into Document, including EdOrgId array
 
   * Update (including cascade)
       1. Update StudentId-securable document in Document
       2. Detect changes to StudentId
          1. If none, done.
-         2. If change to SchoolId, lookup StudentSchoolAssociationAuthorization for Student, compute and insert EdOrgId array into Document
+         2. If change to SchoolId, lookup StudentSchoolAssociationAuthorization for Student, update EdOrgId array on Document
 
   * Delete
     1. Do nothing security-related
