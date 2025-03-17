@@ -41,6 +41,8 @@ StudentSchoolAssociationAuthorization records are created/updated/deleted along 
 
 Updates to a StudentSchoolAssociation Document will require corresponding updates to the StudentSchoolAssociationAuthorization table. This includes updates due to a cascade. We will need a way for core to communicate to the backend on insert/update/delete of a StudentSchoolAssociation that this is the StudentSchoolAssociationAuthorization pathway, along with the extracted StudentId and SchoolId for insert/update.
 
+StudentSchoolAssociationAuthorization does not need to be replicated to the search engine.
+
 Separately, we need to make sure EducationOrganizationHierarchy is indexed on EducationOrganizationId.
 
 # Denormalization for Search Engine Support
@@ -50,6 +52,8 @@ Our search engine support will require the introduction of denormalized Educatio
 When a new StudentId-securable document is inserted, the backend will need to lookup the StudentId on the StudentSchoolAssociationAuthorization table and apply the StudentSchoolAuthorizationEdOrgIds to the document.
 
 Additionally, we will need a non-partitioned table StudentIdSecurableDocument that will act as an index into the Document table for all StudentId-securable documents. This will provide efficient access to StudentId-securable Documents for synchronization when StudentSchoolAuthorizationEdOrgIds change. When a new StudentId-securable Document is inserted, the backend will add this record. The FK will be cascade deleted when a StudentId-securable document is deleted.
+
+StudentIdSecurableDocument does not need to be replicated to the search engine.
 
 ```mermaid
 erDiagram
@@ -128,9 +132,9 @@ Assuming this is a StudentId-securable Document, using the StudentSchoolAssociat
 
 # Search Engine Query with Authorization Filters
 
-## Search Engine Indexing Strategy
+## Search Engine Indexing
 
-When the Document table is replicated into the search engine, the EducationOrganizationIds for each authorization pathway will be indexed.
+When the Document table is replicated into the search engine, the EducationOrganizationIds columns for each authorization pathway will be included and keyword indexed.
 
 ```json
     {
@@ -138,10 +142,27 @@ When the Document table is replicated into the search engine, the EducationOrgan
       "ProjectName": "...",
       "ResourceName": "...",
       "EdfiDoc": "...",
-      // other fields
-      "StudentSchoolAuthorizationEdOrgIds":["...", "...", "..."]
+
+      // Authorization pathway fields
+      "StudentSchoolAuthorizationEdOrgIds":["...", "...", "..."],
       "OtherAuthorizationPathwayEdOrgIds":["...", "...", "..."]
     }
 ```
 
-***
+## Search Engine Query Formulation
+
+Query authorization filtering can be done by applying filters with the client authorized EducationOrganizationIds to the EducationOrganizationId arrays for the various authorization pathways.
+
+ A snippet of an authorization filter for the StudentSchoolAuthorization pathway by itself would look like
+
+```json
+"must":
+{
+  "terms":
+  {
+    "StudentSchoolAuthorizationEdOrgIds": "["...", "...","..."] // Client Authorizations
+  }
+}
+```
+
+Authorization strategies that require more than one authorization pathway can be mixed and matched with AND and OR clauses as necessary.
