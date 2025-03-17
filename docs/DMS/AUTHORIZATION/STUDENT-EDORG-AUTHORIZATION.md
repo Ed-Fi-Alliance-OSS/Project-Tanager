@@ -1,16 +1,14 @@
 # Overview
 
-The goal of this design is to enable Student-EducationOrganization relationship-based authorization through multiple authorization strategies. Examples include StudentSchoolAssociationAuthorization and StudentProgramAssociationAuthorization. In this document we will use StudentSchoolAssociationAuthorization strategy as our example.
+The goal of this design is to enable Student-EducationOrganization relationship-based authorization through multiple authorization strategies. Examples include StudentSchoolAssociationAuthorization and StudentProgramAssociationAuthorization. In this document we will use StudentSchoolAssociationAuthorization by itself as the strategy as our example. We will build on the existing EducationOrganizationHierarchy table to implement Student relationship-based authorization by using a concrete table for each relationship strategy.
 
-The challenge is to denormalize just enough information to allow for efficient authorization checks, both against the primary datastore and a search engine, while at the same time not be overly burdensome for security-related Document insert/update/delete.
-
-We will build on the existing EducationOrganizationHierarchy table to implement Student relationship-based authorization by using a concrete table for each relationship strategy.
+The challenge is to denormalize just enough information to allow for efficient authorization checks, both against the primary datastore and search engine, while at the same time not be overly burdensome for Document inserts and updates.
 
 # Primary Datastore Support
 
 ## Authorization Strategy Table - StudentSchoolAssociationAuthorization example
 
-There will be a denormalized, non-partitioned table per authorization strategy. An example with StudentSchoolAssociationAuthorization as the strategy:
+There will be a denormalized, non-partitioned table per authorization pathway. An example with StudentSchoolAssociationAuthorization as the pathway:
 
 ```mermaid
 erDiagram
@@ -21,7 +19,7 @@ erDiagram
         bigint StudentId "Indexed for lookup by StudentId"
         bigint HierarchySchoolId FK "FK to EducationOrganizationHierarchy.EducationOrganizationId with delete cascade"
         jsonb StudentSchoolAuthorizationEdOrgIds "Denormalized array of EdOrgIds for the Student, derived from EducationOrganizationHierarchy"
-        bigint StudentSchoolAssociationId FK "FK to derived-from StudentSchoolAssociation Document as Document.Id with delete cascade"
+        bigint StudentSchoolAssociationId FK "FK to derived-from Document StudentSchoolAssociation as Document.Id with delete cascade"
         tinyint StudentSchoolAssociationPartitionKey FK "Partition key of StudentSchoolAssociation Document"
     }
     EducationOrganizationHierarchy {
@@ -37,12 +35,13 @@ erDiagram
         _ _ "Other Document columns"
     }
 ```
+The EducationOrganizationHierarchy table is unchanged from its current structure.
 
-StudentSchoolAssociationAuthorization records are created/updated along with StudentSchoolAssociation documents. The HierarchySchoolId FK will be used to access the full hierarchy of EducationOrganizations the School is a part of via EducationOrganizationHierarchy. The StudentSchoolAuthorizationEdOrgIds column will be a JSONB column with a simple denormalized array taken from EducationOrganizationHierarchy for the School. The StudentSchoolAssociationId FK is for syncing updates and deletes of StudentSchoolAssociation Documents via their Document.id
+StudentSchoolAssociationAuthorization records are created/updated/deleted along with StudentSchoolAssociation documents. The HierarchySchoolId FK will be used to access the full hierarchy of EducationOrganizations the School is a part of, via EducationOrganizationHierarchy. The StudentSchoolAuthorizationEdOrgIds column will be a JSONB column with a simple denormalized array taken from EducationOrganizationHierarchy for the School. The StudentSchoolAssociationId FK is for syncing updates and deletes of StudentSchoolAssociation Documents via their Document.Id
 
 Updates to a StudentSchoolAssociation Document will require corresponding updates to the StudentSchoolAssociationAuthorization table. This includes updates due to a cascade. We will need a way for core to communicate to the backend on insert/update/delete of a StudentSchoolAssociation that this is the StudentSchoolAssociationAuthorization pathway, along with the extracted StudentId and SchoolId for insert/update.
 
-Also, we need to make sure EducationOrganizationHierarchy is indexed on EducationOrganizationId.
+Separately, we need to make sure EducationOrganizationHierarchy is indexed on EducationOrganizationId.
 
 # Denormalization for Search Engine Support
 
@@ -71,20 +70,20 @@ erDiagram
     }
 ```
 
-## Authorization Algorithm for Create/Update/Delete/Get-by-ID of a StudentId-Securable document
+## Authorization Algorithm for Create/Update/Delete/Get-by-ID of a StudentId-Securable Document
 
-Assuming this is a document with StudentId, using the StudentSchoolAssociationAuthorization strategy:
+Assuming this is a StudentId-securable Document, using the StudentSchoolAssociationAuthorization strategy:
 
 * Create/Update
   1. In DMS Core, get the StudentSchoolAuthorizationEdOrgIds array for this student, via the backend. This means we need a new interface to query the backend for EducationOrganizationIds for StudentId-securable documents for specific authorization pathway(s).
   2. DMS Core compares the StudentSchoolAuthorizationEdOrgIds with client authorizations and allow or deny.
 
 * Get-by-ID
-  1. DMS core calls the backend with the request. We need the Get-By-Id interface to be told when the Document is StudentId-securable using specific authorization pathway(s). Backend returns the document along with StudentSchoolAuthorizationEdOrgIds.
+  1. DMS core calls the backend with the request. We need the Get-By-Id interface to be told when the Document is StudentId-securable using specific authorization pathway(s). Backend returns the document along with its StudentSchoolAuthorizationEdOrgIds.
   2. DMS Core compares the StudentSchoolAuthorizationEdOrgIds with client authorizations and allow or deny.
 
 * Delete
-  1. DMS core calls the backend with the request. We need the Delete interface to be told when the Document is StudentId-securable using specific authorization pathway(s), along with client authorizations. (Yeah, not thrilled about this.)
+  1. DMS core calls the backend with the request. We need the Delete interface to be told when the Document is StudentId-securable using specific authorization pathway(s), and also pass along client authorizations. (Yeah, not thrilled about this.)
   2. Backend compares the StudentSchoolAuthorizationEdOrgIds with client authorizations and allow or deny.
 
 ## Synchronization between StudentSchoolAssociation document (Document table), StudentSchoolAssociationAuthorization, StudentIdSecurableDocument, and StudentId-Securable document (Document table)
@@ -95,29 +94,30 @@ Assuming this is a document with StudentId, using the StudentSchoolAssociationAu
     2. Insert derived row into StudentSchoolAssociationAuthorization
     3. Compute EdOrgId array for Student from SchoolId and EducationOrganizationHierarchy
     4. Include EdOrgId array on StudentSchoolAssociationAuthorization row
-    5. Update EdOrgId array on each StudentId-Securable Document, using StudentIdSecurableDocument
+    5. Update EdOrgId array on each StudentId-Securable Document for this Student, using indexed StudentId on StudentIdSecurableDocument
 
   * Update (including cascade)
-    1. Update StudentSchoolAssociation document in Document
-    2. Detect changes to either StudentId or SchoolId - StudentSchoolAssociation allows identity updates
-       1. If none, done.
+    1. Detect changes to either StudentId or SchoolId - StudentSchoolAssociation allows identity updates
+       1. If none, skip.
        2. If change to StudentId or SchoolId, treat as Delete and Create
+    2. Update StudentSchoolAssociation document in Document
 
   * Delete
-    1. Null out EdOrgId array in each StudentId-Securable Document, using StudentIdSecurableDocument
+    1. Null out EdOrgId array in each StudentId-Securable Document, using indexed StudentId on StudentIdSecurableDocument
     2. Delete StudentSchoolAssociation document
     3. Delete cascade will remove StudentSchoolAssociationAuthorization row
 
 * StudentId-securable Document (Document table)
   * Create
-    1. Lookup EdOrgId array on StudentSchoolAssociationAuthorization for StudentId
+    1. Lookup EdOrgId array on StudentSchoolAssociationAuthorization by indexed StudentId
     2. Insert StudentId-securable document into Document, including EdOrgId array
+    3. Create StudentIdSecurableDocument entry for this Document
 
   * Update (including cascade)
-      1. Update StudentId-securable document in Document
-      2. Detect changes to StudentId
-         1. If none, done.
-         2. If change to SchoolId, lookup StudentSchoolAssociationAuthorization for Student, update EdOrgId array on Document
+      1. Detect changes to StudentId
+         1. If none, skip.
+         2. If change, treat as Delete and Create
+      2. Update StudentId-securable document in Document
 
   * Delete
     1. Do nothing security-related
@@ -144,4 +144,4 @@ When the Document table is replicated into the search engine, the EducationOrgan
     }
 ```
 
-*** 
+***
