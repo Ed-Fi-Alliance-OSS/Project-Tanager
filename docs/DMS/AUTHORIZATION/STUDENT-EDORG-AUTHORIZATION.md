@@ -151,9 +151,9 @@ When the Document table is replicated into the search engine, the EducationOrgan
 
 ## Search Engine Query Formulation
 
-Query authorization filtering can be done by applying filters with the client authorized EducationOrganizationIds to the EducationOrganizationId arrays for the various authorization pathways.
+With the EducationOrganizationIds for each authorization pathway indexed, search engine authorization filtering can be done by applying filters with the client authorized EducationOrganizationIds for the authorization pathways relevant to the authorization strategy being used. This would be ANDed to the client query terms, if any.
 
- A snippet of an authorization filter for the StudentSchoolAuthorization pathway by itself would look like
+ A snippet of an authorization filter for the StudentSchoolAuthorization pathway by itself would look like:
 
 ```json
 "must":
@@ -165,4 +165,4 @@ Query authorization filtering can be done by applying filters with the client au
 }
 ```
 
-Authorization strategies that require more than one authorization pathway can be mixed and matched with AND and OR clauses as necessary.
+Authorization strategies that require more than one authorization pathway can be mixed and matched with AND and OR clauses in the filter as necessary.
