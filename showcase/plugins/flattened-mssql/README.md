@@ -2,11 +2,22 @@
 
 ## Objective
 
-Demonstrate that an incoming JSON object can be flattened and stored in tables
+The "single table" design effectively supports both referential integrity and
+the outbox pattern for simplified streaming data out. This facilitates the use
+of streaming data for populating other data stores, such as a search database or
+a data lake. This design also forces creation of searchable indexes somewhere
+other than on the single table - for example, in an OpenSearch database.
+
+But some organizations do not want these features. They add unnecessary
+complexity and cost for their installations. Instead, they would prefer to have
+a traditional relational database structure, with fully indexing capability in
+the relational tables.
+
+This POC demonstrate that an incoming JSON object can be flattened and stored in tables
 similar to the `EdFi_ODS` database, as an alternative to using the PostgreSQL
 --> Debezium --> Kafka --> OpenSearch architecture.
 
-This proof-of-concept may be further refined into a formal design document for
+This proof-of-concept might be further refined into a formal design document for
 the Ed-Fi Data Management Service (DMS).
 
 ## Technical Requirements
