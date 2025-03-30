@@ -43,7 +43,7 @@ Content-Type: application/json
 Authorization: bearer {{configToken}}
 
 {
-    "company": "Demo Vendor",
+    "company": "Demo Vendor {{$randomInt 0 9999999}}",
     "contactName": "George Washington",
     "contactEmailAddress": "george@example.com",
     "namespacePrefixes": "uri://ed-fi.org"
@@ -148,13 +148,24 @@ Content-Type: application/json
 }
 
 ###
+POST {{dataApi}}/ed-fi/educationOrganizationCategoryDescriptors
+Authorization: bearer {{dmsToken}}
+Content-Type: application/json
+
+{
+    "namespace": "uri://ed-fi.org/EducationOrganizationCategoryDescriptor",
+    "codeValue": "Local Education Agency",
+    "shortDescription": "Local Education Agency"
+}
+
+###
 POST {{dataApi}}/ed-fi/schools
 Authorization: bearer {{dmsToken}}
 Content-Type: application/json
 
 {
     "schoolId": 1,
-    "nameOfInstitution": "Grand Bend Middle School",
+    "nameOfInstitution": "Grand Bend High School",
     "shortNameOfInstitution": "GBMS",
     "webSite": "http://www.GBISD.edu/GBMS/",
     "educationOrganizationCategories": [
@@ -180,35 +191,10 @@ Content-Type: application/json
     "shortNameOfInstitution": "GBES",
     "educationOrganizationCategories": [
       {
-        "educationOrganizationCategoryDescriptor": "uri://ed-fi.org/EducationOrganizationCategoryDescriptor#School"
+        "educationOrganizationCategoryDescriptor": "uri://ed-fi.org/EducationOrganizationCategoryDescriptor#Local Education Agency"
       }
     ],
     "gradeLevels": [
-      {
-        "gradeLevelDescriptor": "uri://ed-fi.org/GradeLevelDescriptor#First grade"
-      }
-    ]
-}
-
-###
-POST {{dataApi}}/ed-fi/schools
-Authorization: bearer {{dmsToken}}
-Content-Type: application/json
-
-{
-    "schoolId": 55555,
-    "nameOfInstitution": "Problematic School 3333",
-    "shortNameOfInstitution": "GBMS",
-    "webSite": "http://www.GBISD.edu/GBMS/",
-    "educationOrganizationCategories": [
-      {
-        "educationOrganizationCategoryDescriptor": "uri://ed-fi.org/EducationOrganizationCategoryDescriptor#School"
-      }
-    ],
-    "gradeLevels": [
-      {
-        "gradeLevelDescriptor": "uri://ed-fi.org/GradeLevelDescriptor#Ninth grade"
-      },
       {
         "gradeLevelDescriptor": "uri://ed-fi.org/GradeLevelDescriptor#First grade"
       }
