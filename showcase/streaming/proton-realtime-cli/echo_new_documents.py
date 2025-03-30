@@ -17,8 +17,8 @@ c = client.Client(host=proton_host, port=proton_port)
 for row in c.execute_iter("SELECT 'I am alive';"):
     print(row)
 
-print("Dropping existing stream")
-c.execute("DROP STREAM IF EXISTS document;")
+# print("Dropping existing stream")
+# c.execute("DROP STREAM IF EXISTS document;")
 
 print("Creating new stream")
 c.execute(
@@ -36,12 +36,6 @@ print(".")
 print("List streams")
 for row in c.execute_iter("SHOW STREAMS;"):
     print("+ ", row)
-
-print(".")
-
-print("Get all rows from the stream")
-for row in c.execute("SELECT * FROM document;"):
-    print(row)
 
 print(".")
 
