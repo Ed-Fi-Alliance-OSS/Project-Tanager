@@ -12,6 +12,10 @@ Reference material:
   using SQL statements for streaming queries against a Kakfa topic.
 * [Query Syntax](https://docs.timeplus.com/query-syntax) describes the SQL
   language implemented by Proton.
+* [Tutorial: Query Kafka with SQL](https://docs.timeplus.com/tutorial-sql-kafka)
+
+Integration tools:
+
 * [Proton Python Driver](https://github.com/timeplus-io/proton-python-driver)
 * [Proton Java Driver](https://github.com/timeplus-io/proton-java-driver)
 * [Proton Go Driver](https://github.com/timeplus-io/proton-go-driver)
@@ -80,11 +84,23 @@ file. Tested with the source code from milestone `0.4.0`.
    poetry install
    ```
 
-4. Run the script
+4. Run any of the three scripts: `echo_count_of_schools.py`,
+   `echo_new_documents.py`, or `validate_school_edOrgCategory.py`:
 
    ```powershell
-   poetry run python __main__.py
+   poetry run python echo_count_of_schools.py
    ```
+
+   * `echo_count_of_schools.py`: list a running count of the number of schools
+     as new ones are added. This script is actually too naive: it isn't counting
+     school documents; it is implicitly counting requests to the
+     `/ed-fi/schools` endpoint. For example, a delete operation will increment
+     the count.
+   * `echo_new_documents.py`: list all new documents as they arrive.
+   * `validate_school_edOrgCategory.py`: parses incoming School documents.
+     Reports an error any time one of these Schools has an
+     `educationCategoryDescriptor` that is _not_ "School". This could easily be
+     modified to post a message into a Validation API service.
 
 5. Begin interacting with the running DMS, creating new descriptors and/or
    resources. Watch the Proton-cli tool's window to see new records come in. The

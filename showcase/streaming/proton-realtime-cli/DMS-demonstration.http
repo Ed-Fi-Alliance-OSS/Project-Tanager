@@ -186,7 +186,7 @@ Authorization: bearer {{dmsToken}}
 Content-Type: application/json
 
 {
-    "schoolId": 2,
+    "schoolId": 222,
     "nameOfInstitution": "Grand Bend Elementary School",
     "shortNameOfInstitution": "GBES",
     "educationOrganizationCategories": [
@@ -203,4 +203,8 @@ Content-Type: application/json
 
 ###
 GET {{dataApi}}/ed-fi/schools
+Authorization: bearer {{dmsToken}}
+
+###
+DELETE http://localhost:8080/data/ed-fi/schools/cffee2f6-ad6c-49ee-a787-e7c55b80aed3
 Authorization: bearer {{dmsToken}}
