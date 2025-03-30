@@ -16,23 +16,34 @@ Platform in a Windows Server environment.
 * Provide instructions on app settings configuration, including logging to file.
 * And, provide introductory notes for next steps toward securing the system.
 
-## Context
+## Architecture
+
+### Context
 
 > [!INFO]
 > TODO: C4 context diagram as a reminder of what systems we are deploying.
 
-## Containers
+### Containers
 
 > [!INFO]
 > TODO: C4 container diagram(s) showing more detail.
 
-## Deployment
+### Deployment
 
 > [!INFO]
 > TODO: C4 deployment diagram(s). Are all three levels truly useful in this
 > situation?
 
-## Installation
+## Security
+
+> [!INFO]
+> TODO: probably won't (shouldn't?) be able to provide detailed guidance here.
+> At minimum, provide tips on what needs to be considered (TLS! Certificate
+> management. Encryption at rest?).
+
+## Proof of Concept
+
+### Installation
 
 > [!INFO]
 > TODO: links to install the following services in Windows:
@@ -42,14 +53,13 @@ Platform in a Windows Server environment.
 > * Kafka, Kafka UI
 > * OpenSearch, OpenSearch Dashboard
 
-## Configuration
+### Configuration
 
 > [!INFO]
 > TODO: appsettings. Anything at the service level?
 
-## Security
+### Demonstration / Screenshots
 
 > [!INFO]
-> TODO: probably won't (shouldn't?) be able to provide detailed guidance here.
-> At minimum, provide tips on what needs to be considered (TLS! Certificate
-> management. Encryption at rest?).
+> TODO: post a screenshot or two of the working systems in a Windows
+> Server 2022 VM.
