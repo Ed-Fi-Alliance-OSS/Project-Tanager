@@ -24,6 +24,8 @@ equivalent to traditional on-premises installations. Most deployments to
 production or production-like systems will use techniques other than Docker
 Compose.
 
+Showcases:
+
 * [On-premises Deployment in Windows Server](./deployment/windows/README.md)
 
 Desired showcases:
@@ -71,6 +73,10 @@ development:
 1. Identity provider
 2. Persistence
 
+Showcases:
+
+* [Towards a flattened MSSQL Backend](./plugins/flattened-mssql/README.md)
+
 Desired showcases:
 
 * Integrating OpenID Dict into the Configuration Service for self-hosted
@@ -87,6 +93,10 @@ are aligned to the Ed-Fi Data Standard. The out-of-the-box use case for
 streaming is to create a high-performance, real-time ETL process that loads data
 into the search database (OpenSearch or Elasticsearch).
 
+Showcases:
+
+* [Realtime Command Line Interface with Proton](./streaming/proton-realtime-cli/README.md)
+
 Desired showcases:
 
 * Raw data to blob storage (data lake).
@@ -96,7 +106,7 @@ Desired showcases:
   * Question: do we have enough information to distinguish inserts and updates?
     Should be incrementing on POST only if a real insert, not an upsert. Should
     decrement on delete.
-  * Displaying with Grafana.
+  * Displaying data with [Grafana](https://github.com/timeplus-io/proton-grafana-source).
 * Re-publishing data to a downstream ODS/API or DMS installation, e.g. for state
   / local synchronization.
   * Does this eliminate the need to setup API Publisher?
