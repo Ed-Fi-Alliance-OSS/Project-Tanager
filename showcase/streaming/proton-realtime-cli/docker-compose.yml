@@ -1,3 +1,5 @@
+name: dms-local
+
 services:
   proton:
     image: d.timeplus.com/timeplus-io/proton:latest
