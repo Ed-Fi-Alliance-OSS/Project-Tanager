@@ -117,11 +117,31 @@ Desired showcases:
   [DataChecker database](https://github.com/Ed-Fi-Exchange-OSS/DataChecker) or
   publishing results into a [Validations API
   server](https://edfi.atlassian.net/wiki/spaces/ESIG/pages/25495883/Ed-Fi+Validation+API+Design).
+  Or even publishing back to Kafka into a validation event stream.
 * Calculations - for example, realtime attendance rate by student.
   * Note: would need to emphasize that the algorithm for attendance rate can
     differ, for example, which descriptors count as absent?
   * Take corrections into account.
 * Notifications, perhaps paired with attendance rate calculations.
+
+Possible stream processing tools:
+
+* Libraries
+  * [Kafka Streams](https://kafka.apache.org/40/documentation/streams/) - Java
+  * Quix-Streams
+    * [Python](https://github.com/quixio/quix-streams)
+    * [.NET](https://github.com/quixio/quix-streams-dotnet)
+  * [no-kafka](https://github.com/oleksiyk/kafka) - JavaScript
+* Streaming Databases
+  * Confluent [ksqlDB](https://github.com/confluentinc/ksql)
+  * Proton
+    * [Java](https://github.com/timeplus-io/proton-java-driver)
+    * [Python](https://github.com/timeplus-io/proton-python-driver)
+    * [Go](https://github.com/timeplus-io/proton-go-driver)
+    * [ODBC](https://github.com/timeplus-io/proton-odbc) - theoretically useful for .NET, JavaScript
+* Stream Processors
+  * [Apache Flink](https://flink.apache.org/)
+  * [Apache Spark](https://spark.apache.org/docs/latest/structured-streaming-kafka-integration.html) - Python, Java, Scala
 
 ## AI
 
