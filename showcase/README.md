@@ -101,7 +101,9 @@ Desired showcases:
 
 * Raw data to blob storage (data lake).
 * Capturing and analyzing logs.
-* ELT / ETL.
+* ELT / ETL
+* Use of materialized views either saved back into a Kafka topic or in a
+  stateful stream processor.
 * Health monitoring (document counts).
   * Question: do we have enough information to distinguish inserts and updates?
     Should be incrementing on POST only if a real insert, not an upsert. Should
