@@ -1,0 +1,15 @@
+name: dms-local
+
+services:
+  proton:
+    image: d.timeplus.com/timeplus-io/proton:latest
+    ports:
+      - '8123:8123' #http port for JDBC driver, default batch mode
+      - '8463:8463'
+    networks:
+      - dms
+
+networks:
+  dms:
+    name: dms
+    external: true
