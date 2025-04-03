@@ -2,9 +2,13 @@
 
 ## Objective
 
-This showcase is primarily a starting-point for other showcases, demonstrating
-Kafka interactivity using [Timeplus
-Proton](https://github.com/timeplus-io/proton) as the stream processor.
+This showcase provides lightweight demonstrations of use of the streaming
+database [Timeplus Proton](https://github.com/timeplus-io/proton). Proton is a
+column-oriented analytics database that can update itself in realtime from a
+Kafka feed. As an analytics database, it is primarily used for aggregate
+calculations rather than row lookups. [Rising Wave](https://risingwave.com/) is
+an alternative to explore for row-oriented procedures. Both are available under
+the Apache License, Version 2.0.
 
 Reference material:
 
@@ -57,17 +61,23 @@ This POC uses [Poetry](https://python-poetry.org/) as the Python package
 manager. The requirements have also been exported to a PIP requirements.txt
 file. Tested with the source code from milestone `0.4.0`.
 
-1. Startup the DMS Platform from the DMS source code repository:
+1. Startup the DMS Platform from the [DMS source code
+   repository](https://github.com/Ed-Fi-Alliance-OSS/Data-Management-Service):
 
    ```powershell
    cd Data-Management-Service
    git checkout 0.4.0
    eng/docker-compose
+   cp .env.example .env
    ./start-local-dms.ps1 -EnableConfig -EnableSearchEngineUI -r
 
    # One time Keycloak setup
    ./setup-keycloak.ps1
    ```
+
+   > [!TIP]
+   > For more information on the sample Docker startup, see
+   > [docker-compose/README.md](https://github.com/Ed-Fi-Alliance-OSS/Data-Management-Service/blob/main/eng/docker-compose/README.md)
 
 2. In this repository, start proton. Advisable to use a separate terminal
    window:
@@ -92,15 +102,24 @@ file. Tested with the source code from milestone `0.4.0`.
    ```
 
    * `echo_count_of_schools.py`: list a running count of the number of schools
-     as new ones are added. This script is actually too naive: it isn't counting
-     school documents; it is implicitly counting requests to the
-     `/ed-fi/schools` endpoint. For example, a delete operation will increment
-     the count.
+     _as new ones are added_. It does not list the number of existing schools.
+     At this time, it does not distinguish an update an insert, and it ignores
+     deletions.
    * `echo_new_documents.py`: list all new documents as they arrive.
    * `validate_school_edOrgCategory.py`: parses incoming School documents.
      Reports an error any time one of these Schools has an
      `educationCategoryDescriptor` that is _not_ "School". This could easily be
-     modified to post a message into a Validation API service.
+     modified to post a message into a Validation API service. Demonstrates the
+     ability to perform a snapshot query of everything _previously_ created and
+     a query of everything as it comes in.
+     * But how would one use this in practice for validation? If the script
+       stops running, and then is restarted, then in the current simplistic
+       setup, either (a) keep the `table()` query for a snapshot - but you end
+       up reprocessing records that were already handled or (b) remove that and
+       only process new records - which skips anything that was inserted between
+       when the script stopped and started again.
+     * This is not a good use of an columnar database. The quandary above might
+       be better handled in a row-oriented database.
 
 5. Begin interacting with the running DMS, creating new descriptors and/or
    resources. Watch the Proton-cli tool's window to see new records come in. The
