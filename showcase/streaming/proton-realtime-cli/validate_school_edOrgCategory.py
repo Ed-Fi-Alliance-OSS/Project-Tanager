@@ -21,7 +21,19 @@ for row in c.execute_iter("SELECT 'I am alive';"):
 
 print(".")
 
-print("Create a materialized view")
+print("Creating external stream if it does not exist yet.")
+c.execute(
+    f"""
+    CREATE EXTERNAL STREAM IF NOT EXISTS document(raw string)
+    SETTINGS type='kafka',
+         brokers='{kafka_host}:{kafka_port}',
+         topic='edfi.dms.document',
+         skip_ssl_cert_check='true';
+    """
+)
+print(".")
+
+print("Create a materialized view if it does not exist yet.")
 c.execute(
     """
     CREATE MATERIALIZED VIEW IF NOT EXISTS schools
@@ -31,17 +43,27 @@ c.execute(
     """
 )
 
-print(".")
 
+def validate_schools(view):
+    for row in c.execute_iter(f"SELECT * FROM {view}"):
+        school = json.loads(row[0])
+
+        for category in school["educationOrganizationCategories"]:
+            if not category["educationOrganizationCategoryDescriptor"].endswith(
+                "#School"
+            ):
+                print(
+                    f"❌ School {school['schoolId']} has invalid category {category['educationOrganizationCategoryDescriptor']}"
+                )
+
+
+print(".")
+print("Select all schools that were previously created.")
+# Note that this uses `table(schools)`, which is more of a snapshot query
+validate_schools("table(schools)")
+
+print(".")
 print("Continuous polling for new data. Control-C to stop.")
 print("New records will arrive here as requests are submitted to the API.")
-rows = c.execute_iter(
-    "SELECT * FROM schools"
-)
-for row in rows:
-    school = json.loads(row[0])
-
-    for category in school["educationOrganizationCategories"]:
-        if not category["educationOrganizationCategoryDescriptor"].endswith("#School"):
-            print(f"❌ School {school['schoolId']} has invalid category {category['educationOrganizationCategoryDescriptor']}")
-            break
+# Note that this does not use the `table()` function, thus it is a streaming query`
+validate_schools("schools")
