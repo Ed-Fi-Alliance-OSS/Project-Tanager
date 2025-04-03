@@ -21,13 +21,25 @@ for row in c.execute_iter("SELECT 'I am alive';"):
 
 print(".")
 
+print("Create a materialized view")
+c.execute(
+    """
+    CREATE MATERIALIZED VIEW IF NOT EXISTS schools
+    AS SELECT raw:edfidoc FROM document
+    WHERE raw:resourcename='School'
+    AND raw:__deleted='false'
+    """
+)
+
+print(".")
+
 print("Continuous polling for new data. Control-C to stop.")
 print("New records will arrive here as requests are submitted to the API.")
 rows = c.execute_iter(
-    "SELECT * FROM document WHERE raw:resourcename='School'"
+    "SELECT * FROM schools"
 )
 for row in rows:
-    school = json.loads(row[0])["edfidoc"]
+    school = json.loads(row[0])
 
     for category in school["educationOrganizationCategories"]:
         if not category["educationOrganizationCategoryDescriptor"].endswith("#School"):
