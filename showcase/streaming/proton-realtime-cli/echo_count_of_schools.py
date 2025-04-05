@@ -14,7 +14,8 @@ kafka_port = 9092
 
 c = client.Client(host=proton_host, port=proton_port)
 
-print("Creating new stream")
+
+print("Creating external stream if it does not exist yet.")
 c.execute(
     f"""
     CREATE EXTERNAL STREAM IF NOT EXISTS document(raw string)
@@ -24,13 +25,24 @@ c.execute(
          skip_ssl_cert_check='true';
     """
 )
+print(".")
+
+print("Create a materialized view if it does not exist yet.")
+c.execute(
+    """
+    CREATE MATERIALIZED VIEW IF NOT EXISTS schools
+    AS SELECT raw:edfidoc FROM document
+    WHERE raw:resourcename='School'
+    AND raw:__deleted='false'
+    """
+)
 
 print(".")
 
 print("Continuous polling for new data. Control-C to stop.")
 print("New records will arrive here as requests are submitted to the API.")
 rows = c.execute_iter(
-    "SELECT COUNT() FROM document WHERE raw:resourcename='School'"
+    "SELECT COUNT() FROM schools"
 )
 for row in rows:
     print(row)
