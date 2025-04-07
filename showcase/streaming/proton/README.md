@@ -1,4 +1,4 @@
-# Realtime Command Line Interface with Proton
+# Proton Streaming Database for Analytics
 
 ## Objective
 
