@@ -30,8 +30,21 @@ This simple showcase use the Python driver.
 
 ## Technical Requirements
 
-Use Proton to connect to the running Kafka instance and display new documents as
-they are received.
+Use Proton to connect to the running Kafka instance and demonstrate a few
+trivial queries.
+
+> [!WARNING]
+> Proton is a columnar database meant for realtime analytics. For example,
+> aggregations. It is not as well-suited for looks like an OLTP database. For
+> that, use a row-oriented streaming database, such as Materialize or Rising
+> Wave.
+>
+> As described in _Streaming Databases_ (Dulay and Debusmann, O'Reilly, 2024),
+> it has an "interesting" eventual consistency challenge. The issue is described
+> in detail in [Internal consistency in streaming
+> systems](https://www.scattered-thoughts.net/writing/internal-consistency-in-streaming-systems/),
+> though Proton is not specifically named as it is in the book. Something to
+> watch out for.
 
 ## Architecture
 
