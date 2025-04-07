@@ -1,13 +1,22 @@
-name: dms-local
+# SPDX-License-Identifier: Apache-2.0
+# Licensed to the Ed-Fi Alliance under one or more agreements.
+# The Ed-Fi Alliance licenses this file to you under the Apache License, Version 2.0.
+# See the LICENSE and NOTICES files in the project root for more information.
 
 services:
   proton:
-    image: d.timeplus.com/timeplus-io/proton:latest
+    # 1.6.14 is "latest" as of 2025-04-02
+    image: d.timeplus.com/timeplus-io/proton:1.6.14@sha256:0f1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t1u2v3w4x5y6z7a8b9c0d1a3eb0cf53b618a3d38fe6f39a3ae46894c9548b266a9e5e4f023719d256f75a7
     ports:
-      - '8123:8123' #http port for JDBC driver, default batch mode
       - '8463:8463'
     networks:
       - dms
+    volumes:
+      - proton:/var/lib/proton
+
+volumes:
+  proton:
+    driver: local
 
 networks:
   dms:
