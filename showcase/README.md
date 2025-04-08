@@ -95,7 +95,8 @@ into the search database (OpenSearch or Elasticsearch).
 
 Showcases:
 
-* [Realtime Command Line Interface with Proton](./streaming/proton-realtime-cli/README.md)
+* [Proton Streaming Database for Analytics](./streaming/proton/README.md)
+* [Realtime ETL with Rising Wave](./streaming/rising-wave/README.md)
 
 Desired showcases:
 

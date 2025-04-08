@@ -186,7 +186,7 @@ Authorization: bearer {{dmsToken}}
 Content-Type: application/json
 
 {
-    "schoolId": 222,
+    "schoolId": 22222,
     "nameOfInstitution": "Grand Bend Elementary School",
     "shortNameOfInstitution": "GBES",
     "educationOrganizationCategories": [
