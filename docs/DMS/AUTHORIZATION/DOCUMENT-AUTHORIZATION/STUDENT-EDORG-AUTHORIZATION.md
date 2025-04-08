@@ -18,7 +18,7 @@ erDiagram
     StudentSchoolAssociationAuthorization ||--|| Document : "Only for StudentSchoolAssociation Documents"
     StudentSchoolAssociationAuthorization {
         bigint Id PK "Sequential key pattern, clustered"
-        bigint StudentId "Indexed for lookup by StudentId"
+        varchar(32) StudentUniqueId "Indexed for lookup by StudentUniqueId"
         bigint HierarchySchoolId FK "FK to EducationOrganizationHierarchy.EducationOrganizationId with delete cascade"
         jsonb StudentSchoolAuthorizationEdOrgIds "Denormalized array of EdOrgIds for the Student, derived from EducationOrganizationHierarchy"
         bigint StudentSchoolAssociationId FK "FK to derived-from Document StudentSchoolAssociation as Document.Id with delete cascade"
@@ -41,7 +41,7 @@ The EducationOrganizationHierarchy table already exists but needs the addition o
 
 StudentSchoolAssociationAuthorization records are created/updated/deleted along with StudentSchoolAssociation documents. The HierarchySchoolId FK will be used to access the full hierarchy of EducationOrganizations the School is a part of, via EducationOrganizationHierarchy. The StudentSchoolAuthorizationEdOrgIds column will be a JSONB column with a simple denormalized array taken from EducationOrganizationHierarchy for the School.
 
-Updates to a StudentSchoolAssociation Document will require corresponding updates to the StudentSchoolAssociationAuthorization table. This includes updates due to a cascade. We will need a way for core to communicate to the backend on insert/update/delete of a StudentSchoolAssociation that this is the StudentSchoolAssociationAuthorization pathway, along with the extracted StudentId and SchoolId for insert/update.
+Updates to a StudentSchoolAssociation Document will require corresponding updates to the StudentSchoolAssociationAuthorization table. This includes updates due to a cascade. We will need a way for core to communicate to the backend on insert/update/delete of a StudentSchoolAssociation that this is the StudentSchoolAssociationAuthorization pathway, along with the extracted StudentUniqueId and SchoolId for insert/update.
 
 StudentSchoolAssociationAuthorization does not need to be replicated to the search engine.
 
@@ -49,15 +49,15 @@ StudentSchoolAssociationAuthorization does not need to be replicated to the sear
 
 Our search engine support will require the introduction of denormalized EducationOrganizationId arrays on the Document table (omitted from diagram above, but shown below). This information will be copied from the denormalized row provided by StudentSchoolAssociationAuthorization, with one column per authorization pathway. In this case, the Document column would be StudentSchoolAuthorizationEdOrgIds, a JSONB column containing a simple array of EducationOrganizationIds for a Student, derived from StudentSchoolAssociation. This denormalized array is what will be used for authorization filtering on search engine queries.
 
-When a new StudentId-securable document is inserted, the backend will need to lookup the StudentId on the StudentSchoolAssociationAuthorization table and apply the StudentSchoolAuthorizationEdOrgIds to the document via StudentSchoolAssociationAuthorization.
+When a new Student-securable document is inserted, the backend will need to lookup the StudentUniqueId on the StudentSchoolAssociationAuthorization table and apply the StudentSchoolAuthorizationEdOrgIds to the document via StudentSchoolAssociationAuthorization.
 
-Additionally, we will need a non-partitioned table StudentIdSecurableDocument that will act as an index into the Document table for all StudentId-securable documents. This will provide efficient access to StudentId-securable Documents for synchronization when StudentSchoolAuthorizationEdOrgIds change. When a new StudentId-securable Document is inserted, the backend will add this record. The FK will be cascade deleted when a StudentId-securable document is deleted.
+Additionally, we will need a non-partitioned table StudentSecurableDocument that will act as an index into the Document table for all Student-securable documents. This will provide efficient access to Student-securable Documents for synchronization when StudentSchoolAuthorizationEdOrgIds change. When a new Student-securable Document is inserted, the backend will add this record. The FK will be cascade deleted when a Student-securable document is deleted.
 
-StudentIdSecurableDocument does not need to be replicated to the search engine.
+StudentSecurableDocument does not need to be replicated to the search engine.
 
 ```mermaid
 erDiagram
-    StudentIdSecurableDocument ||--|| Document : "Only for Documents with a securable StudentId"
+    StudentSecurableDocument ||--|| Document : "Only for Documents with a securable StudentUniqueId"
 
     Document {
         bigint Id PK "Sequential key pattern, clustered"
@@ -66,32 +66,32 @@ erDiagram
         jsonb StudentSchoolAuthorizationEdOrgIds "Nullable, array of EducationOrganizationIds through StudentSchoolAssociation"
         jsonb OtherAuthorizationPathwayEdOrgIds "Nullable, example of array of EducationOrganizationIds for another pathway"
     }
-    StudentIdSecurableDocument {
+    StudentSecurableDocument {
         bigint Id PK "Sequential key pattern, clustered"
-        string StudentId "Indexed for lookup by StudentId"
-        bigint StudentIdSecurableDocumentId FK "FK to a StudentId-securable document as Document.Id with delete cascade"
-        tinyint StudentIdSecurableDocumentPartitionKey FK "Partition key of StudentId-securable document"
+        varchar(32) StudentUniqueId "Indexed for lookup by StudentUniqueId"
+        bigint StudentSecurableDocumentId FK "FK to a Student-securable document as Document.Id with delete cascade"
+        tinyint StudentSecurableDocumentPartitionKey FK "Partition key of Student-securable document"
     }
 ```
 
-## Authorization Algorithm for Create/Update/Delete/Get-by-ID of a StudentId-Securable Document
+## Authorization Algorithm for Create/Update/Delete/Get-by-ID of a Student-securable Document
 
 There are two phases to security actions for the backend. This is the authorization itself for
-a StudentId-securable Document, using the StudentSchoolAssociationAuthorization pathway:
+a Student-securable Document, using the StudentSchoolAssociationAuthorization pathway:
 
 * Create/Update
-  1. In DMS Core, get the StudentSchoolAuthorizationEdOrgIds array for this student, via the backend. This means we need a new interface to query the backend for EducationOrganizationIds for StudentId-securable documents for specific authorization pathway(s), and also pass along client authorizations.
+  1. In DMS Core, get the StudentSchoolAuthorizationEdOrgIds array for this student, via the backend. This means we need a new interface to query the backend for EducationOrganizationIds for Student-securable documents for specific authorization pathway(s), and also pass along client authorizations.
   2. DMS Core compares the StudentSchoolAuthorizationEdOrgIds with client authorizations and allow or deny.
 
 * Get-by-ID
-  1. DMS core calls the backend with the request. We need the Get-By-Id interface to be told when the Document is StudentId-securable using specific authorization pathway(s). Backend returns the document along with its StudentSchoolAuthorizationEdOrgIds.
+  1. DMS core calls the backend with the request. We need the Get-By-Id interface to be told when the Document is Student-securable using specific authorization pathway(s). Backend returns the document along with its StudentSchoolAuthorizationEdOrgIds.
   2. DMS Core compares the StudentSchoolAuthorizationEdOrgIds with client authorizations and allow or deny.
 
 * Delete
-  1. DMS core calls the backend with the request. We need the Delete interface to be told when the Document is StudentId-securable using specific authorization pathway(s), and also pass along client authorizations.
+  1. DMS core calls the backend with the request. We need the Delete interface to be told when the Document is Student-securable using specific authorization pathway(s), and also pass along client authorizations.
   2. Backend compares the StudentSchoolAuthorizationEdOrgIds with client authorizations and allow or deny.
 
-## Synchronization between StudentSchoolAssociation document (Document table), StudentSchoolAssociationAuthorization, StudentIdSecurableDocument, and StudentId-Securable document (Document table)
+## Synchronization between StudentSchoolAssociation document (Document table), StudentSchoolAssociationAuthorization, StudentSecurableDocument, and Student-securable document (Document table)
 
 There are two phases to security actions for the backend. This is the denormalization synchronization phase.
 
@@ -100,30 +100,30 @@ There are two phases to security actions for the backend. This is the denormaliz
     1. Insert StudentSchoolAssociation document into Document
     2. Compute EdOrgId array for Student from SchoolId and EducationOrganizationHierarchy
     3. Insert derived row into StudentSchoolAssociationAuthorization, including EdOrgId array in StudentSchoolAuthorizationEdOrgIds column
-    4. Update EdOrgId array on each StudentId-Securable Document for this Student, using indexed StudentId on StudentIdSecurableDocument
+    4. Update EdOrgId array on each Student-securable Document for this Student, using indexed StudentUniqueId on StudentSecurableDocument
 
   * Update (including cascade)
-    1. Detect changes to either StudentId or SchoolId - StudentSchoolAssociation allows identity updates
+    1. Detect changes to either StudentUniqueId or SchoolId - StudentSchoolAssociation allows identity updates
        1. If none, skip.
-       2. If change to StudentId or SchoolId, treat as Delete and Create
+       2. If change to StudentUniqueId or SchoolId, treat as Delete and Create
     2. Update StudentSchoolAssociation document in Document
 
   * Delete
-    1. Null out EdOrgId array in each StudentId-Securable Document, using indexed StudentId on StudentIdSecurableDocument
+    1. Null out EdOrgId array in each Student-securable Document, using indexed StudentUniqueId on StudentSecurableDocument
     2. Delete StudentSchoolAssociation document
     3. Delete cascade will remove StudentSchoolAssociationAuthorization row
 
-* StudentId-securable Document (Document table)
+* Student-securable Document (Document table)
   * Create
-    1. Lookup EdOrgId array on StudentSchoolAssociationAuthorization by indexed StudentId
-    2. Insert StudentId-securable document into Document, including EdOrgId array
-    3. Create StudentIdSecurableDocument entry for this Document
+    1. Lookup EdOrgId array on StudentSchoolAssociationAuthorization by indexed StudentUniqueId
+    2. Insert Student-securable document into Document, including EdOrgId array
+    3. Create StudentSecurableDocument entry for this Document
 
   * Update (including cascade)
-      1. Detect changes to StudentId
+      1. Detect changes to StudentUniqueId
          1. If none, skip.
          2. If change, treat as Delete and Create
-      2. Update StudentId-securable document in Document
+      2. Update Student-securable document in Document
 
   * Delete
     1. Nothing synchronization-related
@@ -171,8 +171,8 @@ Authorization strategies that require more than one authorization pathway can be
 
 ## Possible Future Improvements
 
-* Partitioning of StudentIdSecurable table with partition key derived from StudentId.
-* Partitioning of StudentSchoolAssociationAuthorization table with partition key derived from StudentId.
+* Partitioning of StudentIdSecurable table with partition key derived from StudentUniqueId.
+* Partitioning of StudentSchoolAssociationAuthorization table with partition key derived from StudentUniqueId.
 * May need to support multiple StudentSchoolAssociations, where a Student is enrolled in multiple schools. Needs analysis.
 * Update StudentSchoolAuthorizationEdOrgIds when EducationOrganizationHierarchy changes (e.g. new Network/Department added during school year)
 * Some authorization strategy logic will be in the backend. What can we pull up into DMS core to simplify backends? This would mean multiple smaller actions in the backend interface, in separate transactions. This could result in stale authorization checks over a short period of time (expected upper bound of a few seconds). What is the tolerance for the time for an authorization change to take effect?
