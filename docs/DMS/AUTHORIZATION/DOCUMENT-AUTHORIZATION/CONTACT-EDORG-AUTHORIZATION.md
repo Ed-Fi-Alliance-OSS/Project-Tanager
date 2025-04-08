@@ -53,7 +53,7 @@ Records are created/updated/deleted primarily based on StudentContactAssociation
 
 Search engine support requires a new denormalized EdOrgId array on the Document table called ContactStudentSchoolAuthorizationEdOrgIds which will be copied from the denormalized column provided by ContactStudentSchoolAuthorization.
 
-Like with StudentUniqueId-securable documents, there will be a new ContactSecurableDocument table used to index those Documents by ContactUniqueId.
+Like with Student-securable documents, there will be a new ContactSecurableDocument table used to index those Documents by ContactUniqueId.
 
 ```mermaid
 erDiagram
@@ -76,7 +76,7 @@ erDiagram
 
 ## Authorization Algorithm for Create/Update/Delete/Get-by-ID of a Contact-securable Document
 
-As with StudentUniqueId-Securable Documents, the backend interfaces need to know which authorization pathways apply to a document. DMS Core compares the relevant denormalized EdOrgId array(s) on the document with client authorizations. Contact-securable Documents will use ContactStudentSchoolAuthorizationEdOrgIds on Document in the same manner for Create/Update/Delete/Get-by-ID as StudentUniqueId-Securable Documents use StudentSchoolAuthorizationEdOrgIds.
+As with Student-securable Documents, the backend interfaces need to know which authorization pathways apply to a document. DMS Core compares the relevant denormalized EdOrgId array(s) on the document with client authorizations. Contact-securable Documents will use ContactStudentSchoolAuthorizationEdOrgIds on Document in the same manner for Create/Update/Delete/Get-by-ID as Student-securable Documents use StudentSchoolAuthorizationEdOrgIds.
 
 ## Synchronization between ContactSchoolAssociation document (Document table), StudentSchoolAssociation document (Document table), ContactSchoolAssociationAuthorization, ContactSecurableDocument, and Contact-securable document (Document table)
 
