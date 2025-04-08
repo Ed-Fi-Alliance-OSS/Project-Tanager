@@ -35,6 +35,10 @@ C4Container
 
 ## Proof-of-Concept
 
+> [!TIP]
+> For more information on the sample Docker startup, see
+> [docker-compose/README.md](https://github.com/Ed-Fi-Alliance-OSS/Data-Management-Service/blob/main/eng/docker-compose/README.md)
+
 1. Startup the DMS Platform from the [DMS source code
    repository](https://github.com/Ed-Fi-Alliance-OSS/Data-Management-Service):
 
@@ -48,10 +52,6 @@ C4Container
    # One time Keycloak setup
    ./setup-keycloak.ps1
    ```
-
-   > [!TIP]
-   > For more information on the sample Docker startup, see
-   > [docker-compose/README.md](https://github.com/Ed-Fi-Alliance-OSS/Data-Management-Service/blob/main/eng/docker-compose/README.md)
 
 2. Star MinIO using the docker compose file in this directory. `docker compose up -d`.
 3. Once started, open the [MinIO Console](http://localhost:9090/) in your

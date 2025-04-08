@@ -34,6 +34,10 @@ C4Container
 
 ## Proof-of-Concept
 
+> [!TIP]
+> For more information on the sample Docker startup, see
+> [docker-compose/README.md](https://github.com/Ed-Fi-Alliance-OSS/Data-Management-Service/blob/main/eng/docker-compose/README.md)
+>
 1. Startup the DMS Platform from the [DMS source code
    repository](https://github.com/Ed-Fi-Alliance-OSS/Data-Management-Service):
 
@@ -48,16 +52,8 @@ C4Container
    ./setup-keycloak.ps1
    ```
 
-   > [!TIP]
-   > For more information on the sample Docker startup, see
-   > [docker-compose/README.md](https://github.com/Ed-Fi-Alliance-OSS/Data-Management-Service/blob/main/eng/docker-compose/README.md)
-
-2. Load some data into DMS using [OpenSearch-Dashboard-POC.http](./OpenSearch-Dashboard-POC.http).
-
-    > [!NOTE]
-    > TODO: Augment these showcases with instructions on using VS Code,
-    > Visual Studio, or Rider (among others) to execute `.http` files.
-
+2. Load some data into DMS using
+   [OpenSearch-Dashboard-POC.http](./OpenSearch-Dashboard-POC.http).
 3. Open the [OpenSearch Dashboard](http://localhost:5601/) in your browser.
 4. Navigate to **Management > Dashboards Management > Index patterns**.
 5. Create two new indexes:

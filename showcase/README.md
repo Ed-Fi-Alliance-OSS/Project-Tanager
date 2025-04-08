@@ -157,9 +157,9 @@ Desired showcases:
   API (for fine-grained authorization) or OpenSearch (when all data should be
   available, or with custom RBAC).
 
-  > [!WARNING]
-  > MCP is an interesting idea, but is very new and may not be very securable
-  > yet. Use with extreme caution.
+> [!WARNING]
+> MCP is an interesting idea, but is very new and may not be very securable
+> yet. Use with extreme caution.
 
 * Using OpenSearch's [AI
   Search](https://opensearch.org/docs/latest/vector-search/ai-search/index/) to
