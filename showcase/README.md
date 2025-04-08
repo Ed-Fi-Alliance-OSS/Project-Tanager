@@ -97,10 +97,10 @@ Showcases:
 
 * [Proton Streaming Database for Analytics](./streaming/proton/README.md)
 * [Realtime ETL with Rising Wave](./streaming/rising-wave/README.md)
+* [Streaming to S3 Object Storage](./streaming/S3-storage/README.md)
 
 Desired showcases:
 
-* Raw data to blob storage (data lake).
 * Capturing and analyzing logs.
 * ELT / ETL
 * Use of materialized views either saved back into a Kafka topic or in a
@@ -156,6 +156,24 @@ Desired showcases:
 * Using Model Context Protocol (MCP) as an intermediary between an LLM and either the
   API (for fine-grained authorization) or OpenSearch (when all data should be
   available, or with custom RBAC).
+
+  > [!WARNING]
+  > MCP is an interesting idea, but is very new and may not be very securable
+  > yet. Use with extreme caution.
+
 * Using OpenSearch's [AI
   Search](https://opensearch.org/docs/latest/vector-search/ai-search/index/) to
   convert indexes to vectors, and incorporating into a local model.
+
+## Search Database
+
+The search database (OpenSearch or Elasticsearch) supports "get all" and "get by
+query" workloads in the DMS. What else can these databases do?
+
+Showcases:
+
+* [Simple Dashboards in OpenSearch](./search/simple-dashboards/README.md)
+
+Desired showcases:
+
+* Log ingestion and analysis from DMS and/or other components
