@@ -1,0 +1,146 @@
+@dmsPort=8080
+@configPort=8081
+
+@sysAdminId=sys-admin
+@sysAdminSecret=SdfH)98&Jk
+@encodedSysAdminSecret=SdfH%2998%26Jk
+
+
+#
+# Create a new system administrator and create a token
+#
+
+### Create the system administrator credentials
+POST http://localhost:{{configPort}}/connect/register
+Content-Type: application/x-www-form-urlencoded
+
+ClientId={{sysAdminId}}
+&ClientSecret={{encodedSysAdminSecret}}
+&DisplayName=System Administrator
+
+
+### Create a token
+# @name configTokenRequest
+POST http://localhost:{{configPort}}/connect/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id={{sysAdminId}}
+&client_secret={{encodedSysAdminSecret}}
+&grant_type=client_credentials
+&scope=edfi_admin_api/full_access
+
+###
+@configToken={{configTokenRequest.response.body.access_token}}
+
+#
+# Create vendor, application, and new DMS client credentials
+#
+
+### Create a new vendor
+# @name createVendor
+POST http://localhost:{{configPort}}/v2/vendors
+Content-Type: application/json
+Authorization: bearer {{configToken}}
+
+{
+    "company": "Demo Vendor {{$randomInt 0 9999999}}",
+    "contactName": "George Washington",
+    "contactEmailAddress": "george@example.com",
+    "namespacePrefixes": "uri://ed-fi.org"
+}
+
+###
+@vendorLocation={{createVendor.response.headers.location}}
+
+### Retrieve the vendor so that we can extract the Id
+# @name getVendor
+GET {{vendorLocation}}
+Authorization: bearer {{configToken}}
+
+###
+@vendorId={{getVendor.response.body.id}}
+
+### Create a new application
+# @name createApplication
+POST http://localhost:{{configPort}}/v2/applications
+Content-Type: application/json
+Authorization: bearer {{configToken}}
+
+{
+    "vendorId": {{vendorId}},
+    "applicationName": "Demo application",
+    "claimSetName": "E2E-RelationshipsWithEdOrgsOnlyClaimSet"
+}
+
+###
+@clientKey={{createApplication.response.body.key}}
+@clientSecret={{createApplication.response.body.secret}}
+@applicationLocation={{createApplication.response.headers.location}}
+
+
+#
+# DMS demonstration
+#
+
+### Read the Token URL from the Discovery API
+# @name discovery
+GET http://localhost:{{dmsPort}}
+
+###
+@tokenUrl={{discovery.response.body.urls.oauth}}
+@dataApi={{discovery.response.body.urls.dataManagementApi}}
+
+### Create a DMS token
+# @name dmsTokenRequest
+POST {{tokenUrl}}
+Authorization: basic {{clientKey}}:{{clientSecret}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials
+
+###
+@dmsToken={{dmsTokenRequest.response.body.access_token}}
+
+###
+POST {{dataApi}}/ed-fi/gradeLevelDescriptors
+Authorization: bearer {{dmsToken}}
+Content-Type: application/json
+
+{
+    "namespace": "uri://ed-fi.org/GradeLevelDescriptor",
+    "codeValue": "Ninth grade",
+    "shortDescription": "9th Grade"
+}
+
+###
+POST {{dataApi}}/ed-fi/gradeLevelDescriptors
+Authorization: bearer {{dmsToken}}
+Content-Type: application/json
+
+{
+    "namespace": "uri://ed-fi.org/GradeLevelDescriptor",
+    "codeValue": "First grade",
+    "shortDescription": "1st Grade"
+}
+
+###
+POST {{dataApi}}/ed-fi/educationOrganizationCategoryDescriptors
+Authorization: bearer {{dmsToken}}
+Content-Type: application/json
+
+{
+    "namespace": "uri://ed-fi.org/EducationOrganizationCategoryDescriptor",
+    "codeValue": "School",
+    "shortDescription": "School"
+}
+
+###
+POST {{dataApi}}/ed-fi/educationOrganizationCategoryDescriptors
+Authorization: bearer {{dmsToken}}
+Content-Type: application/json
+
+{
+    "namespace": "uri://ed-fi.org/EducationOrganizationCategoryDescriptor",
+    "codeValue": "Local Education Agency",
+    "shortDescription": "Local Education Agency"
+}
