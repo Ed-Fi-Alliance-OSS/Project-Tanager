@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: Apache-2.0
+# Licensed to the Ed-Fi Alliance under one or more agreements.
+# The Ed-Fi Alliance licenses this file to you under the Apache License, Version 2.0.
+# See the LICENSE and NOTICES files in the project root for more information.
+
+services:
+  minio:
+    image: quay.io/minio/minio
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9090:9090"
+    environment:
+      MINIO_ROOT_USER: root
+      MINIO_ROOT_PASSWORD: p@ssw0rd!
+    volumes:
+      - ~/minio/data:/data
+    command: server /data --console-address ":9090"
+    networks:
+      - dms
+
+networks:
+  dms:
+    name: dms
+    external: true

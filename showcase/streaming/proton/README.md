@@ -74,6 +74,10 @@ This POC uses [Poetry](https://python-poetry.org/) as the Python package
 manager. The requirements have also been exported to a PIP requirements.txt
 file. Tested with the source code from milestone `0.4.0`.
 
+> [!TIP]
+> For more information on the sample Docker startup, see
+> [docker-compose/README.md](https://github.com/Ed-Fi-Alliance-OSS/Data-Management-Service/blob/main/eng/docker-compose/README.md)
+
 1. Startup the DMS Platform from the [DMS source code
    repository](https://github.com/Ed-Fi-Alliance-OSS/Data-Management-Service):
 
@@ -87,10 +91,6 @@ file. Tested with the source code from milestone `0.4.0`.
    # One time Keycloak setup
    ./setup-keycloak.ps1
    ```
-
-   > [!TIP]
-   > For more information on the sample Docker startup, see
-   > [docker-compose/README.md](https://github.com/Ed-Fi-Alliance-OSS/Data-Management-Service/blob/main/eng/docker-compose/README.md)
 
 2. In this repository, start proton. Advisable to use a separate terminal
    window:
