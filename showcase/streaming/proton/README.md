@@ -84,7 +84,7 @@ file. Tested with the source code from milestone `0.4.0`.
    ```powershell
    cd Data-Management-Service
    git checkout 0.4.0
-   eng/docker-compose
+   cd eng/docker-compose
    cp .env.example .env
    ./start-local-dms.ps1 -EnableConfig -EnableSearchEngineUI -r
 

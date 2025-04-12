@@ -37,14 +37,14 @@ C4Container
 > [!TIP]
 > For more information on the sample Docker startup, see
 > [docker-compose/README.md](https://github.com/Ed-Fi-Alliance-OSS/Data-Management-Service/blob/main/eng/docker-compose/README.md)
->
+
 1. Startup the DMS Platform from the [DMS source code
    repository](https://github.com/Ed-Fi-Alliance-OSS/Data-Management-Service):
 
    ```powershell
    cd Data-Management-Service
    git checkout 0.4.0
-   eng/docker-compose
+   cd eng/docker-compose
    cp .env.example .env
    ./start-local-dms.ps1 -EnableConfig -EnableSearchEngineUI -r
 
