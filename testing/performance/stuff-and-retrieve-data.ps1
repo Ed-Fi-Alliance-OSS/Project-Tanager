@@ -34,14 +34,19 @@ function Invoke-Request {
     -ContentType "application/json" `
     -Headers @{ Authorization = "Bearer $script:token" }  `
     -Body ($Body | ConvertTo-Json -Depth 10) `
-    -SkipHttpErrorCheck
+    -SkipHttpErrorCheck `
+    -ResponseHeadersVariable responseHeaders
 
   if ($response.StatusCode -ge 400) {
     Write-Error "Request failed with status code $($response.StatusCode): $($response.Content)"
     return $null
   }
 
-  return $response
+  $location = ""
+  if ($null -ne $responseHeaders["Location"]) {
+    $location = $responseHeaders["Location"]
+  }
+  return @($response, $location)
 }
 
 "Create a Config Service token" | Out-Host
@@ -67,7 +72,7 @@ $vendorResponse = Invoke-Request -Uri "http://localhost:$configPort/v2/vendors" 
   namespacePrefixes   = "uri://ed-fi.org"
 }
 
-$vendorId = $vendorResponse.id
+$vendorId = $vendorResponse[0].id
 
 "Create a new application" | Out-Host
 $applicationResponse = Invoke-Request -Uri "http://localhost:$configPort/v2/applications" `
@@ -78,17 +83,17 @@ $applicationResponse = Invoke-Request -Uri "http://localhost:$configPort/v2/appl
   claimSetName    = "E2E-NoFurtherAuthRequiredClaimSet"
 }
 
-$clientKey = $applicationResponse.key
-$clientSecret = $applicationResponse.secret
+$clientKey = $applicationResponse[0].key
+$clientSecret = $applicationResponse[0].secret
 
 # DMS demonstration
 # Read the Token URL from the Discovery API
 $discoveryResponse = Invoke-RestMethod -Uri "http://localhost:$dmsPort" `
   -Method GET
 
-$tokenUrl = $discoveryResponse.urls.oauth
+$tokenUrl = $discoveryResponse[0].urls.oauth
 
-$dataApi = $discoveryResponse.urls.dataManagementApi
+$dataApi = $discoveryResponse[0].urls.dataManagementApi
 
 "Create a DMS token" | Out-Host
 $credentials = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$($clientKey):$clientSecret"))
@@ -101,7 +106,7 @@ $dmsTokenRequest = Invoke-RestMethod -Uri $tokenUrl `
   grant_type = "client_credentials"
 }
 
-$script:token = $dmsTokenRequest.access_token
+$script:token = $dmsTokenRequest[0].access_token
 
 "Create a school year" | Out-Host
 Invoke-Request -Uri "$dataApi/ed-fi/schoolYearTypes" `
@@ -112,7 +117,7 @@ Invoke-Request -Uri "$dataApi/ed-fi/schoolYearTypes" `
   endDate               = "2025-05-31"
   schoolYearDescription = "2024-2025"
   currentSchoolYear     = $true
-}
+} | Out-Null
 
 "Grade level descriptors" | Out-Host
 Invoke-Request -Uri "$dataApi/ed-fi/gradeLevelDescriptors" `
@@ -121,7 +126,7 @@ Invoke-Request -Uri "$dataApi/ed-fi/gradeLevelDescriptors" `
   namespace        = "uri://ed-fi.org/GradeLevelDescriptor"
   codeValue        = "Ninth grade"
   shortDescription = "9th Grade"
-}
+} | Out-Null
 
 "Education organization category descriptors" | Out-Host
 Invoke-Request -Uri "$dataApi/ed-fi/educationOrganizationCategoryDescriptors" `
@@ -130,7 +135,7 @@ Invoke-Request -Uri "$dataApi/ed-fi/educationOrganizationCategoryDescriptors" `
   namespace        = "uri://ed-fi.org/EducationOrganizationCategoryDescriptor"
   codeValue        = "School"
   shortDescription = "School"
-}
+} | Out-Null
 
 "Create a school" | Out-Host
 Invoke-Request -Uri "$dataApi/ed-fi/schools" `
@@ -150,7 +155,9 @@ Invoke-Request -Uri "$dataApi/ed-fi/schools" `
       gradeLevelDescriptor = "uri://ed-fi.org/GradeLevelDescriptor#Ninth grade"
     }
   )
-}
+} | Out-Null
+
+$studentIdList = [System.Collections.ArrayList]::new()
 
 $timed = Measure-Command {
   # Loop to create students and their education organization associations
@@ -158,7 +165,7 @@ $timed = Measure-Command {
     $studentUniqueId = "12345678$i"
 
     # "Create student $i" | Out-Host
-    Invoke-Request -Uri "$dataApi/ed-fi/students" `
+    $studentResponse = Invoke-Request -Uri "$dataApi/ed-fi/students" `
       -Method POST `
       -Body @{
       studentUniqueId = $studentUniqueId
@@ -166,6 +173,8 @@ $timed = Measure-Command {
       lastSurname     = "LastName$i"
       birthDate       = "2012-01-01"
     }
+
+    $studentIdList.Add($studentResponse[1]) | Out-Null
 
     # "Create student education organization association for student $i" | Out-Host
     Invoke-Request -Uri "$dataApi/ed-fi/studentEducationOrganizationAssociations" `
@@ -179,8 +188,51 @@ $timed = Measure-Command {
       }
       beginDate                      = "2024-08-01"
       endDate                        = "2025-05-31"
-    }
+    } | Out-Null
+  }
+}
+$times = @{
+  "CreateStudents" = $timed.TotalSeconds
+}
+"Created $studentCount students and their education organization associations in $($timed.TotalSeconds) seconds" | Out-Host
+
+$timed = Measure-Command {
+  $studentIdList | ForEach-Object {
+    # "Retrieve student $_" | Out-Host
+    Invoke-Request -Uri $_ -Method GET | Out-Null
   }
 }
 
-"Created $studentCount students and their education organization associations in $($timed.TotalSeconds) seconds" | Out-Host
+$times["RetrieveStudents"] = $timed.TotalSeconds
+"Retrieved individual student records by ID in $($timed.TotalSeconds) seconds" | Out-Host
+
+
+$timed = Measure-Command {
+  for ($i = 1; $i -le $studentCount; $i++) {
+    $studentUniqueId = "12345678$i"
+
+    # "Retrieve student $i" | Out-Host
+    Invoke-Request -Uri "$dataApi/ed-fi/students?studentUniqueId=$studentUniqueId" `
+      -Method GET | Out-Null
+  }
+}
+
+$times["RetrieveStudentsByQuery"] = $timed.TotalSeconds
+"Retrieved individual student records by query in $($timed.TotalSeconds) seconds" | Out-Host
+
+$timed = Measure-Command {
+  $offset = 0
+
+  do {
+    # "Retrieve students with offset $offset" | Out-Host
+    $students = Invoke-Request -Uri "$dataApi/ed-fi/students?limit=500&offset=$offset" -Method GET
+    # "$dataApi/ed-fi/students?limit=500&offset=$offset", $students.Count | Out-Host
+
+    $offset += 500
+  } while ($students[0].Count -gt 0)
+}
+
+$times["RetrieveAllStudents"] = $timed.TotalSeconds
+"Retrieved all students in $($timed.TotalSeconds) seconds" | Out-Host
+
+$times | ConvertTo-Csv | Out-Host
