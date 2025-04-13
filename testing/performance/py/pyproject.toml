@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "tanager-stuff-and-retrieve-data"
+version = "0.1.0"
+description = "Measures the time required to stuff X students and student education organization associations into the Ed-Fi API"
+authors = ["Ed-Fi Alliance, LLC"]
+license = "Apache-2.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+requests = "^2.32.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
