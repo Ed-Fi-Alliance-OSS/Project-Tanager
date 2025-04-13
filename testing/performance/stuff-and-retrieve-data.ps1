@@ -1,5 +1,7 @@
 $ErrorActionPreference = "Stop"
 
+$studentCount = 5
+
 # Define ports and credentials
 $dmsPort = 8080
 $configPort = 8081
@@ -140,28 +142,35 @@ Invoke-Request -Uri "$dataApi/ed-fi/schools" `
   )
 }
 
-$studentUniqueId = "123456789"
+$timed = Measure-Command {
+  # Loop to create students and their education organization associations
+  for ($i = 1; $i -le $studentCount; $i++) {
+    $studentUniqueId = "12345678$i"
 
-"Create a student" | Out-Host
-Invoke-Request -Uri "$dataApi/ed-fi/students" `
-  -Method POST `
-  -Body @{
-  studentUniqueId = $studentUniqueId
-  firstName = "Student"
-  lastSurname = $studentUniqueId
-  birthDate = "1901-01-02"
+    # "Create student $i" | Out-Host
+    Invoke-Request -Uri "$dataApi/ed-fi/students" `
+      -Method POST `
+      -Body @{
+        studentUniqueId = $studentUniqueId
+        firstName = "Student$i"
+        lastSurname = "LastName$i"
+        birthDate = "2012-01-01"
+      }
+
+    # "Create student education organization association for student $i" | Out-Host
+    Invoke-Request -Uri "$dataApi/ed-fi/studentEducationOrganizationAssociations" `
+      -Method POST `
+      -Body @{
+        studentReference = @{
+          studentUniqueId = $studentUniqueId
+        }
+        educationOrganizationReference = @{
+          educationOrganizationId = 1
+        }
+        beginDate = "2024-08-01"
+        endDate = "2025-05-31"
+      }
+  }
 }
 
-"Create a student education organization association" | Out-Host
-Invoke-Request -Uri "$dataApi/ed-fi/studentEducationOrganizationAssociations" `
-  -Method POST `
-  -Body @{
-  studentReference = @{
-    studentUniqueId = $studentUniqueId
-  }
-  educationOrganizationReference = @{
-    educationOrganizationId = 1
-  }
-  beginDate = "2024-08-01"
-  endDate = "2025-05-31"
-}
+"Created $studentCount students and their education organization associations in $($timed.TotalSeconds) seconds" | Out-Host
