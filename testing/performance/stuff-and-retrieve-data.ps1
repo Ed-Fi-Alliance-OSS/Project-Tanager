@@ -1,13 +1,26 @@
+# This script creates a vendor, application, and a school year, and then creates
+# a number of students and their education organization associations. It uses
+# the DMS API to create the students and their associations. It uses the Config
+# Service API to create the vendor and application.
+param (
+  [Parameter(Mandatory = $false)]
+  [int]$StudentCount = 5,
+
+  [Parameter(Mandatory = $false)]
+  [int]$DmsPort = 8080,
+
+  [Parameter(Mandatory = $false)]
+  [int]$ConfigPort = 8081,
+
+  [Parameter(Mandatory = $false)]
+  [string]$SysAdminId = "DmsConfigurationService",
+
+  [Parameter(Mandatory = $false)]
+  [string]$SysAdminSecret = "s3creT@09"
+)
+
+#Requires -Version 7
 $ErrorActionPreference = "Stop"
-
-$studentCount = 5
-
-# Define ports and credentials
-$dmsPort = 8080
-$configPort = 8081
-
-$sysAdminId = "DmsConfigurationService"
-$sysAdminSecret = "s3creT@09"
 
 function Invoke-Request {
   param (
@@ -15,9 +28,6 @@ function Invoke-Request {
     [string]$Method,
     [hashtable]$Body
   )
-
-  Write-Information $Uri
-  Write-Information ($Body | ConvertTo-Json -Depth 10)
 
   $response = Invoke-RestMethod -Uri $Uri `
     -Method $Method `
@@ -97,19 +107,19 @@ $script:token = $dmsTokenRequest.access_token
 Invoke-Request -Uri "$dataApi/ed-fi/schoolYearTypes" `
   -Method POST `
   -Body @{
-  schoolYear = 2024
-  beginDate  = "2024-08-01"
-  endDate    = "2025-05-31"
+  schoolYear            = 2024
+  beginDate             = "2024-08-01"
+  endDate               = "2025-05-31"
   schoolYearDescription = "2024-2025"
-  currentSchoolYear = $true
+  currentSchoolYear     = $true
 }
 
 "Grade level descriptors" | Out-Host
 Invoke-Request -Uri "$dataApi/ed-fi/gradeLevelDescriptors" `
   -Method POST `
   -Body @{
-  namespace = "uri://ed-fi.org/GradeLevelDescriptor"
-  codeValue = "Ninth grade"
+  namespace        = "uri://ed-fi.org/GradeLevelDescriptor"
+  codeValue        = "Ninth grade"
   shortDescription = "9th Grade"
 }
 
@@ -117,8 +127,8 @@ Invoke-Request -Uri "$dataApi/ed-fi/gradeLevelDescriptors" `
 Invoke-Request -Uri "$dataApi/ed-fi/educationOrganizationCategoryDescriptors" `
   -Method POST `
   -Body @{
-  namespace = "uri://ed-fi.org/EducationOrganizationCategoryDescriptor"
-  codeValue = "School"
+  namespace        = "uri://ed-fi.org/EducationOrganizationCategoryDescriptor"
+  codeValue        = "School"
   shortDescription = "School"
 }
 
@@ -126,16 +136,16 @@ Invoke-Request -Uri "$dataApi/ed-fi/educationOrganizationCategoryDescriptors" `
 Invoke-Request -Uri "$dataApi/ed-fi/schools" `
   -Method POST `
   -Body @{
-  schoolId = 1
-  nameOfInstitution = "Grand Bend High School"
-  shortNameOfInstitution = "GBMS"
-  webSite = "http://www.GBISD.edu/GBMS/"
+  schoolId                        = 1
+  nameOfInstitution               = "Grand Bend High School"
+  shortNameOfInstitution          = "GBMS"
+  webSite                         = "http://www.GBISD.edu/GBMS/"
   educationOrganizationCategories = @(
     @{
       educationOrganizationCategoryDescriptor = "uri://ed-fi.org/EducationOrganizationCategoryDescriptor#School"
     }
   )
-  gradeLevels = @(
+  gradeLevels                     = @(
     @{
       gradeLevelDescriptor = "uri://ed-fi.org/GradeLevelDescriptor#Ninth grade"
     }
@@ -151,25 +161,25 @@ $timed = Measure-Command {
     Invoke-Request -Uri "$dataApi/ed-fi/students" `
       -Method POST `
       -Body @{
-        studentUniqueId = $studentUniqueId
-        firstName = "Student$i"
-        lastSurname = "LastName$i"
-        birthDate = "2012-01-01"
-      }
+      studentUniqueId = $studentUniqueId
+      firstName       = "Student$i"
+      lastSurname     = "LastName$i"
+      birthDate       = "2012-01-01"
+    }
 
     # "Create student education organization association for student $i" | Out-Host
     Invoke-Request -Uri "$dataApi/ed-fi/studentEducationOrganizationAssociations" `
       -Method POST `
       -Body @{
-        studentReference = @{
-          studentUniqueId = $studentUniqueId
-        }
-        educationOrganizationReference = @{
-          educationOrganizationId = 1
-        }
-        beginDate = "2024-08-01"
-        endDate = "2025-05-31"
+      studentReference               = @{
+        studentUniqueId = $studentUniqueId
       }
+      educationOrganizationReference = @{
+        educationOrganizationId = 1
+      }
+      beginDate                      = "2024-08-01"
+      endDate                        = "2025-05-31"
+    }
   }
 }
 
