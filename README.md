@@ -8,7 +8,7 @@ which is building the next generation of the Ed-Fi Alliance Technology Suite.
 * Project Documents
   * [Introducing Project Tanager](./docs/README.md): motivation and
     architectural vision
-  * [Ed-Fi ODS/API and Data Management Service FAQ](./FAQ.md)
+  * [Ed-Fi ODS/API and Data Management Service FAQ](https://docs.ed-fi.org/reference/roadmap/api-faq)
 * Products (Tanager is "project", these are the products):
   * [Data Management Service](https://github.com/Ed-Fi-Alliance-OSS/Data-Management-Service)
   * Configuration Service - pending
