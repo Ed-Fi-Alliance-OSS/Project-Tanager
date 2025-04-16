@@ -48,31 +48,34 @@ base_url = f"http://localhost:{api_port}"
 
 
 async def invoke_request(session, uri, method, headers=None, body=None):
-    try:
-        async with session.request(method, uri, json=body, headers=headers) as response:
-            response.raise_for_status()
+    async with session.request(method, uri, json=body, headers=headers) as response:
+        if response.status > 400:
+            print(f"Request to {uri} failed with status {response.status}")
+            print(await response.text())
+            raise aiohttp.ClientResponseError(
+                request_info=response.request_info,
+                history=response.history,
+                status=response.status,
+            )
 
-            # ODS/API is not returning a `Content-Type` header. aihttp infers
-            # `application/octet-stream`, and we need to disable JSON content
-            # type checking in the `json()` function call.
-            if response.content_type.startswith(
-                "application/json"
-            ) or response.content_type.startswith("application/octet-stream"):
-                return (
-                    await response.json(content_type=None),
-                    (
-                        response.headers["location"]
-                        if "location" in response.headers
-                        else None
-                    ),
-                )
-            elif response.content_type:
-                return (await response.text(),)
-            else:
-                return None
-    except aiohttp.ClientResponseError as e:
-        print(f"Request to {uri} failed: {e}")
-        raise
+        # ODS/API is not returning a `Content-Type` header. aihttp infers
+        # `application/octet-stream`, and we need to disable JSON content
+        # type checking in the `json()` function call.
+        if response.content_type.startswith(
+            "application/json"
+        ) or response.content_type.startswith("application/octet-stream"):
+            return (
+                await response.json(content_type=None),
+                (
+                    response.headers["location"]
+                    if "location" in response.headers
+                    else None
+                ),
+            )
+        elif response.content_type:
+            return (await response.text(),)
+        else:
+            return None
 
 
 async def main():
@@ -99,51 +102,6 @@ async def main():
             token = token_data["access_token"]
 
         headers = {"Authorization": f"Bearer {token}"}
-
-        # Step 3: Create a Local Education Agency
-        print("Create a Local Education Agency")
-        await invoke_request(
-            session,
-            f"{data_api}/ed-fi/localEducationAgencies",
-            "POST",
-            headers=headers,
-            body={
-                "localEducationAgencyId": 255901,
-                "nameOfInstitution": "Grand Bend SD",
-                "categories": [
-                    {
-                        "educationOrganizationCategoryDescriptor": "uri://ed-fi.org/EducationOrganizationCategoryDescriptor#Local Education Agency"
-                    }
-                ],
-                "localEducationAgencyCategoryDescriptor": "uri://ed-fi.org/LocalEducationAgencyCategoryDescriptor#Regular public school district",
-            },
-        )
-
-        # Step 4: Create a school
-        print("Create a school")
-        await invoke_request(
-            session,
-            f"{data_api}/ed-fi/schools",
-            "POST",
-            headers=headers,
-            body={
-                "schoolId": 1,
-                "nameOfInstitution": "Grand Bend High School",
-                "shortNameOfInstitution": "GBMS",
-                "webSite": "http://www.GBISD.edu/GBMS/",
-                "educationOrganizationCategories": [
-                    {
-                        "educationOrganizationCategoryDescriptor": "uri://ed-fi.org/EducationOrganizationCategoryDescriptor#School"
-                    }
-                ],
-                "gradeLevels": [
-                    {
-                        "gradeLevelDescriptor": "uri://ed-fi.org/GradeLevelDescriptor#Ninth grade"
-                    }
-                ],
-                "localEducationAgencyReference": {"localEducationAgencyId": 255901},
-            },
-        )
 
         # Step 5: Create students and their associations
         print("Creating students and their education organization associations")
