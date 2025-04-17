@@ -15,8 +15,13 @@ Steps 2-6 are achieved with a Python script that uses async / await for
 efficiency. Step 1 is orchestrated by PowerShell scripts because of some
 differences in the two applications at this time.
 
-Caution: the out-of-the-box OpenSearch deployment will throw an error if you try
-to retrieve (limit+offset >= 10,000). So restrict to max 9,999 records.
+> [!NOTE]
+> The out-of-the-box OpenSearch deployment will throw an error if you try to
+> retrieve (`limit + offset >= 10,000`). [Helpful Stack OVerflow
+> post](https://stackoverflow.com/questions/55594386/where-should-i-configure-max-result-window-index-setting).
+> The `dms.ps1` script automatically changes this upper limit to `studentCount +
+> 1001`. Set this high enough and you may end up with exploding exhaustive
+> usage.
 
 ## DMS Execution
 
@@ -30,7 +35,7 @@ to retrieve (limit+offset >= 10,000). So restrict to max 9,999 records.
    git checkout dms-pre-0.4.1-alpha.0.35
    cd cd eng/docker-compose
    cp .env.example .env
-   ./start-local-dms.ps1 -EnableConfig -r
+   ./start-local-dms.ps1 -EnableConfig  -r
    ```
 
 2. Run `dms.ps1 -studentCount 9999` in this repository (open the file to inspect
@@ -43,8 +48,10 @@ to retrieve (limit+offset >= 10,000). So restrict to max 9,999 records.
    ./start-local-dms.ps1 -EnableConfig
    ```
 
-4. Copy and past the final output log, which has the timings in it, into a file
-   for safekeeping.
+4. Look for the timings in `performance.csv`, and Docker stats in
+   `performance_stats.jsonl`. The Docker statistics are a snapshot of the
+   resource stats at the end of execution - thus these statistics do not show
+   the peak load.
 
 ## ODS/API Execution
 

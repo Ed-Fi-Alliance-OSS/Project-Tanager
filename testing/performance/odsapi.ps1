@@ -1,7 +1,7 @@
 # This script creates a vendor, application, and a school year, and then creates
 # a number of students and their education organization associations. It uses
-# the DMS API to create the students and their associations. It uses the Config
-# Service API to create the vendor and application.
+# the ODS/API to create the students and their associations. It uses a backdoor
+# approach with a SQL script to create the vendor and application.
 
 param (
   # Must be in multiples of 10
@@ -63,7 +63,7 @@ $discoveryResponse = Invoke-RestMethod -Uri "http://localhost:$apiPort" `
 $tokenUrl = $discoveryResponse[0].urls.oauth
 $dataApi = $discoveryResponse[0].urls.dataManagementApi.TrimEnd("/")
 
-"Create a DMS token" | Out-Host
+"Create an ODS/API token" | Out-Host
 $credentials = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$($ClientId):$ClientSecret"))
 
 $tokenRequest = Invoke-RestMethod -Uri $tokenUrl `
@@ -128,4 +128,18 @@ Invoke-Request -Uri "$dataApi/ed-fi/schools" `
   localEducationAgencyReference   = @{localEducationAgencyId = 255901 }
 } | Out-Null
 
-poetry run python odsapi.py --student_count $StudentCount --api_port $ApiPort --client_id $ClientId --client_secret $ClientSecret
+"Starting performance test. This will take a while..." | Out-Host
+$output = $(poetry run python odsapi.py `
+  --student_count $StudentCount `
+  --api_port $ApiPort `
+  --client_id $ClientId `
+  --client_secret $ClientSecret `
+  --system ods)
+
+$output | Out-Host
+
+$split = $output.Split("`n")
+$split[$split.Length - 1] | Add-Content -Path "performance.csv"
+
+$(docker stats ed-fi-ods-api --no-stream --format "{{ json . }}") | Add-Content -Path "performance_stats.jsonl"
+$(docker stats ed-fi-db-ods --no-stream --format "{{ json . }}") | Add-Content -Path "performance_stats.jsonl"

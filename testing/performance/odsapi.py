@@ -35,6 +35,9 @@ parser.add_argument(
     default="minimalSecret",
     help="Client Secret for authentication. Default is 'minimalSecret'.",
 )
+parser.add_argument(
+    "--system", type=str, choices=["ods", "dms"], help="System being tested."
+)
 args = parser.parse_args()
 
 # Parameters from command-line arguments
@@ -42,6 +45,7 @@ student_count = args.student_count
 api_port = args.api_port
 client_id = args.client_id
 client_secret = args.client_secret
+system = args.system
 
 # Base URLs
 base_url = f"http://localhost:{api_port}"
@@ -49,7 +53,7 @@ base_url = f"http://localhost:{api_port}"
 
 async def invoke_request(session, uri, method, headers=None, body=None):
     async with session.request(method, uri, json=body, headers=headers) as response:
-        if response.status > 400:
+        if response.status >= 400:
             print(f"Request to {uri} failed with status {response.status}")
             print(await response.text())
             raise aiohttp.ClientResponseError(
@@ -103,17 +107,15 @@ async def main():
 
         headers = {"Authorization": f"Bearer {token}"}
 
-        # Step 5: Create students and their associations
-        print("Creating students and their education organization associations")
+        # Step 3: Create students and their associations
         student_urls = []
         timings = {}
         start_time = time.time()
 
+        print(f"Creating {student_count} students and their student school associations")
         for i in range(0, student_count):
             student_unique_id = f"473{i}"
 
-            # Create student
-            # print(f"Create student {i}")
             student_response = await invoke_request(
                 session,
                 f"{data_api}/ed-fi/students",
@@ -128,8 +130,6 @@ async def main():
             )
             student_urls.append(student_response[1])
 
-            # Create student education organization association
-            # print(f"Create student education organization association for student {i}")
             await invoke_request(
                 session,
                 f"{data_api}/ed-fi/studentSchoolAssociations",
@@ -149,7 +149,7 @@ async def main():
             f"Created {student_count} students and their associations in {elapsed_time:.2f} seconds"
         )
 
-        # Step 6: Retrieve individual student records by ID
+        # Step 4: Retrieve individual student records by ID
         print("Retrieve individual student records by ID")
         start_time = time.time()
         for url in student_urls:
@@ -168,7 +168,7 @@ async def main():
             f"Retrieved individual student records by ID in {elapsed_time:.2f} seconds"
         )
 
-        # Step 7: Retrieve individual student records by query
+        # Step 5: Retrieve individual student records by query
         print("Retrieve individual student records by query")
         start_time = time.time()
         for i in range(1, student_count + 1):
@@ -186,7 +186,7 @@ async def main():
             f"Retrieved individual student records by query in {elapsed_time:.2f} seconds"
         )
 
-        # Step 8: Retrieve all students in batches
+        # Step 6: Retrieve all students in batches
         print("Retrieve all students in batches")
         start_time = time.time()
         offset = 0
@@ -207,12 +207,11 @@ async def main():
 
         # Convert timings to csv and print to screen
         print(
-            student_count,
-            ","
+            f"{system},{student_count},"
             f'{timings["student_creation"]},'
             f'{timings["student_retrieval"]},'
             f'{timings["student_query_retrieval"]},'
-            f'{timings["all_students_retrieval"]}',
+            f'{timings["all_students_retrieval"]}'
         )
 
 

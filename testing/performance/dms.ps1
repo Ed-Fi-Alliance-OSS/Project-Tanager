@@ -35,9 +35,10 @@ function Invoke-Request {
     -Headers @{ Authorization = "Bearer $script:token" }  `
     -Body ($Body | ConvertTo-Json -Depth 10) `
     -SkipHttpErrorCheck `
-    -ResponseHeadersVariable responseHeaders
+    -ResponseHeadersVariable responseHeaders `
+    -StatusCodeVariable statusCode
 
-  if ($response.StatusCode -ge 400) {
+  if ($statusCode -ge 400) {
     Write-Error "Request failed with status code $($response.StatusCode): $($response.Content)"
     return $null
   }
@@ -45,6 +46,14 @@ function Invoke-Request {
   return $response
 }
 
+
+"Modify OpenSearch to accept new upper limit on offset + limit size" | Out-Host
+$body = '{ "index_patterns": ["ed-fi$*"], "settings": { "index.max_result_window": '+ ($StudentCount + 1001) + ' } }'
+
+Invoke-RestMethod -Method PUT `
+  -Uri http://localhost:9200/_template/ed-fi `
+  -Headers @{ "Content-Type" = "application/json" } `
+  -Body $body | Out-Null
 
 "Create a Management API token" | Out-Host
 $configTokenRequest = Invoke-RestMethod -Uri "http://localhost:$configPort/connect/token" `
@@ -122,23 +131,13 @@ $dmsTokenRequest = Invoke-RestMethod -Uri $tokenUrl `
 
 $script:token = $dmsTokenRequest[0].access_token
 
-"Create a school year" | Out-Host
-Invoke-Request -Uri "$dataApi/ed-fi/schoolYearTypes" `
-  -Method POST `
-  -Body @{
-  schoolYear            = 2024
-  beginDate             = "2024-08-01"
-  endDate               = "2025-05-31"
-  schoolYearDescription = "2024-2025"
-  currentSchoolYear     = $true
-} | Out-Null
 
 "Grade level descriptors" | Out-Host
 Invoke-Request -Uri "$dataApi/ed-fi/gradeLevelDescriptors" `
   -Method POST `
   -Body @{
   namespace        = "uri://ed-fi.org/GradeLevelDescriptor"
-  codeValue        = "Ninth grade"
+  codeValue        = "Ninth Grade"
   shortDescription = "9th Grade"
 } | Out-Null
 
@@ -221,11 +220,26 @@ Invoke-Request -Uri "$dataApi/ed-fi/schools" `
   )
   gradeLevels                     = @(
     @{
-      gradeLevelDescriptor = "uri://ed-fi.org/GradeLevelDescriptor#Ninth grade"
+      gradeLevelDescriptor = "uri://ed-fi.org/GradeLevelDescriptor#Ninth Grade"
     }
   )
   localEducationAgencyReference   = @{localEducationAgencyId = 255901 }
 } | Out-Null
 
-# Now run the performance test
-poetry run python odsapi.py --student_count $StudentCount --api_port $DmsPort --client_id $studentClientKey --client_secret $studentClientSecret
+"Starting performance test. This will take a while..." | Out-Host
+$output = (poetry run python odsapi.py `
+  --student_count $StudentCount `
+  --api_port $DmsPort `
+  --client_id $studentClientKey `
+  --client_secret $studentClientSecret `
+  --system dms)
+
+$output | Out-Host
+
+$split = $output.Split("`n")
+$split[$split.Length - 1] | Add-Content -Path "performance.csv"
+
+$(docker stats dms-local-dms-1 --no-stream --format "{{ json . }}") | Add-Content -Path "performance_stats.jsonl"
+$(docker stats dms-postgresql --no-stream --format "{{ json . }}") | Add-Content -Path "performance_stats.jsonl"
+$(docker stats dms-kafka1 --no-stream --format "{{ json . }}") | Add-Content -Path "performance_stats.jsonl"
+$(docker stats dms-search --no-stream --format "{{ json . }}") | Add-Content -Path "performance_stats.jsonl"
