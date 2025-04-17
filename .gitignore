@@ -409,3 +409,7 @@ app-secret.yaml
 
 .docusaurus/
 docs/build/
+
+
+*.csv
+*.jsonl
