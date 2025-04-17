@@ -1,0 +1,296 @@
+
+@dmsPort=8080
+@configPort=8081
+
+@sysAdminId=DmsConfigurationService
+@sysAdminSecret=s3creT@09
+
+### Create a token
+# @name configTokenRequest
+POST http://localhost:{{configPort}}/connect/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id={{sysAdminId}}
+&client_secret={{sysAdminSecret}}
+&grant_type=client_credentials
+&scope=edfi_admin_api/full_access
+
+###
+@configToken={{configTokenRequest.response.body.access_token}}
+
+#
+# Create vendor, application, and new DMS client credentials
+#
+
+### Create a new vendor
+# @name createVendor
+POST http://localhost:{{configPort}}/v2/vendors
+Content-Type: application/json
+Authorization: bearer {{configToken}}
+
+{
+    "company": "Demo Vendor {{$randomInt 0 9999999}}",
+    "contactName": "George Washington",
+    "contactEmailAddress": "george@example.com",
+    "namespacePrefixes": "uri://ed-fi.org,uri://gbisd.edu"
+}
+
+###
+@vendorLocation={{createVendor.response.headers.location}}
+
+### Retrieve the vendor so that we can extract the Id
+# @name getVendor
+GET {{vendorLocation}}
+Authorization: bearer {{configToken}}
+
+###
+@vendorId={{getVendor.response.body.id}}
+
+### Create a new application for working with education organizations
+# @name edOrgApplication
+POST http://localhost:{{configPort}}/v2/applications
+Content-Type: application/json
+Authorization: bearer {{configToken}}
+
+{
+    "vendorId": {{vendorId}},
+    "applicationName": "For ed orgs",
+    "claimSetName": "E2E-RelationshipsWithEdOrgsOnlyClaimSet",
+    "educationOrganizationIds": [ 255, 255901 ]
+}
+
+### Use this for creating school year, descriptors, and education organizations
+@edOrgClientId={{edOrgApplication.response.body.key}}
+@edOrgSecret={{edOrgApplication.response.body.secret}}
+
+
+### Create a new application for working with student data
+# @name studentApplication
+POST http://localhost:{{configPort}}/v2/applications
+Content-Type: application/json
+Authorization: bearer {{configToken}}
+
+{
+    "vendorId": {{vendorId}},
+    "applicationName": "For students",
+    "claimSetName": "E2E-NoFurtherAuthRequiredClaimSet",
+    "educationOrganizationIds": [ 255, 255901 ]
+}
+
+
+### Use this one for students, student school associations, also a lot of descriptors...
+@studentClientId={{studentApplication.response.body.key}}
+@studentSecret={{studentApplication.response.body.secret}}
+
+
+### See what we can do with this...
+GET http://localhost:{{configPort}}/authorizationMetadata?claimSetName=E2E-RelationshipsWithEdOrgsOnlyClaimSet
+Authorization: bearer {{configToken}}
+
+### See what we can do with this...
+GET http://localhost:{{configPort}}/authorizationMetadata?claimSetName=E2E-NoFurtherAuthRequiredClaimSet
+Authorization: bearer {{configToken}}
+
+
+#
+# DMS demonstration
+#
+
+### Read the Token URL from the Discovery API
+# @name discovery
+GET http://localhost:{{dmsPort}}
+
+###
+@tokenUrl={{discovery.response.body.urls.oauth}}
+@dataApi={{discovery.response.body.urls.dataManagementApi}}
+
+### Create a DMS token with the "ed orgs" credentials
+# @name edOrgTokenRequest
+POST {{tokenUrl}}
+Authorization: basic {{edOrgClientId}}:{{edOrgSecret}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials
+
+###
+@edOrgToken={{edOrgTokenRequest.response.body.access_token}}
+
+### Create school year
+POST {{dataApi}}/ed-fi/schoolYearTypes
+Authorization: bearer {{edOrgToken}}
+Content-Type: application/json
+
+{
+    "schoolYear": 2024,
+    "beginDate": "2024-08-01",
+    "endDate": "2025-05-31",
+    "schoolYearDescription": "2024-2025",
+    "currentSchoolYear": true
+}
+
+### Create Descriptors
+POST {{dataApi}}/ed-fi/gradeLevelDescriptors
+Authorization: bearer {{edOrgToken}}
+Content-Type: application/json
+
+{
+  "namespace": "uri://ed-fi.org/GradeLevelDescriptor",
+  "codeValue": "Ninth Grade",
+  "shortDescription": "9th Grade"
+}
+
+###
+POST {{dataApi}}/ed-fi/educationOrganizationCategoryDescriptors
+Authorization: bearer {{edOrgToken}}
+Content-Type: application/json
+
+{
+  "namespace": "uri://ed-fi.org/EducationOrganizationCategoryDescriptor",
+  "codeValue": "School",
+  "shortDescription": "School"
+}
+
+###
+POST {{dataApi}}/ed-fi/educationOrganizationCategoryDescriptors
+Authorization: bearer {{edOrgToken}}
+Content-Type: application/json
+
+{
+  "namespace": "uri://ed-fi.org/EducationOrganizationCategoryDescriptor",
+  "codeValue": "Local Education Agency",
+  "shortDescription": "Local Education Agency"
+}
+
+###
+POST {{dataApi}}/ed-fi/educationOrganizationCategoryDescriptors
+Authorization: bearer {{edOrgToken}}
+Content-Type: application/json
+
+{
+  "namespace": "uri://ed-fi.org/EducationOrganizationCategoryDescriptor",
+  "codeValue": "State Education Agency",
+  "shortDescription": "State Education Agency"
+}
+
+###
+POST {{dataApi}}/ed-fi/localEducationAgencyCategoryDescriptors
+Authorization: bearer {{edOrgToken}}
+Content-Type: application/json
+
+{
+  "namespace": "uri://ed-fi.org/LocalEducationAgencyCategoryDescriptor",
+  "codeValue": "Regular public school district",
+  "shortDescription": "Regular public school district"
+}
+
+###
+POST {{dataApi}}/ed-fi/stateEducationAgencies
+Authorization: bearer {{edOrgToken}}
+Content-Type: application/json
+
+{
+  "stateEducationAgencyId": 255,
+  "nameOfInstitution": "Texas Education Agency",
+  "stateAbbreviationDescriptor": "uri://ed-fi.org/StateAbbreviationDescriptor#TX",
+  "categories": [
+    {
+      "educationOrganizationCategoryDescriptor": "uri://ed-fi.org/EducationOrganizationCategoryDescriptor#State Education Agency"
+    }
+  ]
+}
+
+###
+POST {{dataApi}}/ed-fi/localEducationAgencies
+Authorization: bearer {{edOrgToken}}
+Content-Type: application/json
+
+{
+  "localEducationAgencyId": 255901,
+  "nameOfInstitution": "Grand Bend SD",
+  "categories": [
+    {
+      "educationOrganizationCategoryDescriptor": "uri://ed-fi.org/EducationOrganizationCategoryDescriptor#Local Education Agency"
+    }
+  ],
+  "localEducationAgencyCategoryDescriptor": "uri://ed-fi.org/LocalEducationAgencyCategoryDescriptor#Regular public school district",
+  "stateEducationAgencyReference": {
+    "stateEducationAgencyId": 255
+  }
+}
+
+### Create a School
+POST {{dataApi}}/ed-fi/schools
+Authorization: bearer {{edOrgToken}}
+Content-Type: application/json
+
+{
+  "schoolId": 1,
+  "nameOfInstitution": "Grand Bend High School",
+  "shortNameOfInstitution": "GBMS",
+  "webSite": "http://www.GBISD.edu/GBMS/",
+  "educationOrganizationCategories": [
+    {
+      "educationOrganizationCategoryDescriptor": "uri://ed-fi.org/EducationOrganizationCategoryDescriptor#School"
+    }
+  ],
+  "gradeLevels": [
+    {
+      "gradeLevelDescriptor": "uri://ed-fi.org/GradeLevelDescriptor#Ninth Grade"
+    }
+  ],
+  "localEducationAgencyReference": {
+    "localEducationAgencyId": 255901
+  }
+}
+
+
+############
+
+### Create a DMS token with the "student" credentials
+# @name studentTokenRequest
+POST {{tokenUrl}}
+Authorization: basic {{studentClientId}}:{{studentSecret}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials
+
+###
+@studentToken={{studentTokenRequest.response.body.access_token}}
+
+
+###
+POST {{dataApi}}/ed-fi/students
+Authorization: bearer {{studentToken}}
+Content-Type: application/json
+
+{
+    "studentUniqueId": "gw",
+    "firstName": "George",
+    "lastSurname": "Washington",
+    "birthDate": "1982-02-22"
+}
+
+
+###
+GET  {{dataApi}}/ed-fi/students?limit=1&offset=9999
+Authorization: bearer {{studentToken}}
+
+###
+GET {{dataApi}}/ed-fi/students/3e16829e-4b78-4d57-b663-6961ea780a94
+Authorization: bearer {{studentToken}}
+
+###
+GET {{dataApi}}/ed-fi/students
+Authorization: bearer {{studentToken}}
+
+###
+POST {{dataApi}}/ed-fi/studentSchoolAssociations
+Authorization: bearer {{studentToken}}
+Content-Type: application/json
+
+{
+    "studentReference": {"studentUniqueId":"gw" },
+    "schoolReference": {"schoolId": 1},
+    "entryDate": "2024-08-01",
+    "entryGradeLevelDescriptor": "uri://ed-fi.org/GradeLevelDescriptor#Ninth Grade"
+}
