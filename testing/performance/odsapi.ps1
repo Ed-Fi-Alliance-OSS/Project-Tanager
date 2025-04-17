@@ -129,7 +129,7 @@ Invoke-Request -Uri "$dataApi/ed-fi/schools" `
 } | Out-Null
 
 "Starting performance test. This will take a while..." | Out-Host
-$output = $(poetry run python odsapi.py `
+$output = $(poetry run python data-load.py `
   --student_count $StudentCount `
   --api_port $ApiPort `
   --client_id $ClientId `
