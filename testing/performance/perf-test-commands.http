@@ -115,19 +115,6 @@ grant_type=client_credentials
 ###
 @edOrgToken={{edOrgTokenRequest.response.body.access_token}}
 
-### Create school year
-POST {{dataApi}}/ed-fi/schoolYearTypes
-Authorization: bearer {{edOrgToken}}
-Content-Type: application/json
-
-{
-    "schoolYear": 2024,
-    "beginDate": "2024-08-01",
-    "endDate": "2025-05-31",
-    "schoolYearDescription": "2024-2025",
-    "currentSchoolYear": true
-}
-
 ### Create Descriptors
 POST {{dataApi}}/ed-fi/gradeLevelDescriptors
 Authorization: bearer {{edOrgToken}}
@@ -272,7 +259,7 @@ Content-Type: application/json
 
 
 ###
-GET  {{dataApi}}/ed-fi/students?limit=1&offset=9999
+GET  {{dataApi}}/ed-fi/students?limit=10&offset=9999
 Authorization: bearer {{studentToken}}
 
 ###
