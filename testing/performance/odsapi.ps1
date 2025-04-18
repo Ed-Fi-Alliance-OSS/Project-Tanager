@@ -47,10 +47,11 @@ function Invoke-Request {
     -Headers @{ Authorization = "Bearer $script:token" }  `
     -Body ($Body | ConvertTo-Json -Depth 10) `
     -SkipHttpErrorCheck `
-    -ResponseHeadersVariable responseHeaders
+    -ResponseHeadersVariable responseHeaders `
+    -StatusCodeVariable statusCode
 
-  if ($response.StatusCode -ge 400) {
-    Write-Error "Request failed with status code $($response.StatusCode): $($response.Content)"
+  if ($statusCode -ge 400) {
+    Write-Error "Request failed with status code $($statusCode): $($response.Content)"
     return $null
   }
 
