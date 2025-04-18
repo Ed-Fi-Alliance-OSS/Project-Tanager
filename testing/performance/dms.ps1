@@ -39,21 +39,23 @@ function Invoke-Request {
     -StatusCodeVariable statusCode
 
   if ($statusCode -ge 400) {
-    Write-Error "Request failed with status code $($response.StatusCode): $($response.Content)"
+    Write-Error "Request failed with status code $($statusCode): $($response.Content)"
     return $null
   }
 
   return $response
 }
 
-
+# This is really large - 1 million - and could cause memory issues
 "Modify OpenSearch to accept new upper limit on offset + limit size" | Out-Host
-$body = '{ "index_patterns": ["ed-fi$*"], "settings": { "index.max_result_window": '+ ($StudentCount + 1001) + ' } }'
+$body = '{ "index_patterns": ["ed-fi$*"], "settings": { "index.max_result_window": 1000000 } }'
 
 Invoke-RestMethod -Method PUT `
-  -Uri http://localhost:9200/_template/ed-fi `
+  -Uri http://localhost:9200/_template/edfi `
   -Headers @{ "Content-Type" = "application/json" } `
   -Body $body | Out-Null
+
+Start-Sleep -Seconds 5 # Wait for OpenSearch to accept the new template
 
 "Create a Management API token" | Out-Host
 $configTokenRequest = Invoke-RestMethod -Uri "http://localhost:$configPort/connect/token" `
