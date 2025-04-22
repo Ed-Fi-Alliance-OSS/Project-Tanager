@@ -15,6 +15,9 @@ Steps 2-6 are achieved with a Python script that uses async / await for
 efficiency. Step 1 is orchestrated by PowerShell scripts because of some
 differences in the two applications at this time.
 
+See [2025-04-21](./2025-04-21/README.md) for test result statistics and
+analysis.
+
 > [!NOTE]
 > The out-of-the-box OpenSearch deployment will throw an error if you try to
 > retrieve (`limit + offset >= 10,000`). [Helpful Stack OVerflow

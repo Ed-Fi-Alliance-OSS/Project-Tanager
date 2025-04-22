@@ -413,3 +413,6 @@ docs/build/
 
 *.csv
 *.jsonl
+
+
+.ipynb_checkpoints/
