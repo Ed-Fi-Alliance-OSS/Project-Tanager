@@ -35,9 +35,7 @@ parser.add_argument(
     default="minimalSecret",
     help="Client Secret for authentication. Default is 'minimalSecret'.",
 )
-parser.add_argument(
-    "--system", type=str, choices=["ods", "dms"], help="System being tested."
-)
+parser.add_argument("--system", type=str, help="System being tested.")
 args = parser.parse_args()
 
 # Parameters from command-line arguments
@@ -112,7 +110,9 @@ async def main():
         timings = {}
         start_time = time.time()
 
-        print(f"Creating {student_count} students and their student school associations")
+        print(
+            f"Creating {student_count} students and their student school associations"
+        )
         for i in range(0, student_count):
             student_unique_id = f"473{i}"
 
