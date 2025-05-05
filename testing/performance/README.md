@@ -2,7 +2,7 @@
 
 This is a small test suite that:
 
-1. Creates require descriptors and education organizations, as prerequisite to
+1. Creates required descriptors and education organizations, as prerequisite to
    the next steps.
 2. Creates _n_ `student` documents
 3. Creates _n_ corresponding `studentSchoolAssociation` documents
@@ -15,8 +15,9 @@ Steps 2-6 are achieved with a Python script that uses async / await for
 efficiency. Step 1 is orchestrated by PowerShell scripts because of some
 differences in the two applications at this time.
 
-See [2025-04-21](./2025-04-21/README.md) for test result statistics and
-analysis.
+See [perf-analysis.ipynb](./perf-analysis.ipynb) for test result statistics and
+analysis (viewable in GitHub, or view in VS Code with a notebook extension, or
+use Python via `poetry run jupyter lab`).
 
 > [!NOTE]
 > The out-of-the-box OpenSearch deployment will throw an error if you try to
