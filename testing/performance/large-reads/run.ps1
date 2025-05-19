@@ -80,8 +80,8 @@ docker exec -it postgres psql -U postgres -d testdb -c @"
 
 # Insert records into PostgreSQL
 Write-Output "Inserting $totalRecords records into PostgreSQL..."
-$query = "
-DO \$\$
+$query = @"
+DO `$`$
 DECLARE
 i INT := 1;
 BEGIN
@@ -89,18 +89,23 @@ BEGIN
     INSERT INTO records (data) VALUES (REPEAT('A', 100));
     i := i + 1;
   END LOOP;
-END \$\$;
-"
+END `$`$;
+"@
 
 docker exec -it postgres psql -U postgres -d testdb -c $query >$null
 
 Write-Output "PostgreSQL data insertion complete."
 
-# Create index for OpenSearch
+# Create index for OpenSearch and allow large result window
 Write-Output "OpenSearch index creation..."
 $indexUrl = "http://localhost:9200/testdb"
 $indexBody = @"
 {
+  `"settings`": {
+  `"index`": {
+    `"max_result_window`": 1000000
+    }
+  },
   `"mappings`": {
     `"properties`": {
       `"id`": { `"type`": `"integer`" },
