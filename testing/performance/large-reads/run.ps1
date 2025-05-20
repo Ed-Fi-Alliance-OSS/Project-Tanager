@@ -34,6 +34,8 @@ docker-compose -p dms-test-db up -d
 # Wait for containers to be fully up and running
 Start-Sleep 30
 
+$stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+
 # Create database
 Write-Output "SQL Server database and table creation..."
 docker exec -it sqlserver /opt/mssql-tools18/bin/sqlcmd -S "localhost" -U sa -P $sqlserverPassword -N -C -Q @"
@@ -62,9 +64,11 @@ docker exec -it sqlserver /opt/mssql-tools18/bin/sqlcmd -S "localhost" -U sa -P 
   COMMIT;
 " 1>$null
 
-Write-Output "SQL Server data insertion complete."
+$stopwatch.Stop()
 
+Write-Output "SQL Server data insertion complete in $($stopwatch.Elapsed.TotalSeconds) seconds."
 
+$stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 # Create the database
 Write-Output "PostgreSQL database and table creation..."
 docker exec -it postgres psql -U postgres -c "CREATE DATABASE testdb;"
@@ -94,8 +98,10 @@ END `$`$;
 
 docker exec -it postgres psql -U postgres -d testdb -c $query >$null
 
-Write-Output "PostgreSQL data insertion complete."
+$stopwatch.Stop()
+Write-Output "PostgreSQL data insertion complete in $($stopwatch.Elapsed.TotalSeconds) seconds."
 
+$stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 # Create index for OpenSearch and allow large result window
 Write-Output "OpenSearch index creation..."
 $indexUrl = "http://localhost:9200/testdb"
@@ -130,11 +136,13 @@ Write-Output "Inserting $totalRecords records into OpenSearch..."
 for ($batch = 0; $batch -lt $numBatches; $batch++) {
   $start = ($batch * $batchSize) + 1
   $end = [math]::Min(($start + $batchSize - 1), $totalRecords)
-  Write-Output "Inserting records $start to $end into OpenSearch..."
-  Insert-Batch -start $start -end $end
+  Write-Output "Inserting records $start to $end into OpenSearch"
+  Insert-Batch -start $start -end $end | Out-Null
 }
 
-Write-Output "OpenSearch data insertion complete."
+$stopwatch.Stop()
+
+Write-Output "OpenSearch data insertion complete in $($stopwatch.Elapsed.TotalSeconds) seconds."
 
 
 # Function to insert records in batches
