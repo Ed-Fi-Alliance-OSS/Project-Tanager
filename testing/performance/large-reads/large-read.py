@@ -127,9 +127,9 @@ async def main():
     postgres_stats_file = 'docker_stats_postgres.txt'
     opensearch_stats_file = 'docker_stats_opensearch.txt'
 
-    sqlserver_response_file = 'response_stats_sqlserver.txt'
-    postgres_response_file = 'response_stats_postgres.txt'
-    opensearch_response_file = 'response_stats_opensearch.txt'
+    sqlserver_response_file = 'response_stats_sqlserver.csv'
+    postgres_response_file = 'response_stats_postgres.csv'
+    opensearch_response_file = 'response_stats_opensearch.csv'
 
     sqlserver_container_id = 'sqlserver'
     postgres_container_id = 'postgres'
