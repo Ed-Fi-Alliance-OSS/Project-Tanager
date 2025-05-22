@@ -12,7 +12,7 @@ param (
 $ErrorActionPreference = "Stop"
 
 # Total number of records
-$totalRecords = 1000000
+$totalRecords = 1000500
 # Set the PostgreSQL password
 $env:PGPASSWORD = "abcdefgh1!"
 $sqlserverPassword = "abcdefgh1!"
@@ -109,7 +109,7 @@ $indexBody = @"
 {
   `"settings`": {
   `"index`": {
-    `"max_result_window`": 1000000
+    `"max_result_window`": 1000500
     }
   },
   `"mappings`": {
@@ -124,27 +124,6 @@ $indexBody = @"
 Invoke-RestMethod -Uri $indexUrl -Method Put -ContentType "application/json" -Body $indexBody | Out-Null
 
 # Insert records into OpenSearch
-
-# Number of records per batch
-$batchSize = 10000
-# Calculate number of batches
-$numBatches = [math]::Ceiling($totalRecords / $batchSize)
-
-Write-Output "Inserting $totalRecords records into OpenSearch..."
-
-# Run batches in parallel
-for ($batch = 0; $batch -lt $numBatches; $batch++) {
-  $start = ($batch * $batchSize) + 1
-  $end = [math]::Min(($start + $batchSize - 1), $totalRecords)
-  Write-Output "Inserting records $start to $end into OpenSearch"
-  Insert-Batch -start $start -end $end | Out-Null
-}
-
-$stopwatch.Stop()
-
-Write-Output "OpenSearch data insertion complete in $($stopwatch.Elapsed.TotalSeconds) seconds."
-
-
 # Function to insert records in batches
 function Insert-Batch  {
   param (
@@ -161,3 +140,26 @@ function Insert-Batch  {
   }
   Invoke-RestMethod -Uri $recordUrl -Method Post -ContentType "application/json" -Body $recordBody
 }
+
+# Number of records per batch
+$batchSize = 10000
+# Calculate number of batches
+$numBatches = [math]::Ceiling($totalRecords / $batchSize)
+
+Write-Output "Inserting $totalRecords records into OpenSearch..."
+
+# Insert in batches
+for ($batch = 0; $batch -lt $numBatches; $batch++) {
+  $start = ($batch * $batchSize) + 1
+  $end = [math]::Min(($start + $batchSize - 1), $totalRecords)
+  Write-Output "Inserting records $start to $end into OpenSearch"
+  Insert-Batch -start $start -end $end | Out-Null
+}
+
+$stopwatch.Stop()
+
+Write-Output "OpenSearch data insertion complete in $($stopwatch.Elapsed.TotalSeconds) seconds."
+
+
+
+
