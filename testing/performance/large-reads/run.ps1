@@ -20,16 +20,16 @@ $sqlserverPassword = "abcdefgh1!"
 if ($d) {
     if ($v) {
         Write-Output "Shutting down services and deleting volumes"
-        docker-compose -p dms-test-db down -v
+        docker compose -p dms-test-db down -v
     } else {
         Write-Output "Shutting down services"
-        docker-compose -p dms-test-db down
+        docker compose -p dms-test-db down
     }
     return
 }
 
 # Start Docker containers
-docker-compose -p dms-test-db up -d
+docker compose -p dms-test-db up -d
 
 # Wait for containers to be fully up and running
 Start-Sleep 30
