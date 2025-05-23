@@ -187,19 +187,18 @@ async def main():
     sqlserver_container_id = "sqlserver"
     postgres_container_id = "postgres"
     opensearch_container_id = "opensearch"
-    run_count = 1
-    # 00
+    run_count = 100
 
     offsets_sizes = [
         (10000, 1),
         (100000, 1),
         (1000000, 1),
-        # (10000, 25),
-        # (100000, 25),
-        # (1000000, 25),
-        # (10000, 500),
-        # (100000, 500),
-        # (1000000, 500),
+        (10000, 25),
+        (100000, 25),
+        (1000000, 25),
+        (10000, 500),
+        (100000, 500),
+        (1000000, 500),
     ]
 
     load_dotenv()
