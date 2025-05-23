@@ -20,16 +20,16 @@ $sqlserverPassword = "abcdefgh1!"
 if ($d) {
     if ($v) {
         Write-Output "Shutting down services and deleting volumes"
-        docker compose -p dms-test-db down -v
+        docker compose down -v
     } else {
         Write-Output "Shutting down services"
-        docker compose -p dms-test-db down
+        docker compose down
     }
     return
 }
 
 # Start Docker containers
-docker compose -p dms-test-db up -d
+docker compose up -d
 
 # Wait for containers to be fully up and running
 Start-Sleep 30
@@ -58,7 +58,7 @@ docker exec -it sqlserver /opt/mssql-tools18/bin/sqlcmd -S "localhost" -U sa -P 
   DECLARE @i INT = 1;
   WHILE @i <= $totalRecords
   BEGIN
-    INSERT INTO TestDB.dbo.Records (ID, Data) VALUES (@i, REPLICATE('A', 100));
+    INSERT INTO TestDB.dbo.Records (ID, Data) VALUES (@i, '{""A"": ""B""}');
     SET @i = @i + 1;
   END
   COMMIT;
@@ -90,7 +90,7 @@ DECLARE
 i INT := 1;
 BEGIN
   WHILE i <= $totalRecords LOOP
-    INSERT INTO records (data) VALUES (REPEAT('A', 100));
+    INSERT INTO records (data) VALUES ('{""A"": ""B""}');
     i := i + 1;
   END LOOP;
 END `$`$;
@@ -135,10 +135,16 @@ function Insert-Batch  {
   for ($i = $start; $i -le $end; $i++){
     $recordBody += @"
     { "index": { "_id": $i } }
-    { "id": $i, "data": "$([System.String]::new('A' * 100))" }
+    { "id": $i, "data": "'{""A"": ""B""}'" }
 "@ + "`n"
   }
-  Invoke-RestMethod -Uri $recordUrl -Method Post -ContentType "application/json" -Body $recordBody
+  # Use a static HttpClient for better performance
+  if (-not $script:httpClient) {
+    $script:httpClient = [System.Net.Http.HttpClient]::new()
+  }
+  $content = [System.Net.Http.StringContent]::new($recordBody, [System.Text.Encoding]::UTF8, "application/json")
+  $response = $script:httpClient.PostAsync($recordUrl, $content).Result
+  $content.Dispose()
 }
 
 # Number of records per batch
