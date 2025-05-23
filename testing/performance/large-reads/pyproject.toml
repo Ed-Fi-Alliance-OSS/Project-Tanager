@@ -12,6 +12,9 @@ pyodbc = "^5.2.0"
 psycopg2 = "^2.9.10"
 requests = "^2.32.3"
 dotenv = "^0.9.9"
+jupyterlab = "^4.4.2"
+pandas = "^2.2.3"
+plotnine = "^0.14.5"
 
 
 [build-system]
