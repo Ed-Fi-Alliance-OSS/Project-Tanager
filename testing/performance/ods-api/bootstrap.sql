@@ -15,6 +15,10 @@ insert into dbo.VendorNamespacePrefixes (NamespacePrefix, Vendor_VendorId)
 select 'uri://ed-fi.org', VendorId from dbo.Vendors
 where not exists (select 1 from dbo.VendorNamespacePrefixes where NamespacePrefix = 'uri://ed-fi.org');
 
+insert into dbo.VendorNamespacePrefixes (NamespacePrefix, Vendor_VendorId)
+select 'uri://gbisd.edu', VendorId from dbo.Vendors
+where not exists (select 1 from dbo.VendorNamespacePrefixes where NamespacePrefix = 'uri://gbisd.edu');
+
 insert into dbo.Applications (ApplicationName, OperationalContextUri, Vendor_VendorId, ClaimSetName)
 select 'Bootstrap Application', 'uri://ed-fi.org', VendorId, 'Ed-Fi Sandbox' from dbo.Vendors
 where not exists (select 1 from dbo.Applications where ApplicationName = 'Bootstrap Application');
