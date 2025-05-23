@@ -15,15 +15,22 @@ _mssql_conn = None
 def get_mssql_conn():
     global _mssql_conn
     if _mssql_conn is None:
-        sqlserver_password = os.getenv("MSSQL_SERVER", default="abcdefgh1!")
-        print(">>>", sqlserver_password)
-        _mssql_conn = pyodbc.connect(
-            f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-            f"SERVER=localhost;"
-            f"DATABASE=TestDB;"
-            f"UID=sa;"
-            f"PWD={sqlserver_password}"
+        sqlserver_password = os.getenv("MSSQL_SERVER_PASSWORD", default="abcdefgh1!")
+        port = os.getenv("MSSQL_SERVER_PORT", default="1433")
+        db_name = os.getenv("MSSQL_SERVER_DB_NAME", default="TestDB")
+        connection_string = (
+            "DRIVER={ODBC Driver 17 for SQL Server};"
+            f"SERVER=localhost,{port};"
+            f"DATABASE={db_name};"
+            "UID=sa;"
+            f"PWD={sqlserver_password};"
+            "TrustServerCertificate=yes;"
         )
+        try:
+            _mssql_conn = pyodbc.connect(connection_string)
+        except pyodbc.Error:
+            print("SQL Server connection string:", connection_string)
+            raise
     return _mssql_conn
 
 
@@ -34,13 +41,15 @@ _postgres_conn = None
 def get_postgres_conn():
     global _postgres_conn
     if _postgres_conn is None:
-        postgres_password = os.getenv("POSTGRES_SERVER", default="abcdefgh1!")
+        postgres_password = os.getenv("POSTGRES_PASSWORD", default="abcdefgh1!")
+        port = os.getenv("POSTGRES_PORT", default="5432")
+        db_name = os.getenv("POSTGRES_DB_NAME", default="testdb")
         _postgres_conn = psycopg2.connect(
-            dbname="testdb",
+            dbname=db_name,
             user="postgres",
             password=postgres_password,
             host="localhost",
-            port=5432
+            port=port
         )
     return _postgres_conn
 
@@ -89,7 +98,8 @@ async def run_query_postgresql(from_offset, limit):
 
 
 async def run_query_opensearch(from_offset, size):
-    url = "http://localhost:9200/testdb/_search"
+    port = os.getenv("OPENSEARCH_PORT", default="9200")
+    url = f"http://localhost:{port}/testdb/_search"
     data = {"from": from_offset, "size": size}
     session = get_opensearch_session()
     start_time = time.time()
@@ -156,7 +166,7 @@ async def execute_queries_and_capture_stats(
         for offset, size in offsets_sizes:
             tasks.append(query_function(offset, size))
         docker_stats_tasks.append(
-            await capture_docker_stats(container_id, container_stats_file)
+            capture_docker_stats(container_id, container_stats_file)
         )
 
     results = await asyncio.gather(*tasks)
@@ -177,7 +187,8 @@ async def main():
     sqlserver_container_id = "sqlserver"
     postgres_container_id = "postgres"
     opensearch_container_id = "opensearch"
-    run_count = 100
+    run_count = 1
+    # 00
 
     offsets_sizes = [
         (10000, 1),
