@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "large-reads"
+version = "0.1.0"
+description = ""
+authors = ["Ed-Fi Alliance, llc"]
+license = "Apache-2.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pyodbc = "^5.2.0"
+psycopg2 = "^2.9.10"
+requests = "^2.32.3"
+dotenv = "^0.9.9"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
