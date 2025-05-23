@@ -4,29 +4,43 @@ This directory contains scripts and resources for benchmarking the performance o
 
 ## Contents
 
-* `run.ps1` — PowerShell script to automate the setup, data loading, and benchmarking of large-scale read/write operations for supported databases.
+* `run.ps1` — PowerShell script to automate the setup and loading of sample data.
+* `large-read.py` - Python script for benchmarking deep `limit`/`offset` type queries.
 * Other supporting files and scripts for performance testing.
 
 ## Usage
 
 1. **Prerequisites:**
-   * Docker and Docker Compose installed
+   * Docker Desktop or compatible system
    * PowerShell 7+
+   * Python 3.10+
+   * Poetry
    * Sufficient system resources for large data loads
 
 2. **Running the Benchmark:**
    * Open a PowerShell terminal in this directory.
-   * Run the script:
+   * Run the script
 
      ```pwsh
      ./run.ps1
      ```
 
-   * The script will:
-     * Start database containers
-     * Create databases and tables
-     * Insert a large number of records into each database
-     * Output timing statistics for each operation
+     * The script will:
+       * Start database containers
+       * Create databases and tables
+       * Insert a large number of records into each database
+       * Output timing statistics for each operation
+   * Install Python dependencies
+
+     ```pwsh
+     poetry install
+     ```
+
+   * Run the Python script:
+
+     ```pwsh
+     poetry run python ./large-read.py
+     ```
 
 3. **Stopping and Cleaning Up:**
    * To stop services and optionally remove volumes:
@@ -35,12 +49,6 @@ This directory contains scripts and resources for benchmarking the performance o
      ./run.ps1 -d         # Stop services
      ./run.ps1 -d -v      # Stop and remove volumes
      ```
-
-## Customization
-
-* You can adjust the number of records and batch sizes by editing variables at the top of `run.ps1`.
-
-* The script can be extended to support additional databases or custom data payloads.
 
 ## Purpose
 
