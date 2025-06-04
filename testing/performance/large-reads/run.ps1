@@ -47,22 +47,22 @@ docker exec -it sqlserver /opt/mssql-tools18/bin/sqlcmd -S "localhost" -U sa -P 
   USE TestDB;
   CREATE TABLE Records (
     ID INT PRIMARY KEY,
-    Data NVARCHAR(100)
+    Data NVARCHAR(MAX)
     );
 "@
 
 # Insert records into SQL Server
 Write-Output "Inserting $totalRecords records into SQL Server..."
-docker exec -it sqlserver /opt/mssql-tools18/bin/sqlcmd -S "localhost" -U sa -P $sqlserverPassword -N -C -Q "
-  BEGIN TRANSACTION;
-  DECLARE @i INT = 1;
-  WHILE @i <= $totalRecords
-  BEGIN
-    INSERT INTO TestDB.dbo.Records (ID, Data) VALUES (@i, '{""A"": ""B""}');
-    SET @i = @i + 1;
-  END
-  COMMIT;
-" 1>$null
+docker exec -it sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P $sqlserverPassword -N -C -Q @"
+BEGIN TRANSACTION;
+DECLARE @i INT = 1;
+WHILE @i <= $totalRecords
+BEGIN
+ INSERT INTO TestDB.dbo.Records (ID, Data) VALUES (@i, JSON_QUERY('{"key": "' + REPLICATE('A', 100) + '"}'));
+ SET @i = @i + 1;
+END
+COMMIT;
+"@ 1>$null
 
 $stopwatch.Stop()
 
@@ -77,7 +77,7 @@ docker exec -it postgres psql -U postgres -c "CREATE DATABASE testdb;"
 docker exec -it postgres psql -U postgres -d testdb -c @"
   CREATE TABLE records (
     id SERIAL PRIMARY KEY,
-    data VARCHAR(100)
+    data JSONB
     );
 "@
 
@@ -90,7 +90,7 @@ DECLARE
 i INT := 1;
 BEGIN
   WHILE i <= $totalRecords LOOP
-    INSERT INTO records (data) VALUES ('{""A"": ""B""}');
+    INSERT INTO records (data) VALUES (jsonb_build_object('key', REPEAT('A', 100)));
     i := i + 1;
   END LOOP;
 END `$`$;
@@ -115,7 +115,7 @@ $indexBody = @"
   `"mappings`": {
     `"properties`": {
       `"id`": { `"type`": `"integer`" },
-      `"data`": { `"type`": `"text`" }
+      `"data`": { `"type`": `"object`" }
       }
     }
   }
@@ -135,7 +135,7 @@ function Insert-Batch  {
   for ($i = $start; $i -le $end; $i++){
     $recordBody += @"
     { "index": { "_id": $i } }
-    { "id": $i, "data": "'{""A"": ""B""}'" }
+    { "id": $i, "data": { "key": "$([System.String]::new('A' * 100))" } }
 "@ + "`n"
   }
   # Use a static HttpClient for better performance
@@ -165,7 +165,3 @@ for ($batch = 0; $batch -lt $numBatches; $batch++) {
 $stopwatch.Stop()
 
 Write-Output "OpenSearch data insertion complete in $($stopwatch.Elapsed.TotalSeconds) seconds."
-
-
-
-
