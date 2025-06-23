@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Flattening to Relational Tables</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1f5b8b 0%, #2c7bb6 100%);
+            color: #333;
+            overflow: hidden;
+        }
+
+        .presentation-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .slide {
+            display: none;
+            padding: 40px;
+            height: calc(100vh - 80px);
+            box-sizing: border-box;
+            background: white;
+            margin: 20px;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        .slide h1 {
+            color: #1f5b8b;
+            border-bottom: 3px solid #2c7bb6;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .slide h2 {
+            color: #1f5b8b;
+            margin-top: 30px;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .slide h3 {
+            color: #2c7bb6;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+
+        .slide ul {
+            padding-left: 25px;
+        }
+
+        .slide li {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+
+        .code-block {
+            background: #1f5b8b;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            margin: 20px 0;
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+
+        .code-block .keyword {
+            color: #87ceeb;
+            font-weight: bold;
+        }
+
+        .code-block .string {
+            color: #ffd700;
+        }
+
+        .code-block .comment {
+            color: #b8d4e3;
+            font-style: italic;
+        }
+
+        .code-block .function {
+            color: #98fb98;
+        }
+
+        .code-block .type {
+            color: #dda0dd;
+        }
+
+        .architecture-diagram {
+            background: #ecf0f1;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            font-family: monospace;
+        }
+
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .benefit-card {
+            background: #f8f9fa;
+            border-left: 4px solid #2c7bb6;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+        }
+
+        .nav-button {
+            background: #2c7bb6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 0 10px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-button:hover {
+            background: #1f5b8b;
+            transform: translateY(-2px);
+        }
+
+        .nav-button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .slide-counter {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            background: rgba(31, 91, 139, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 1000;
+        }
+
+        .highlight {
+            background: #e6f3ff;
+            color: #1f5b8b;
+            border: 1px solid #2c7bb6;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+
+        .success {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 40px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #2c7bb6;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 30px;
+            padding-left: 40px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -29px;
+            top: 5px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #2c7bb6;
+        }
+
+        .work-division {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .agent-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .agent-card h4 {
+            color: #1f5b8b;
+            margin-top: 0;
+            border-bottom: 2px solid #2c7bb6;
+            padding-bottom: 10px;
+        }
+
+        .table-schema {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-container">
+        <div class="slide-counter">
+            <span id="current-slide">1</span> / <span id="total-slides">11</span>
+        </div>
+
+        <!-- Slide 1: Title & Executive Summary -->
+        <div class="slide active">
+            <h1>Document Flattening to Relational Tables</h1>
+
+            <h2>Executive Summary</h2>
+            <ul>
+                <li><strong>Objective:</strong> Flatten JSON documents stored in DMS Documents table into relational tables for backwards compatibility with legacy ODS/API</li>
+                <li><strong>Approach:</strong> Dynamic extension registration system with schema separation</li>
+                <li><strong>Key Innovation:</strong> Zero-modification core logic for new extensions</li>
+                <li><strong>Benefits:</strong> Maintains document/relational duality while supporting unlimited extensions</li>
+            </ul>
+
+            <div class="success">
+                <strong>Decision Required:</strong> Approve implementation of comprehensive flattening design with dynamic extension framework
+            </div>
+        </div>
+
+        <!-- Slide 2: Current State Analysis -->
+        <div class="slide">
+            <h1>Current State Analysis</h1>
+
+            <h2>DMS Document Storage</h2>
+            <div class="code-block"><span class="keyword">CREATE TABLE</span> dms.Document (
+  Id <span class="type">BIGINT GENERATED ALWAYS AS IDENTITY</span>,
+  DocumentPartitionKey <span class="type">SMALLINT NOT NULL</span>,
+  DocumentUuid <span class="type">UUID NOT NULL</span>,
+  ResourceName <span class="type">VARCHAR(256) NOT NULL</span>,
+  ResourceVersion <span class="type">VARCHAR(64) NOT NULL</span>,
+  IsDescriptor <span class="type">BOOLEAN NOT NULL</span>,
+  ProjectName <span class="type">VARCHAR(256) NOT NULL</span>,
+  EdfiDoc <span class="type">JSONB NOT NULL</span>,  <span class="comment">-- The actual JSON document</span>
+  SecurityElements <span class="type">JSONB NOT NULL</span>,
+  <span class="comment">-- Authorization fields...</span>
+  CreatedAt <span class="type">TIMESTAMP NOT NULL DEFAULT NOW()</span>,
+  LastModifiedAt <span class="type">TIMESTAMP NOT NULL DEFAULT NOW()</span>,
+  LastModifiedTraceId <span class="type">VARCHAR(128) NOT NULL</span>,
+  <span class="keyword">PRIMARY KEY</span> (DocumentPartitionKey, Id)
+) <span class="keyword">PARTITION BY HASH</span>(DocumentPartitionKey);</div>
+
+            <h2>Legacy ODS/API Requirements</h2>
+            <ul>
+                <li>Normalized relational tables with core entity tables</li>
+                <li>Child/array tables for collections</li>
+                <li>Descriptor tables for enumerations</li>
+                <li>Extension tables for custom data</li>
+            </ul>
+        </div>
+
+        <!-- Slide 3: Proposed Architecture Overview -->
+        <div class="slide">
+            <h1>Proposed Architecture Overview</h1>
+
+            <div class="architecture-diagram">
+                <h3>Schema Separation Strategy</h3>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin: 20px 0;">
+                    <div style="background: #2c7bb6; color: white; padding: 15px; border-radius: 5px;">
+                        <strong>dms schema</strong><br>
+                        Registry tables<br>
+                        Infrastructure<br>
+                        Document table
+                    </div>
+                    <div style="background: #4a90b8; color: white; padding: 15px; border-radius: 5px;">
+                        <strong>edfi schema</strong><br>
+                        Core Ed-Fi<br>
+                        flattened tables<br>
+                        (Student, School, etc.)
+                    </div>
+                    <div style="background: #68a4ba; color: white; padding: 15px; border-radius: 5px;">
+                        <strong>tpdm schema</strong><br>
+                        TPDM extension<br>
+                        tables & extensions<br>
+                        to core resources
+                    </div>
+                    <div style="background: #86b8bc; color: white; padding: 15px; border-radius: 5px;">
+                        <strong>sample schema</strong><br>
+                        Sample extension<br>
+                        Custom resources<br>
+                        & modifications
+                    </div>
+                </div>
+            </div>
+
+            <h2>Key Design Principles</h2>
+            <div class="benefits-grid">
+                <div class="benefit-card">
+                    <h3>Document/Relational Duality</h3>
+                    <p>Keep existing Document table while synchronizing to relational tables</p>
+                </div>
+                <div class="benefit-card">
+                    <h3>Pure Relational Design</h3>
+                    <p>Avoid JSON columns - maintain Ed-Fi natural keys alongside DMS references</p>
+                </div>
+                <div class="benefit-card">
+                    <h3>Dynamic Extensions</h3>
+                    <p>Extensions configured at deployment time with zero core modifications</p>
+                </div>
+                <div class="benefit-card">
+                    <h3>Schema Isolation</h3>
+                    <p>Extensions use separate schemas instead of table prefixes</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Extension System Design -->
+        <div class="slide">
+            <h1>Extension Registration System</h1>
+
+            <h2>Registry Tables</h2>
+            <div class="code-block"><span class="comment">-- Extension configuration registry</span>
+<span class="keyword">CREATE TABLE</span> dms.extension_registry (
+    extension_name <span class="type">VARCHAR(100) PRIMARY KEY</span>,
+    schema_name <span class="type">VARCHAR(63) NOT NULL</span>,
+    is_enabled <span class="type">BOOLEAN NOT NULL DEFAULT true</span>,
+    priority <span class="type">INT NOT NULL DEFAULT 100</span>,
+    created_at <span class="type">TIMESTAMP NOT NULL DEFAULT NOW()</span>
+);
+
+<span class="comment">-- Resource flattening function registry</span>
+<span class="keyword">CREATE TABLE</span> dms.resource_flattening_registry (
+    id <span class="type">SERIAL PRIMARY KEY</span>,
+    resource_name <span class="type">VARCHAR(256) NOT NULL</span>,
+    extension_name <span class="type">VARCHAR(100)</span>, <span class="comment">-- NULL for core Ed-Fi</span>
+    flattening_function <span class="type">VARCHAR(500) NOT NULL</span>,
+    target_table <span class="type">VARCHAR(500) NOT NULL</span>,
+    priority <span class="type">INT NOT NULL DEFAULT 100</span>
+);
+
+<span class="comment">-- Extension flattening for core resources</span>
+<span class="keyword">CREATE TABLE</span> dms.extension_flattening_registry (
+    id <span class="type">SERIAL PRIMARY KEY</span>,
+    core_resource_name <span class="type">VARCHAR(256) NOT NULL</span>,
+    extension_name <span class="type">VARCHAR(100) NOT NULL</span>,
+    flattening_function <span class="type">VARCHAR(500) NOT NULL</span>,
+    priority <span class="type">INT NOT NULL DEFAULT 100</span>
+);</div>
+
+            <h2>Extension Design Principles</h2>
+            <ul>
+                <li><strong>Loose Coupling:</strong> Core flattening logic doesn't know about specific extensions</li>
+                <li><strong>Dynamic Configuration:</strong> Extensions configured at deployment time</li>
+                <li><strong>No Core Modifications:</strong> Adding extensions requires no changes to core logic</li>
+                <li><strong>MetaEd Generated:</strong> All extension artifacts generated by MetaEd</li>
+            </ul>
+        </div>
+
+        <!-- Slide 5: Technical Implementation Details -->
+        <div class="slide">
+            <h1>Technical Implementation Details</h1>
+
+            <h2>Dynamic Document Flattening</h2>
+            <div class="code-block"><span class="keyword">CREATE OR REPLACE FUNCTION</span> <span class="function">dms.flatten_document</span>(
+    p_document_id <span class="type">BIGINT</span>,
+    p_document_partition_key <span class="type">SMALLINT</span>
+) <span class="keyword">RETURNS VOID AS</span> <span class="string">$$</span>
+<span class="keyword">DECLARE</span>
+    v_document <span class="type">RECORD</span>;
+    v_flattening_function <span class="type">VARCHAR(500)</span>;
+<span class="keyword">BEGIN</span>
+    <span class="comment">-- Get document</span>
+    <span class="keyword">SELECT</span> * <span class="keyword">INTO</span> v_document <span class="keyword">FROM</span> dms.Document
+    <span class="keyword">WHERE</span> Id = p_document_id <span class="keyword">AND</span> DocumentPartitionKey = p_document_partition_key;
+
+    <span class="comment">-- Look up flattening function from registry</span>
+    <span class="keyword">SELECT</span> rf.flattening_function <span class="keyword">INTO</span> v_flattening_function
+    <span class="keyword">FROM</span> dms.resource_flattening_registry rf
+    <span class="keyword">LEFT JOIN</span> dms.extension_registry er <span class="keyword">ON</span> rf.extension_name = er.extension_name
+    <span class="keyword">WHERE</span> rf.resource_name = v_document.ResourceName
+      <span class="keyword">AND</span> (rf.extension_name <span class="keyword">IS NULL OR</span> er.is_enabled = <span class="keyword">true</span>)
+    <span class="keyword">ORDER BY</span> rf.priority <span class="keyword">DESC LIMIT</span> 1;
+
+    <span class="comment">-- Dynamically execute the registered function</span>
+    <span class="keyword">IF</span> v_flattening_function <span class="keyword">IS NOT NULL THEN</span>
+        <span class="keyword">EXECUTE</span> <span class="function">format</span>(<span class="string">'SELECT %s($1, $2)'</span>, v_flattening_function)
+        <span class="keyword">USING</span> v_document, v_document.EdfiDoc;
+    <span class="keyword">END IF</span>;
+<span class="keyword">END</span>;
+<span class="string">$$</span> <span class="keyword">LANGUAGE</span> plpgsql;</div>
+
+            <h2>Core Entity Table Example</h2>
+            <div class="code-block"><span class="keyword">CREATE TABLE</span> edfi.Student (
+    <span class="comment">-- DMS Reference</span>
+    DocumentId <span class="type">BIGINT NOT NULL</span>,
+    DocumentPartitionKey <span class="type">SMALLINT NOT NULL</span>,
+    DocumentUuid <span class="type">UUID NOT NULL</span>,
+
+    <span class="comment">-- Natural Key</span>
+    StudentUniqueId <span class="type">VARCHAR(32) NOT NULL</span>,
+
+    <span class="comment">-- Core Attributes</span>
+    FirstName <span class="type">VARCHAR(75) NOT NULL</span>,
+    LastSurname <span class="type">VARCHAR(75) NOT NULL</span>,
+    BirthDate <span class="type">DATE NOT NULL</span>,
+    <span class="comment">-- ... other Ed-Fi fields</span>
+
+    <span class="keyword">CONSTRAINT</span> Student_PK <span class="keyword">PRIMARY KEY</span> (DocumentPartitionKey, DocumentId),
+    <span class="keyword">CONSTRAINT</span> Student_UK_StudentUniqueId <span class="keyword">UNIQUE</span> (StudentUniqueId)
+);
+
+<span class="keyword">CREATE TABLE</span> edfi.StudentAddress (
+    StudentDocumentId <span class="type">BIGINT NOT NULL</span>,
+    StudentDocumentPartitionKey <span class="type">SMALLINT NOT NULL</span>,
+    AddressTypeDescriptorId <span class="type">INT NOT NULL</span>,
+    StreetNumberName <span class="type">VARCHAR(150) NOT NULL</span>,
+    City <span class="type">VARCHAR(30) NOT NULL</span>,
+    StateAbbreviationDescriptorId <span class="type">INT NOT NULL</span>,
+    PostalCode <span class="type">VARCHAR(17) NOT NULL</span>,
+    <span class="keyword">CONSTRAINT</span> StudentAddress_PK <span class="keyword">PRIMARY KEY</span> (
+        StudentDocumentPartitionKey, StudentDocumentId, AddressTypeDescriptorId
+    ),
+    <span class="keyword">CONSTRAINT</span> StudentAddress_FK_Student <span class="keyword">FOREIGN KEY</span> (
+        StudentDocumentPartitionKey, StudentDocumentId
+    ) <span class="keyword">REFERENCES</span> edfi.Student(DocumentPartitionKey, DocumentId)
+);</div>
+
+            <h2>Student Flattening Function Example</h2>
+            <div class="code-block"><span class="keyword">CREATE OR REPLACE FUNCTION</span> <span class="function">dms.flatten_edfi_student</span>(
+    p_document <span class="type">dms.Document</span>,
+    p_edfi_doc <span class="type">JSONB</span>
+) <span class="keyword">RETURNS VOID AS</span> <span class="string">$$</span>
+<span class="keyword">DECLARE</span>
+    v_address <span class="type">JSONB</span>;
+    v_address_type_descriptor_id <span class="type">INT</span>;
+    v_state_descriptor_id <span class="type">INT</span>;
+<span class="keyword">BEGIN</span>
+    <span class="comment">-- Insert/Update core Student record</span>
+    <span class="keyword">INSERT INTO</span> edfi.Student (
+        DocumentId, DocumentPartitionKey, DocumentUuid,
+        StudentUniqueId, FirstName, LastSurname, BirthDate
+    ) <span class="keyword">VALUES</span> (
+        p_document.Id,
+        p_document.DocumentPartitionKey,
+        p_document.DocumentUuid,
+        p_edfi_doc->><span class="string">'studentUniqueId'</span>,
+        p_edfi_doc->><span class="string">'firstName'</span>,
+        p_edfi_doc->><span class="string">'lastSurname'</span>,
+        (p_edfi_doc->><span class="string">'birthDate'</span>)::<span class="type">DATE</span>
+    ) <span class="keyword">ON CONFLICT</span> (DocumentPartitionKey, DocumentId)
+    <span class="keyword">DO UPDATE SET</span>
+        StudentUniqueId = <span class="keyword">EXCLUDED</span>.StudentUniqueId,
+        FirstName = <span class="keyword">EXCLUDED</span>.FirstName,
+        LastSurname = <span class="keyword">EXCLUDED</span>.LastSurname,
+        BirthDate = <span class="keyword">EXCLUDED</span>.BirthDate;
+
+    <span class="comment">-- Clear existing addresses for this student</span>
+    <span class="keyword">DELETE FROM</span> edfi.StudentAddress 
+    <span class="keyword">WHERE</span> StudentDocumentId = p_document.Id 
+      <span class="keyword">AND</span> StudentDocumentPartitionKey = p_document.DocumentPartitionKey;
+
+    <span class="comment">-- Process addresses array</span>
+    <span class="keyword">IF</span> p_edfi_doc ? <span class="string">'addresses'</span> <span class="keyword">THEN</span>
+        <span class="keyword">FOR</span> v_address <span class="keyword">IN SELECT</span> <span class="function">jsonb_array_elements</span>(p_edfi_doc-><span class="string">'addresses'</span>)
+        <span class="keyword">LOOP</span>
+            <span class="comment">-- Resolve descriptor references</span>
+            <span class="keyword">SELECT</span> DescriptorId <span class="keyword">INTO</span> v_address_type_descriptor_id
+            <span class="keyword">FROM</span> edfi.Descriptor 
+            <span class="keyword">WHERE</span> <span class="function">namespace_and_codevalue</span>(v_address-><span class="string">'addressTypeDescriptor'</span>) 
+                  = <span class="function">namespace_and_codevalue</span>(Uri);
+
+            <span class="keyword">SELECT</span> DescriptorId <span class="keyword">INTO</span> v_state_descriptor_id
+            <span class="keyword">FROM</span> edfi.Descriptor 
+            <span class="keyword">WHERE</span> <span class="function">namespace_and_codevalue</span>(v_address-><span class="string">'stateAbbreviationDescriptor'</span>) 
+                  = <span class="function">namespace_and_codevalue</span>(Uri);
+
+            <span class="comment">-- Insert address record</span>
+            <span class="keyword">INSERT INTO</span> edfi.StudentAddress (
+                StudentDocumentId, StudentDocumentPartitionKey,
+                AddressTypeDescriptorId, StreetNumberName, City,
+                StateAbbreviationDescriptorId, PostalCode
+            ) <span class="keyword">VALUES</span> (
+                p_document.Id,
+                p_document.DocumentPartitionKey,
+                v_address_type_descriptor_id,
+                v_address->><span class="string">'streetNumberName'</span>,
+                v_address->><span class="string">'city'</span>,
+                v_state_descriptor_id,
+                v_address->><span class="string">'postalCode'</span>
+            );
+        <span class="keyword">END LOOP</span>;
+    <span class="keyword">END IF</span>;
+
+    <span class="comment">-- Process extension flattening functions</span>
+    <span class="keyword">PERFORM</span> <span class="function">dms.process_extension_flattening</span>(<span class="string">'students'</span>, p_document, p_edfi_doc);
+<span class="keyword">END</span>;
+<span class="string">$$</span> <span class="keyword">LANGUAGE</span> plpgsql;</div>
+        </div>
+
+        <!-- Slide 6: Extension Examples -->
+        <div class="slide">
+            <h1>Extension Examples</h1>
+
+            <h2>TPDM Extension (Teacher Preparation)</h2>
+            <div class="code-block"><span class="comment">-- TPDM adds new Candidate resource</span>
+<span class="keyword">CREATE TABLE</span> tpdm.Candidate (
+    DocumentId <span class="type">BIGINT NOT NULL</span>,
+    DocumentPartitionKey <span class="type">SMALLINT NOT NULL</span>,
+    CandidateIdentifier <span class="type">VARCHAR(32) NOT NULL</span>,
+    FirstName <span class="type">VARCHAR(75) NOT NULL</span>,
+    LastSurname <span class="type">VARCHAR(75) NOT NULL</span>,
+    <span class="comment">-- TPDM-specific fields...</span>
+    <span class="keyword">CONSTRAINT</span> Candidate_PK <span class="keyword">PRIMARY KEY</span> (DocumentPartitionKey, DocumentId)
+);
+
+<span class="comment">-- TPDM extends core Student resource</span>
+<span class="keyword">CREATE TABLE</span> tpdm.StudentExtension (
+    StudentDocumentId <span class="type">BIGINT NOT NULL</span>,
+    StudentDocumentPartitionKey <span class="type">SMALLINT NOT NULL</span>,
+    GenderDescriptorId <span class="type">INT NULL</span>,
+    HispanicLatinoEthnicity <span class="type">BOOLEAN NULL</span>,
+    <span class="comment">-- TPDM-specific student fields...</span>
+    <span class="keyword">CONSTRAINT</span> StudentExtension_FK_Student
+        <span class="keyword">FOREIGN KEY</span> (StudentDocumentPartitionKey, StudentDocumentId)
+        <span class="keyword">REFERENCES</span> edfi.Student(DocumentPartitionKey, DocumentId)
+);</div>
+
+            <h2>Registration Process</h2>
+            <div class="code-block"><span class="comment">-- Register TPDM extension</span>
+<span class="keyword">INSERT INTO</span> dms.extension_registry (extension_name, schema_name)
+<span class="keyword">VALUES</span> (<span class="string">'tpdm'</span>, <span class="string">'tpdm'</span>);
+
+<span class="comment">-- Register TPDM's new resources</span>
+<span class="keyword">INSERT INTO</span> dms.resource_flattening_registry
+(resource_name, extension_name, flattening_function, target_table)
+<span class="keyword">VALUES</span> (<span class="string">'candidates'</span>, <span class="string">'tpdm'</span>, <span class="string">'dms.flatten_tpdm_candidate'</span>, <span class="string">'tpdm.Candidate'</span>);
+
+<span class="comment">-- Register TPDM's extensions to core resources</span>
+<span class="keyword">INSERT INTO</span> dms.extension_flattening_registry
+(core_resource_name, extension_name, flattening_function)
+<span class="keyword">VALUES</span> (<span class="string">'students'</span>, <span class="string">'tpdm'</span>, <span class="string">'dms.flatten_tpdm_student_extension'</span>);</div>
+        </div>
+
+        <!-- Slide 7: Performance & Synchronization -->
+        <div class="slide">
+            <h1>Performance & Synchronization</h1>
+
+            <h2>Trigger-Based Synchronization</h2>
+            <div class="code-block"><span class="keyword">CREATE OR REPLACE FUNCTION</span> <span class="function">dms.document_flattening_trigger</span>()
+<span class="keyword">RETURNS TRIGGER AS</span> <span class="string">$$</span>
+<span class="keyword">BEGIN</span>
+    <span class="keyword">IF</span> <span class="function">current_setting</span>(<span class="string">'dms.async_flattening'</span>, <span class="keyword">true</span>) = <span class="string">'true'</span> <span class="keyword">THEN</span>
+        <span class="comment">-- Queue for async processing</span>
+        <span class="keyword">INSERT INTO</span> dms.flattening_queue (
+            DocumentId, DocumentPartitionKey, ResourceName, Operation, QueuedAt
+        ) <span class="keyword">VALUES</span> (NEW.Id, NEW.DocumentPartitionKey, NEW.ResourceName, TG_OP, <span class="function">NOW</span>());
+    <span class="keyword">ELSE</span>
+        <span class="comment">-- Synchronous flattening</span>
+        <span class="keyword">PERFORM</span> <span class="function">dms.flatten_document</span>(NEW.Id, NEW.DocumentPartitionKey);
+    <span class="keyword">END IF</span>;
+    <span class="keyword">RETURN</span> NEW;
+<span class="keyword">END</span>;
+<span class="string">$$</span> <span class="keyword">LANGUAGE</span> plpgsql;
+
+<span class="keyword">CREATE TRIGGER</span> document_after_insert_update
+<span class="keyword">AFTER INSERT OR UPDATE ON</span> dms.Document
+<span class="keyword">FOR EACH ROW EXECUTE FUNCTION</span> <span class="function">dms.document_flattening_trigger</span>();</div>
+
+            <h2>Batch Processing Queue</h2>
+            <ul>
+                <li><strong>Asynchronous Processing:</strong> Optional async queue for high-volume scenarios</li>
+                <li><strong>Parallel Processing:</strong> Multiple workers can process queue concurrently</li>
+                <li><strong>Error Handling:</strong> Failed flattening operations logged and retried</li>
+                <li><strong>Performance Monitoring:</strong> Queue depth and processing rates tracked</li>
+            </ul>
+        </div>
+
+        <!-- Slide 8: Testing Strategy -->
+        <div class="slide">
+            <h1>Testing Strategy</h1>
+
+            <h2>Comprehensive Test Coverage</h2>
+            <div class="benefits-grid">
+                <div class="benefit-card">
+                    <h3>Unit Tests</h3>
+                    <ul>
+                        <li>Individual flattening functions</li>
+                        <li>Registry lookup operations</li>
+                        <li>Descriptor resolution</li>
+                        <li>Table name hashing</li>
+                        <li>SQL injection prevention</li>
+                        <li>Function parameter validation</li>
+                        <li>Error handling mechanisms</li>
+                    </ul>
+                </div>
+                <div class="benefit-card">
+                    <h3>Integration Tests</h3>
+                    <ul>
+                        <li>Full document lifecycle</li>
+                        <li>Extension registration</li>
+                        <li>Multi-extension scenarios</li>
+                        <li>Priority handling</li>
+                        <li>Cross-schema relationships</li>
+                        <li>Extension dependency chains</li>
+                        <li>Rollback scenarios</li>
+                    </ul>
+                </div>
+                <div class="benefit-card">
+                    <h3>Performance Tests</h3>
+                    <ul>
+                        <li>Bulk flattening performance</li>
+                        <li>Queue processing rates</li>
+                        <li>Memory usage patterns</li>
+                        <li>Concurrent processing</li>
+                        <li>Registry lookup optimization</li>
+                        <li>Database connection pooling</li>
+                        <li>Lock contention analysis</li>
+                    </ul>
+                </div>
+                <div class="benefit-card">
+                    <h3>Data Validation</h3>
+                    <ul>
+                        <li>Flattening accuracy</li>
+                        <li>Reference integrity</li>
+                        <li>Extension isolation</li>
+                        <li>Error recovery</li>
+                        <li>Data consistency checks</li>
+                        <li>Schema validation</li>
+                        <li>Audit trail verification</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="code-block"><span class="comment">-- Example unit test</span>
+<span class="keyword">CREATE OR REPLACE FUNCTION</span> <span class="function">dms_test.test_student_flattening</span>()
+<span class="keyword">RETURNS VOID AS</span> <span class="string">$$</span>
+<span class="keyword">BEGIN</span>
+    <span class="comment">-- Create test student JSON</span>
+    <span class="comment">-- Insert test document</span>
+    <span class="comment">-- Wait for trigger processing</span>
+    <span class="comment">-- Verify student record and address records</span>
+    <span class="comment">-- Cleanup</span>
+    <span class="keyword">RAISE NOTICE</span> <span class="string">'test_student_flattening: PASSED'</span>;
+<span class="keyword">END</span>;
+<span class="string">$$</span> <span class="keyword">LANGUAGE</span> plpgsql;</div>
+
+            <div class="code-block"><span class="comment">-- Integration test example</span>
+<span class="keyword">CREATE OR REPLACE FUNCTION</span> <span class="function">dms_test.test_multi_extension_integration</span>()
+<span class="keyword">RETURNS VOID AS</span> <span class="string">$$</span>
+<span class="keyword">BEGIN</span>
+    <span class="comment">-- Register TPDM and Sample extensions</span>
+    <span class="keyword">INSERT INTO</span> dms.extension_registry <span class="keyword">VALUES</span> (<span class="string">'tpdm'</span>, <span class="string">'tpdm'</span>, <span class="keyword">true</span>);
+    <span class="keyword">INSERT INTO</span> dms.extension_registry <span class="keyword">VALUES</span> (<span class="string">'sample'</span>, <span class="string">'sample'</span>, <span class="keyword">true</span>);
+
+    <span class="comment">-- Create student with both extensions</span>
+    <span class="comment">-- Verify core flattening + both extension tables populated</span>
+    <span class="comment">-- Test priority handling between extensions</span>
+    <span class="keyword">ASSERT</span> (<span class="keyword">SELECT COUNT</span>(*) <span class="keyword">FROM</span> edfi.Student) = 1;
+    <span class="keyword">ASSERT</span> (<span class="keyword">SELECT COUNT</span>(*) <span class="keyword">FROM</span> tpdm.StudentExtension) = 1;
+    <span class="keyword">ASSERT</span> (<span class="keyword">SELECT COUNT</span>(*) <span class="keyword">FROM</span> sample.StudentExtension) = 1;
+<span class="keyword">END</span>;
+<span class="string">$$</span> <span class="keyword">LANGUAGE</span> plpgsql;</div>
+
+            <div class="code-block"><span class="comment">-- Performance test example</span>
+<span class="keyword">CREATE OR REPLACE FUNCTION</span> <span class="function">dms_test.test_bulk_flattening_performance</span>()
+<span class="keyword">RETURNS VOID AS</span> <span class="string">$$</span>
+<span class="keyword">DECLARE</span>
+    v_start_time <span class="type">TIMESTAMP</span>;
+    v_end_time <span class="type">TIMESTAMP</span>;
+    v_duration <span class="type">INTERVAL</span>;
+<span class="keyword">BEGIN</span>
+    <span class="comment">-- Insert 1000 test student documents</span>
+    v_start_time := <span class="function">clock_timestamp</span>();
+
+    <span class="keyword">FOR</span> i <span class="keyword">IN</span> 1..1000 <span class="keyword">LOOP</span>
+        <span class="keyword">INSERT INTO</span> dms.Document (ResourceName, EdfiDoc, ...)
+        <span class="keyword">VALUES</span> (<span class="string">'students'</span>, <span class="function">generate_test_student_json</span>(i), ...);
+    <span class="keyword">END LOOP</span>;
+
+    v_end_time := <span class="function">clock_timestamp</span>();
+    v_duration := v_end_time - v_start_time;
+
+    <span class="comment">-- Assert performance within acceptable limits</span>
+    <span class="keyword">ASSERT</span> v_duration < <span class="string">'30 seconds'</span>::<span class="type">INTERVAL</span>,
+           <span class="function">format</span>(<span class="string">'Bulk flattening took %s, expected < 30s'</span>, v_duration);
+<span class="keyword">END</span>;
+<span class="string">$$</span> <span class="keyword">LANGUAGE</span> plpgsql;</div>
+
+            <div class="code-block"><span class="comment">-- Data validation test example</span>
+<span class="keyword">CREATE OR REPLACE FUNCTION</span> <span class="function">dms_test.test_flattening_data_integrity</span>()
+<span class="keyword">RETURNS VOID AS</span> <span class="string">$$</span>
+<span class="keyword">DECLARE</span>
+    v_json_count <span class="type">INTEGER</span>;
+    v_flat_count <span class="type">INTEGER</span>;
+    v_json_checksum <span class="type">TEXT</span>;
+    v_flat_checksum <span class="type">TEXT</span>;
+<span class="keyword">BEGIN</span>
+    <span class="comment">-- Insert complex student with addresses and extensions</span>
+    <span class="keyword">INSERT INTO</span> dms.Document (ResourceName, EdfiDoc, ...)
+    <span class="keyword">VALUES</span> (<span class="string">'students'</span>, <span class="string">'{"studentUniqueId":"12345","addresses":[...]}'</span>, ...);
+
+    <span class="comment">-- Compare JSON array count vs flattened table count</span>
+    <span class="keyword">SELECT</span> <span class="function">jsonb_array_length</span>(EdfiDoc-><span class="string">'addresses'</span>) <span class="keyword">INTO</span> v_json_count
+    <span class="keyword">FROM</span> dms.Document <span class="keyword">WHERE</span> ResourceName = <span class="string">'students'</span>;
+
+    <span class="keyword">SELECT</span> <span class="keyword">COUNT</span>(*) <span class="keyword">INTO</span> v_flat_count <span class="keyword">FROM</span> edfi.StudentAddress;
+
+    <span class="keyword">ASSERT</span> v_json_count = v_flat_count,
+           <span class="function">format</span>(<span class="string">'Address count mismatch: JSON=%s, Flat=%s'</span>, v_json_count, v_flat_count);
+
+    <span class="comment">-- Verify referential integrity</span>
+    <span class="keyword">ASSERT</span> <span class="keyword">NOT EXISTS</span> (
+        <span class="keyword">SELECT</span> 1 <span class="keyword">FROM</span> edfi.StudentAddress sa
+        <span class="keyword">LEFT JOIN</span> edfi.Student s <span class="keyword">ON</span> sa.StudentDocumentId = s.DocumentId
+        <span class="keyword">WHERE</span> s.DocumentId <span class="keyword">IS NULL</span>
+    ), <span class="string">'Orphaned address records found'</span>;
+<span class="keyword">END</span>;
+<span class="string">$$</span> <span class="keyword">LANGUAGE</span> plpgsql;</div>
+        </div>
+
+        <!-- Slide 9: Work Division -->
+        <div class="slide">
+            <h1>Work Division for Implementation</h1>
+
+            <div class="work-division">
+                <div class="agent-card">
+                    <h4>Agent 1: Database Architect</h4>
+                    <ul>
+                        <li>Schema architecture (dms, edfi, extensions)</li>
+                        <li>Extension registry tables</li>
+                        <li>Core table DDL scripts</li>
+                        <li>Partitioning strategy</li>
+                        <li>Indexes and constraints</li>
+                    </ul>
+                </div>
+
+                <div class="agent-card">
+                    <h4>Agent 2: Backend Developer</h4>
+                    <ul>
+                        <li>Dynamic flatten_document function</li>
+                        <li>Core resource flattening functions</li>
+                        <li>Reference resolution</li>
+                        <li>Array/collection handling</li>
+                        <li>Extension helper functions</li>
+                    </ul>
+                </div>
+
+                <div class="agent-card">
+                    <h4>Agent 3: Extension Developer</h4>
+                    <ul>
+                        <li>Extension registration process</li>
+                        <li>Extension flattening templates</li>
+                        <li>Dynamic function resolution</li>
+                        <li>Priority handling system</li>
+                        <li>Extension isolation mechanisms</li>
+                    </ul>
+                </div>
+
+                <div class="agent-card">
+                    <h4>Agent 4: MetaEd Developer</h4>
+                    <ul>
+                        <li>Extension DDL generation</li>
+                        <li>Flattening function generators</li>
+                        <li>Registration script generators</li>
+                        <li>Extension metadata model</li>
+                        <li>MetaEd integration documentation</li>
+                    </ul>
+                </div>
+
+                <div class="agent-card">
+                    <h4>Agent 5: QA Engineer</h4>
+                    <ul>
+                        <li>Extension registration tests</li>
+                        <li>Dynamic flattening tests</li>
+                        <li>Priority handling tests</li>
+                        <li>Extension isolation tests</li>
+                        <li>Extension test framework</li>
+                    </ul>
+                </div>
+
+                <div class="agent-card">
+                    <h4>Agent 6: DevOps Engineer</h4>
+                    <ul>
+                        <li>Extension deployment procedures</li>
+                        <li>Extension versioning system</li>
+                        <li>Performance monitoring</li>
+                        <li>Rollback procedures</li>
+                        <li>Deployment documentation</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: Benefits & Risk Analysis -->
+        <div class="slide">
+            <h1>Benefits & Risk Analysis</h1>
+
+            <h2>Key Benefits</h2>
+            <div class="benefits-grid">
+                <div class="benefit-card">
+                    <h3>Zero Core Modifications</h3>
+                    <p>New extensions require no changes to core flattening logic - fully dynamic system</p>
+                </div>
+                <div class="benefit-card">
+                    <h3>Schema Isolation</h3>
+                    <p>Extensions use separate schemas, avoiding naming conflicts and improving organization</p>
+                </div>
+                <div class="benefit-card">
+                    <h3>MetaEd Integration</h3>
+                    <p>Fully generated by MetaEd - no manual coding required for extensions</p>
+                </div>
+                <div class="benefit-card">
+                    <h3>Performance Optimization</h3>
+                    <p>Only enabled extensions processed; registry caching for optimal performance</p>
+                </div>
+            </div>
+
+            <h2>Risk Mitigation Strategies</h2>
+            <div class="warning">
+                <h3>Technical Risks</h3>
+                <ul>
+                    <li><strong>Dynamic Function Execution:</strong> SQL injection prevention through function name validation</li>
+                    <li><strong>Extension Conflicts:</strong> Priority system with clear precedence rules</li>
+                    <li><strong>Performance Impact:</strong> Registry caching and query optimization</li>
+                    <li><strong>Table Name Collisions:</strong> Hash collision detection with original name prefixes</li>
+                </ul>
+            </div>
+
+            <div class="success">
+                <h3>Success Criteria</h3>
+                <ul>
+                    <li>Core Ed-Fi resources flatten correctly to edfi schema</li>
+                    <li>Extensions can be added without core changes</li>
+                    <li>Dynamic lookup adds < 5ms overhead</li>
+                    <li>100% test coverage for extension framework</li>
+                </ul>
+            </div>
+        </div>
+
+
+        <div class="navigation">
+            <button class="nav-button" id="prev-btn" onclick="previousSlide()">Previous</button>
+            <button class="nav-button" id="next-btn" onclick="nextSlide()">Next</button>
+        </div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        document.getElementById('total-slides').textContent = totalSlides;
+
+        function showSlide(index) {
+            slides.forEach((slide, i) => {
+                slide.classList.toggle('active', i === index);
+            });
+
+            document.getElementById('current-slide').textContent = index + 1;
+            document.getElementById('prev-btn').disabled = index === 0;
+            document.getElementById('next-btn').disabled = index === totalSlides - 1;
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                currentSlide++;
+                showSlide(currentSlide);
+            }
+        }
+
+        function previousSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                showSlide(currentSlide);
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                previousSlide();
+            } else if (e.key === 'Home') {
+                e.preventDefault();
+                currentSlide = 0;
+                showSlide(currentSlide);
+            } else if (e.key === 'End') {
+                e.preventDefault();
+                currentSlide = totalSlides - 1;
+                showSlide(currentSlide);
+            }
+        });
+
+        // Initialize
+        showSlide(0);
+
+        // Auto-advance slides every 75 seconds (15 minutes / 12 slides)
+        // Uncomment the following lines for auto-advance
+        // setInterval(() => {
+        //     if (currentSlide < totalSlides - 1) {
+        //         nextSlide();
+        //     }
+        // }, 75000);
+    </script>
+</body>
+</html>
