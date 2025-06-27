@@ -1,5 +1,14 @@
 # JSON File Validation using the ApiSchema File
 
+> [!NOTE]
+> This application was almost entirely written with GitHub Copilot using this
+> file as a prompt, with a few small human tweaks to finish it off.
+>
+> As written, this results in a strict validator. For example, this will throw
+> validation errors when any of the following properties are present: `id`,
+> `_lastModifiedDate`, `_id`. If desired, it should not be difficult to modify
+> function `GetValidationErrorMessage` to ignore errors on these fields.
+
 ## User Story
 
 I want to validate a JSON file based on JSON Schema definition provided by an
@@ -42,23 +51,29 @@ dotnet run /ed-fi/absenceEventCategoryDescriptors/unexcused.json
 The application extracts the resource type from the parent directory name in the file path. For the example above, it would use `absenceEventCategoryDescriptors` as the resource type.
 
 ### Exit Codes
-- **0**: JSON file is valid
-- **1**: JSON file is invalid, file not found, or other error
+
+* **0**: JSON file is valid
+* **1**: JSON file is invalid, file not found, or other error
 
 ### Example Output
 
 Valid file:
-```
+
+```none
 JSON file is valid.
 ```
 
 Invalid file:
-```
-JSON file is invalid: JSON validation failed - document does not conform to schema
+
+```none
+> dotnet run --project .\src\JsonValidator.csproj .\calendars\2010605675-bad.json
+
+JSON file is invalid: Field validation error: required - Required properties ["schoolYearTypeReference"] are not present; Field validation error:  - All values fail against the false schema; Field validation error:  - All values fail against the false schema; Field validation error:  - All values fail against the false schema
 ```
 
 Unknown resource type:
-```
+
+```none
 JSON file is invalid: No schema found for resource type 'unknownResource'. Please verify the file path contains a valid Ed-Fi resource type directory.
 ```
 
@@ -153,13 +168,15 @@ The current implementation uses a local `ApiSchema.json` file as a fallback sinc
 ### Testing
 
 Run unit tests:
+
 ```bash
 cd json-validator.Tests.Unit
 dotnet test
 ```
 
 The test suite includes comprehensive coverage of:
-- Resource type extraction from file paths
-- Schema loading and validation
-- All provided test cases (happy path and negative scenarios)
-- Error handling and edge cases
+
+* Resource type extraction from file paths
+* Schema loading and validation
+* All provided test cases (happy path and negative scenarios)
+* Error handling and edge cases
