@@ -1,0 +1,54 @@
+{
+  "projectSchema": {
+    "resourceSchema": {
+      "absenceEventCategoryDescriptors": {
+        "jsonSchemaForInsert": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "maxLength": 32
+            },
+            "codeValue": {
+              "type": "string",
+              "maxLength": 50
+            },
+            "namespace": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "shortDescription": {
+              "type": "string",
+              "maxLength": 75
+            },
+            "description": {
+              "type": "string",
+              "maxLength": 1024
+            },
+            "effectiveBeginDate": {
+              "type": "string",
+              "format": "date"
+            },
+            "effectiveEndDate": {
+              "type": "string",
+              "format": "date"
+            },
+            "_etag": {
+              "type": "string"
+            },
+            "_lastModifiedDate": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "required": [
+            "codeValue",
+            "namespace",
+            "shortDescription"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  }
+}

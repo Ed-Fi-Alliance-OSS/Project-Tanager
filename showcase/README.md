@@ -177,3 +177,11 @@ Showcases:
 Desired showcases:
 
 * Log ingestion and analysis from DMS and/or other components
+
+## JSON File Validation
+
+JSON file validation using the Ed-Fi ApiSchema file for data standard compliance.
+
+Showcases:
+
+* [JSON File Validation using the ApiSchema File](./json-validator/README.md)
