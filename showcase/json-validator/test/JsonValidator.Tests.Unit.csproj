@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../json-validator/JsonValidator.csproj" />
+    <ProjectReference Include="../src/JsonValidator.csproj" />
   </ItemGroup>
 
   <ItemGroup>
