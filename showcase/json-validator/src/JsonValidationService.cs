@@ -159,7 +159,11 @@ namespace JsonValidator
                     };
                 }
                 
-                var validationResults = schema.Evaluate(jsonNode);
+                var validationResults = schema.Evaluate(jsonNode, new EvaluationOptions()
+                {
+                    OutputFormat = OutputFormat.List,
+                    RequireFormatValidation = true,
+                });
                 
                 if (validationResults.IsValid)
                 {
