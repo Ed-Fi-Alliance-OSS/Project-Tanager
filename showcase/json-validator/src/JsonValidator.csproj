@@ -12,20 +12,9 @@
   <ItemGroup>
     <PackageReference Include="JsonSchema.Net" Version="7.2.3" />
     <PackageReference Include="JsonPath.Net" Version="1.1.5" />
-    <!-- Ed-Fi package temporarily commented out due to connectivity issues -->
-    <!-- <PackageReference Include="EdFi.DataStandard52.ApiSchema" Version="1.0.223"> -->
-    <!--   <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets> -->
-    <!-- </PackageReference> -->
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="ApiSchema.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageSource Include="https://pkgs.dev.azure.com/ed-fi-alliance/Ed-Fi-Alliance-OSS/_packaging/EdFi/nuget/v3/index.json" />
+    <PackageReference Include="EdFi.DataStandard52.ApiSchema" Version="1.0.223">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
 </Project>

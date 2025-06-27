@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Json.Path;
@@ -28,20 +29,53 @@ namespace JsonValidator
             return new JsonValidationService(apiSchema);
         }
         
-        // This method would normally load from the embedded resource in the NuGet package
+        // Load the API schema from the embedded resource in the Ed-Fi NuGet package
         public static JsonValidationService CreateFromEmbeddedResource()
         {
-            // For now, fall back to the local file since we can't access the NuGet package
-            var assemblyDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-            var apiSchemaPath = Path.Combine(assemblyDir!, "ApiSchema.json");
-            
-            if (!File.Exists(apiSchemaPath))
+            try
             {
-                // Try the source directory for development
-                apiSchemaPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ApiSchema.json");
+                // Load the EdFi.DataStandard52.ApiSchema assembly
+                var assembly = Assembly.LoadFrom("EdFi.DataStandard52.ApiSchema.dll");
+                
+                // Get the embedded ApiSchema.json resource
+                var resourceName = "EdFi.DataStandard52.ApiSchema.ApiSchema.json";
+                
+                using var stream = assembly.GetManifestResourceStream(resourceName);
+                if (stream == null)
+                {
+                    throw new InvalidOperationException($"Could not find embedded resource: {resourceName}");
+                }
+                
+                using var reader = new StreamReader(stream);
+                var jsonContent = reader.ReadToEnd();
+                
+                var apiSchema = JsonNode.Parse(jsonContent);
+                if (apiSchema == null)
+                {
+                    throw new InvalidOperationException("Failed to parse API schema JSON from embedded resource");
+                }
+                
+                return new JsonValidationService(apiSchema);
             }
-            
-            return CreateFromFile(apiSchemaPath);
+            catch (Exception ex)
+            {
+                // Fall back to the local file if there's any issue with the embedded resource
+                var assemblyDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+                var apiSchemaPath = Path.Combine(assemblyDir!, "ApiSchema.json");
+                
+                if (!File.Exists(apiSchemaPath))
+                {
+                    // Try the source directory for development
+                    apiSchemaPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ApiSchema.json");
+                }
+                
+                if (!File.Exists(apiSchemaPath))
+                {
+                    throw new InvalidOperationException($"Could not load API schema from embedded resource ({ex.Message}) and fallback file not found at {apiSchemaPath}");
+                }
+                
+                return CreateFromFile(apiSchemaPath);
+            }
         }
         
         public string ExtractResourceTypeFromPath(string filePath)
