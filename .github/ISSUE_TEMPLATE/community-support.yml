@@ -1,0 +1,22 @@
+name: "🚫 Community Support"
+description: "For technical support and questions, please use the Ed-Fi Community Hub"
+title: "Please use the Ed-Fi Community Hub for support"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Thank you for your interest in Ed-Fi!
+        
+        This GitHub repository is maintained by the Ed-Fi engineering team for internal issue tracking and development coordination.
+        
+        **For technical support, questions, and community discussions, please visit the [Ed-Fi Community Hub](https://community.ed-fi.org) instead.**
+        
+        The Ed-Fi Community Hub provides:
+        - ✅ Technical support and troubleshooting
+        - ✅ Community discussions and best practices  
+        - ✅ Documentation and resources
+        - ✅ Direct access to Ed-Fi experts
+        
+        **Please do not create issues in this repository for support requests.**
+        
+        Thank you for your understanding!
