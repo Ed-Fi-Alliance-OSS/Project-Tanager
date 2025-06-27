@@ -26,6 +26,42 @@ ApiSchema file for the Ed-Fi Data Standard.
 * Use `JsonPath.Net` for traversing JSON paths
 * Use built-in System.Text.Json for all other JSON parsing and manipulation, not Newtonsoft
 
+## Usage
+
+```bash
+# Build the application
+dotnet build
+
+# Validate a JSON file
+dotnet run <path-to-json-file>
+
+# Example
+dotnet run /ed-fi/absenceEventCategoryDescriptors/unexcused.json
+```
+
+The application extracts the resource type from the parent directory name in the file path. For the example above, it would use `absenceEventCategoryDescriptors` as the resource type.
+
+### Exit Codes
+- **0**: JSON file is valid
+- **1**: JSON file is invalid, file not found, or other error
+
+### Example Output
+
+Valid file:
+```
+JSON file is valid.
+```
+
+Invalid file:
+```
+JSON file is invalid: JSON validation failed - document does not conform to schema
+```
+
+Unknown resource type:
+```
+JSON file is invalid: No schema found for resource type 'unknownResource'. Please verify the file path contains a valid Ed-Fi resource type directory.
+```
+
 ## Test Cases
 
 ### Happy Path
@@ -105,3 +141,25 @@ ApiSchema file for the Ed-Fi Data Standard.
     "effectiveEndDate": "2025-06-01"
 }
 ```
+
+*Note: Date format validation may be lenient depending on the JsonSchema.Net library implementation.*
+
+## Development Notes
+
+### Current Implementation
+
+The current implementation uses a local `ApiSchema.json` file as a fallback since the Ed-Fi NuGet package feed may have connectivity issues. In production, this would load the schema from the embedded resource in the `EdFi.DataStandard52.ApiSchema` NuGet package.
+
+### Testing
+
+Run unit tests:
+```bash
+cd json-validator.Tests.Unit
+dotnet test
+```
+
+The test suite includes comprehensive coverage of:
+- Resource type extraction from file paths
+- Schema loading and validation
+- All provided test cases (happy path and negative scenarios)
+- Error handling and edge cases

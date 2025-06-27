@@ -68,24 +68,33 @@ namespace JsonValidator
         
         public JsonSchema? GetSchemaForResourceType(string resourceType)
         {
-            var jsonPath = $"$.projectSchema.resourceSchema.{resourceType}.jsonSchemaForInsert";
-            var path = JsonPath.Parse(jsonPath);
-            
-            var matches = path.Evaluate(_apiSchema);
-            if (matches.Matches.Count == 0)
+            try
             {
+                var jsonPath = $"$.projectSchema.resourceSchema.{resourceType}.jsonSchemaForInsert";
+                var path = JsonPath.Parse(jsonPath);
+                
+                var matches = path.Evaluate(_apiSchema);
+                if (matches.Matches.Count == 0)
+                {
+                    return null;
+                }
+                
+                var schemaNode = matches.Matches[0].Value;
+                if (schemaNode == null)
+                {
+                    return null;
+                }
+                
+                var schemaJson = schemaNode.ToJsonString();
+                
+                return JsonSchema.FromText(schemaJson);
+            }
+            catch (Exception)
+            {
+                // If JsonPath evaluation fails (e.g., invalid selectors), return null
+                // This will be handled as "no schema found" by the calling method
                 return null;
             }
-            
-            var schemaNode = matches.Matches[0].Value;
-            if (schemaNode == null)
-            {
-                return null;
-            }
-            
-            var schemaJson = schemaNode.ToJsonString();
-            
-            return JsonSchema.FromText(schemaJson);
         }
         
         public ValidationResult ValidateJsonFile(string jsonFilePath)
@@ -100,7 +109,7 @@ namespace JsonValidator
                     return new ValidationResult
                     {
                         IsValid = false,
-                        ErrorMessage = $"No schema found for resource type: {resourceType}"
+                        ErrorMessage = $"No schema found for resource type '{resourceType}'. Please verify the file path contains a valid Ed-Fi resource type directory."
                     };
                 }
                 
@@ -110,9 +119,9 @@ namespace JsonValidator
                 if (jsonNode == null)
                 {
                     return new ValidationResult
-                    {
+                    {  
                         IsValid = false,
-                        ErrorMessage = "Invalid JSON format"
+                        ErrorMessage = "Invalid JSON format - unable to parse the JSON file"
                     };
                 }
                 
@@ -153,9 +162,29 @@ namespace JsonValidator
                 }
             }
             
-            if (!validationResults.IsValid && errors.Count == 0)
+            // Check for common validation issues and provide more specific messages
+            if (!validationResults.IsValid)
             {
-                errors.Add("JSON validation failed");
+                // Try to extract specific validation details from the results
+                var details = validationResults.Details;
+                if (details != null && details.Count > 0)
+                {
+                    foreach (var detail in details)
+                    {
+                        if (detail.HasErrors)
+                        {
+                            foreach (var error in detail.Errors!)
+                            {
+                                errors.Add($"Field validation error: {error.Key} - {error.Value}");
+                            }
+                        }
+                    }
+                }
+                
+                if (errors.Count == 0)
+                {
+                    errors.Add("JSON validation failed - document does not conform to schema");
+                }
             }
             
             return string.Join("; ", errors);

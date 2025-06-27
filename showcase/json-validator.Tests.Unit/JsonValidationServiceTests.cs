@@ -275,7 +275,7 @@ namespace JsonValidator.Tests.Unit
             // Assert
             result.IsValid.ShouldBeFalse();
             result.ErrorMessage.ShouldNotBeNull();
-            result.ErrorMessage.ShouldContain("No schema found for resource type: unknownResource");
+            result.ErrorMessage.ShouldContain("No schema found for resource type 'unknownResource'");
         }
 
         [TearDown]
