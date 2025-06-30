@@ -1,0 +1,11 @@
+  {
+    "id": "de547ce4e3554dfca5167149382cc5b0",
+    "schoolReference": {
+      "schoolId": 255901107
+    },
+    "calendarCode": "2010605675",
+    "calendarTypeDescriptor": "uri://ed-fi.org/CalendarTypeDescriptor#Student Specific",
+    "gradeLevels": [],
+    "_etag": "5250368809934898284",
+    "_lastModifiedDate": "2024-11-27T04:39:10.751038Z"
+  }

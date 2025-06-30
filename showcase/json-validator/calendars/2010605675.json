@@ -1,0 +1,10 @@
+{
+    "schoolReference": {
+      "schoolId": 255901107
+    },"schoolYearTypeReference": {
+      "schoolYear": 2024
+    },
+    "calendarCode": "2010605675",
+    "calendarTypeDescriptor": "uri://ed-fi.org/CalendarTypeDescriptor#Student Specific",
+    "gradeLevels": []
+  }
