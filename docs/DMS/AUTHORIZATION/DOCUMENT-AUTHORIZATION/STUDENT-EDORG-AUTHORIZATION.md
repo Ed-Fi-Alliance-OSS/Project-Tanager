@@ -142,8 +142,9 @@ There are two phases to security actions for the backend. This is the denormaliz
 * Student-securable Document (Document table)
   * Create
     1. Lookup EdOrgId array on StudentSchoolAssociationAuthorization by indexed StudentUniqueId
-    2. Insert Student-securable document into Document, including EdOrgId array
-    3. Create StudentSecurableDocument entry for this Document
+    2. Lookup EdOrgId array on StudentEducationOrganizationResponsibilityAuthorization by indexed StudentUniqueId
+    3. Insert Student-securable document into Document, including EdOrgId arrays
+    4. Create StudentSecurableDocument entry for this Document
 
   * Update (including cascade)
       1. Detect changes to StudentUniqueId
@@ -175,21 +176,6 @@ There are two phases to security actions for the backend. This is the denormaliz
     1. Null out EdOrgId array in each Student-securable Document, using indexed StudentUniqueId on StudentSecurableDocument
     2. Delete StudentEducationOrganizationResponsibilityAssociation document
     3. Delete cascade will remove StudentEducationOrganizationResponsibilityAuthorization row
-
-* Student-responsibility-securable Document (Document table)
-  * Create
-    1. Lookup EdOrgId array on StudentEducationOrganizationResponsibilityAuthorization by indexed StudentUniqueId
-    2. Insert Student-responsibility-securable document into Document, including EdOrgId array
-    3. Create StudentSecurableDocument entry for this Document
-
-  * Update (including cascade)
-      1. Detect changes to StudentUniqueId
-         1. If none, skip.
-         2. If change, treat as Delete and Create
-      2. Update Student-responsibility-securable document in Document
-
-  * Delete
-    1. Nothing synchronization-related
 
 * StudentEducationOrganizationResponsibilityAuthorization - Only changes as a side effect of other Document changes.
 
