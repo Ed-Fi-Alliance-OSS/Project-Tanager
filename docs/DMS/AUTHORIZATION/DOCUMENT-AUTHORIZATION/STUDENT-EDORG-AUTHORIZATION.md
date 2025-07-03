@@ -76,16 +76,13 @@ Our search engine support will require the introduction of denormalized Educatio
 
 When a new Student-securable document is inserted, the backend will need to lookup the StudentUniqueId on the StudentSchoolAssociationAuthorization table and apply the StudentSchoolAuthorizationEdOrgIds to the document via StudentSchoolAssociationAuthorization.
 
-Additionally, we will need a non-partitioned table StudentSecurableDocument that will act as an index into the Document table for all Student-securable documents. This will provide efficient access to Student-securable Documents for synchronization when StudentSchoolAuthorizationEdOrgIds change. When a new Student-securable Document is inserted, the backend will add this record. The FK will be cascade deleted when a Student-securable document is deleted.
+Additionally, we will need a non-partitioned table StudentSecurableDocument that will act as an index into the Document table for all Student-securable documents. This will provide efficient access to Student-securable Documents for synchronization when either StudentSchoolAuthorizationEdOrgIds or StudentResponsibilityAuthorizationEdOrgIds change. This single table will be used for both authorization pathways since the structure and purpose are identical - tracking which documents have a securable StudentUniqueId. When a new Student-securable Document is inserted, the backend will add this record. The FK will be cascade deleted when a Student-securable document is deleted.
 
-Similarly, for the StudentEducationOrganizationResponsibilityAuthorization pathway, we will need a non-partitioned table StudentResponsibilitySecurableDocument that will act as an index into the Document table for all Student-responsibility-securable documents. This will provide efficient access to Student-responsibility-securable Documents for synchronization when StudentResponsibilityAuthorizationEdOrgIds change. When a new Student-responsibility-securable Document is inserted, the backend will add this record. The FK will be cascade deleted when a Student-responsibility-securable document is deleted.
-
-StudentSecurableDocument and StudentResponsibilitySecurableDocument do not need to be replicated to the search engine.
+StudentSecurableDocument does not need to be replicated to the search engine.
 
 ```mermaid
 erDiagram
     StudentSecurableDocument ||--|| Document : "Only for Documents with a securable StudentUniqueId"
-    StudentResponsibilitySecurableDocument ||--|| Document : "Only for Documents with a securable StudentUniqueId via Responsibility"
 
     Document {
         bigint Id PK "Sequential key pattern, clustered"
@@ -100,12 +97,6 @@ erDiagram
         varchar(32) StudentUniqueId "Indexed for lookup by StudentUniqueId"
         bigint StudentSecurableDocumentId FK "FK to a Student-securable document as Document.Id with delete cascade"
         tinyint StudentSecurableDocumentPartitionKey FK "Partition key of Student-securable document"
-    }
-    StudentResponsibilitySecurableDocument {
-        bigint Id PK "Sequential key pattern, clustered"
-        varchar(32) StudentUniqueId "Indexed for lookup by StudentUniqueId"
-        bigint StudentResponsibilitySecurableDocumentId FK "FK to a Student-responsibility-securable document as Document.Id with delete cascade"
-        tinyint StudentResponsibilitySecurableDocumentPartitionKey FK "Partition key of Student-responsibility-securable document"
     }
 ```
 
@@ -172,7 +163,7 @@ There are two phases to security actions for the backend. This is the denormaliz
     1. Insert StudentEducationOrganizationResponsibilityAssociation document into Document
     2. Compute EdOrgId array for Student from EducationOrganizationId and EducationOrganizationHierarchy
     3. Insert derived row into StudentEducationOrganizationResponsibilityAuthorization, including EdOrgId array in StudentResponsibilityAuthorizationEdOrgIds column
-    4. Update EdOrgId array on each Student-responsibility-securable Document for this Student, using indexed StudentUniqueId on StudentResponsibilitySecurableDocument
+    4. Update EdOrgId array on each Student-securable Document for this Student, using indexed StudentUniqueId on StudentSecurableDocument
 
   * Update (including cascade)
     1. Detect changes to either StudentUniqueId or EducationOrganizationId - StudentEducationOrganizationResponsibilityAssociation allows identity updates
@@ -181,7 +172,7 @@ There are two phases to security actions for the backend. This is the denormaliz
     2. Update StudentEducationOrganizationResponsibilityAssociation document in Document
 
   * Delete
-    1. Null out EdOrgId array in each Student-responsibility-securable Document, using indexed StudentUniqueId on StudentResponsibilitySecurableDocument
+    1. Null out EdOrgId array in each Student-securable Document, using indexed StudentUniqueId on StudentSecurableDocument
     2. Delete StudentEducationOrganizationResponsibilityAssociation document
     3. Delete cascade will remove StudentEducationOrganizationResponsibilityAuthorization row
 
@@ -189,7 +180,7 @@ There are two phases to security actions for the backend. This is the denormaliz
   * Create
     1. Lookup EdOrgId array on StudentEducationOrganizationResponsibilityAuthorization by indexed StudentUniqueId
     2. Insert Student-responsibility-securable document into Document, including EdOrgId array
-    3. Create StudentResponsibilitySecurableDocument entry for this Document
+    3. Create StudentSecurableDocument entry for this Document
 
   * Update (including cascade)
       1. Detect changes to StudentUniqueId
@@ -243,7 +234,6 @@ Authorization strategies that require more than one authorization pathway can be
 ## Possible Future Improvements
 
 * Partitioning of StudentSecurableDocument table with partition key derived from StudentUniqueId.
-* Partitioning of StudentResponsibilitySecurableDocument table with partition key derived from StudentUniqueId.
 * Partitioning of StudentSchoolAssociationAuthorization table with partition key derived from StudentUniqueId.
 * Partitioning of StudentEducationOrganizationResponsibilityAuthorization table with partition key derived from StudentUniqueId.
 * Some authorization strategy logic will be in the backend. What can we pull up into DMS core to simplify backends? This would mean multiple smaller actions in the backend interface, in separate transactions. This could result in stale authorization checks over a short period of time (expected upper bound of a few seconds). What is the tolerance for the time for an authorization change to take effect?
