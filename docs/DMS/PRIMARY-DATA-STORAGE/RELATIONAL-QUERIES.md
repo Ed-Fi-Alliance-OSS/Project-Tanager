@@ -1,16 +1,20 @@
-# DMS Feature: Queries Using the Relational Database
+# DMS Feature: Relational Database Queries
 
 > [!TIP]
 > See [DMS Feature: Primary Data Storage](./README.md) for detailed background on the database design.
 
-While the preferred method of query handling is via [search engine](../SEARCH-DATABASE.md), some
-deployments will not be able to handle the additional operational complexity. In these cases DMS can
-be configured to handle queries in the main datastore at a cost of performance.
+While the preferred method for query handling is via a [search engine](../SEARCH-DATABASE.md), some deployments will not be able to handle the additional operational complexity. In these cases, DMS can be configured to handle queries directly in the main relational datastore, though this comes at a cost of query performance.
 
-## Design
+## Design Overview
 
-Queries are handled by resource-specific "query" tables that include each searchable field. These tables are
-not well suited to partitioning, but are no worse than the ODS/API in table size per resource.
+This approach uses resource-specific `*Query` tables that contain denormalized, searchable fields extracted from the JSON documents. Each query table maintains a foreign key relationship to the main `Documents` table.
+
+### Key Characteristics
+
+- **Resource-specific tables**: One query table per resource type (e.g., `QueryStudent`, `QuerySchool`)
+- **Denormalized structure**: Query fields are extracted from JSON and stored as typed columns
+- **Cross-partition indexing**: Query tables provide efficient access across document partitions
+- **Performance trade-off**: Improves read performance at the cost of write complexity
 
 ```mermaid
 erDiagram
@@ -44,36 +48,68 @@ erDiagram
     }
 ```
 
-For example, `QueryStudent` has a foreign key to the `Documents` table with a row per Student document. Because
-the query tables include the `Documents` partition key, query tables act as a cross-partition index on the
-Documents table while avoiding the downsides of an actual cross-partition index. For this reason, "Get All"
-queries will use these tables as well.
+### Architecture Details
 
-The other columns on a query table are a list of queryable columns that are available to an API user for
-GET-by-query. Pagination will operate on query tables only. Like the ODS/API there will be no indexes on
-individual query fields, preferring insert performance over ad hoc query performance. Deployments needing fast
-ad hoc query performance should consider using DMS's search engine option.
+#### Foreign Key Relationships
+Each query table (e.g., `QueryStudent`) maintains a foreign key to the `Documents` table with one row per document. By including the `Documents` partition key, query tables effectively act as cross-partition indexes while avoiding the performance penalties of actual cross-partition indexes.
 
-The next question is how this tables get populated. The best way would be via a separate process so as not to
-slow down insert performance inserts. However, in a deployment where a search engine is not an option, a
-separate process may not be viable either. In this case, we'll need to extract the queryable fields from the
-document before insert.
+#### Queryable Fields
+The columns in each query table correspond to fields that are available to API users for GET-by-query operations. This column list is derived from the `queryFieldMapping` in `ApiSchema.json`, which provides:
+- The query field name
+- The JSONPath to the document element location
 
-The query table schema will be pre-generated, as will the JSON Paths to the queryable elements. The JSON Paths
-will be included with the API query field names in the ApiSchema.json file. The query field names will be all
-lowercased, and for ease of query construction the column names should be identical (i.e. not snake case).
+Note that queryable document fields are always scalar values, so a JSONPath will never return multiple values.
 
-## Implementation
+#### Query Operations
+- **Pagination**: Operates exclusively on query tables
+- **"Get All" queries**: Use query tables for efficient cross-partition access
+- **Indexing strategy**: Individual query fields will be indexed on a case-by-case basis to balance insert performance with query performance
 
-### Business Logic
+> [!NOTE]
+> Deployments requiring fast ad hoc query performance should use DMS's search engine option instead.
 
-Insertion into query tables will be enabled at runtime by feature flag. The
-insertion must be in the same atomic transaction context as the core table
-inserts.
+### Query Table Processing Strategy
 
-### DDL
+Field extraction occurs in DMS core during document insert/update operations. Query tables can be populated using two approaches:
 
-The scripts below are for illustrative purposes only. Each table should only provide the queryable columns.
+1. **Asynchronous processing** (preferred): A separate background process updates query tables, minimizing impact on write performance
+2. **Synchronous processing** (fallback): When separate processes are not viable, query table insert/update will be in the same transaction as the document insert/update.
+
+### Schema Generation
+Query table schemas are pre-generated either:
+- Directly into `ApiSchema.json` (integrated approach)
+- Into separate query table JSON files (more modular approach)
+
+### Configuration
+
+Inserts/updates into query tables will be configurable at runtime.
+
+### Query Table Maintenance
+
+#### Rebuild Utility
+A dedicated utility will be provided to rebuild query tables from the `Documents` table. This utility serves multiple purposes:
+
+**Incremental rebuild**: Identifies `Documents` entries without corresponding query table entries and creates them. This handles:
+- Temporary misconfiguration issues in production (e.g., one DMS instance not configured for relational queries)
+- Migration scenarios when moving away from search engine configurations
+
+**Full rebuild approaches**:
+1. **Simple approach**: Truncate existing query table and rebuild (causes downtime)
+2. **Zero-downtime approach**:
+   - Create new table (e.g., `QueryStudent_new`)
+   - Backfill data from `Documents` table
+   - Perform transactional table rename/swap
+   - Drop old table
+
+#### Operational Considerations
+- Rebuild operations should be scheduled during low-traffic periods
+- Progress monitoring and logging are essential for large datasets
+- Rollback procedures should be documented and tested
+
+### Database Schema
+
+> [!IMPORTANT]
+> The SQL scripts below are for illustrative purposes only. Production implementations should only include columns that are actually queryable according to the resource's `ApiSchema.json` configuration.
 
 ```sql
 -- Query table with search fields for Student documents
@@ -103,14 +139,14 @@ CREATE TABLE [dbo].[QueryStudent] (
 );
 END
 
--- Example SQL query for a lastSurname. Join includes partition elimination on Documents table
+-- Example: Query by specific field (includes partition elimination)
 SELECT d.edfi_doc
-FROM Documents d INNER JOIN QueryStudent q
-  ON (d.partition_key = q.document_partition_key AND d.id = q.document_id)
+FROM Documents d
+INNER JOIN QueryStudent q ON (d.partition_key = q.document_partition_key AND d.id = q.document_id)
 WHERE q.lastSurname = 'Williams';
 
--- Example SQL query for a "GET ALL". Acts as a cross-partition index for all Student documents
+-- Example: "GET ALL" query (cross-partition index for all Student documents)
 SELECT d.edfi_doc
-FROM Documents d INNER JOIN QueryStudent q
-  ON (d.partition_key = q.document_partition_key AND d.id = q.document_id);
+FROM Documents d
+INNER JOIN QueryStudent q ON (d.partition_key = q.document_partition_key AND d.id = q.document_id);
 ```
