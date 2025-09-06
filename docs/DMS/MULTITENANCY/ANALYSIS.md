@@ -24,11 +24,7 @@ Every table in the database would have an "instance id" column that is then used
 
 ### Schema-level data segregation (medium isolation)
 
-Every instance would have a separate schema in a shared DMS database. While serving to reduce the number of databases needed to host multiple instances, it would come with extra management complexity as compared with row-level or database-level approaches.
-
-Implementation of schema-based isolation would present less risk (as compared to row-level filtering) particularly if there was no “single tenant” schema option. Thus, a defect in the query implementation would likely just result in an error rather than exposing the wrong student data.
-
-ℹ️ When you factor in Debezium/Kafka concerns for large scale PostgreSQL implementation, support for this approach seems necessary. This is discussed in more detail below.
+Every instance would have a separate _schema_ in a shared DMS database. While serving to reduce the number of databases needed to host multiple instances and thereby reducing costs for hosting models with an incremental per-database cost, it would come with extra management and support complexity as compared with row-level or database-level approaches. Schema-based segregation does offer less risk of data exposure than row-level filtering as an "unfiltered" query is likely to fail due to an invalid schema rather than expose other instances' data, but in practice it is not seen as a scalable or supportable strategy. For these reasons it is mentioned here only for completeness rather than as a recommended option.
 
 ### Database-level segregation (high isolation)
 
@@ -36,12 +32,12 @@ Every instance would have its own database. Databases can be created and deleted
 
 ### Hybrid Approach
 
-It is worth noting that these three approaches are not mutually exclusive. For example, one could (and probably should) use both schema-level segregation and database-level segregation to manage a large implementation (particularly with PostgreSQL). Take Houston ISD, the largest school district in Texas with around 180,000 students, as an example – it would likely be allocated a dedicated database. On the other end of the spectrum, there are many very small districts that could be combined into a single database and segregated by schema.
+It is worth noting that these three approaches are not mutually exclusive. For example, one could use both schema-level or row-level segregation along with database-level segregation to manage a large implementation. A very large school district would likely be allocated a dedicated database, while many very small districts could be combined into a single database.
 
-The API software could support such flexible deployment and management options with a design that incorporates the following items:
+The API software _could_ support such flexible deployment and management options with a design that incorporates the following items:
 
 * Each API client is associated with a specific instance.
-* Each instance has an associated configured connection string (to a specific database).
+* Each instance has an associated configured connection string to a specific DMS database.
 * The API implementation incorporates instance-based schemas into all queries as appropriate for the API client while processing requests.
 
 ## Kafka
@@ -54,9 +50,9 @@ Running a dedicated Kafka cluster per instance would theoretically provide compl
 
 ### Topic-per-instance segregation (current approach; feasible within limits)
 
-This approach offers strong isolation between instances and aligns well with data separation requirements related to FERPA. It simplifies ACL configuration (for controlling which consumers can access the data), consumer group management, and auditing, since each instance’s data is fully separated at the topic level. This provides clear instance-based isolation at the Change Data Capture (CDC) level for 3rd party consumers.
+This approach offers strong isolation between instances and aligns well with data separation requirements related to FERPA. It simplifies ACL configuration (for controlling which consumers can access the data), consumer group management, and auditing, since each instance's data is fully separated at the topic level. This provides clear instance-based isolation at the Change Data Capture (CDC) level for 3rd party consumers.
 
-However, for use with OpenSearch in such a configuration, it would probably make sense to route the instance-specific topics into a single consolidated topic for ingestion into OpenSearch. It would also be necessary to perform some additional transformations along the way to retain the tenant/instance identification for use in OpenSearch indexes to provide the necessary logical segregation of the data for API clients (e.g. via filtered aliases).
+However, for use with OpenSearch in such a configuration, it would probably make sense to route the instance-specific topics into a single consolidated topic for ingestion into a solution-level service such as OpenSearch. It would also be necessary to perform some additional transformations along the way to retain the tenant/instance identification for use in OpenSearch indexes to provide the necessary logical segregation of the data for API clients (e.g. via filtered aliases).
 
 #### Impact of Database Engine and Data Segregation Strategy
 
@@ -64,17 +60,19 @@ The choice of relational database engine (PostgreSQL or SQL Server) and the data
 
 ##### PostgreSQL Considerations
 
-For PostgreSQL, the Debezium connector utilizes a PostgreSQL replication slot to consume changes and publish messages into Kafka. However, each replication slot is inherently scoped to a single database – you cannot create a replication slot that spans multiple databases. This means that each distinct PostgreSQL database instance requires a distinct connector, and thus to reduce the number of connectors that need to be managed requires a corresponding reduction in the number of databases. This, in turn, necessarily implies the use of a schema-per-instance or row-level data segregation strategy in the application layer. It's a balance of contextual tradeoffs without a clear path for defining an optimal general-purpose recommendation.
+For PostgreSQL, the Debezium connector utilizes a PostgreSQL replication slot scoped to a single database --  you cannot span multiple databases with a single replication slot. However, it is important to note that connectors in Kafka Connect are primarily logical configurations and they do not directly equate to operating system processes or heavy services. Each connector is translated into tasks that are distributed across the workers in the Kafka Connect cluster.
+
+As such, the operational burden lies less in the sheer number of connectors and more in managing the Kafka Connect cluster itself (e.g. worker capacity, scaling, and fault tolerance). While a database-per-instance or schema-per-instance segregation strategy would still influence connector counts, it should not be overstated as a decisive factor in overall manageability. The true scaling concerns are at the Kafka Connect cluster level.
 
 ##### SQL Server Considerations
 
-Debezium’s integration with SQL Server does not suffer from the same technical limitations since the connector relies on CDC tables that are created in each SQL Server database and the connector can be configured to process changes from multiple databases on the same server. This translates to more freedom of choice with regards to the database-per-instance vs. schema-per-instance decision. The minimum number of Debezium connectors required correlates to the number of SQL Server instances being monitored.
+Debezium's integration with SQL Server does not have the same connector-per-database limitations since the connector relies on CDC tables that are created in each SQL Server database and the connector can be configured to process changes from multiple databases on the same server. Thus, the minimum number of Debezium connectors required correlates to the number of SQL Server instances being monitored rather than the number of databases.
 
 ### Shared topic with tenant/instance filtering (technically possible, but least desirable)
 
 An alternative model would consolidate messages for all instances into a single shared (i.e. massive) topic and rely on an instance identifier field in the message payload to filter and route messages. While this reduces topic count and centralizes stream processing, it increases the risk of cross-instance data leakage due to misconfigured consumers or processing bugs.
 
-The real problems emerge when that single, massive topic is consumed by various downstream applications, including sink connectors. If all of the instances' data is in one topic and every instance-based consumer is interested in (or more aptly, allowed access to) only a small subset of that data, they will each have to read *all*of the data and filter out a majority of it. This results in wasted CPU cycles, network bandwidth, and increased latency for processing. These characteristics may also limit the effectiveness of topic partitioning for scalability using consumer groups.
+The real problems emerge when that single, massive topic is consumed by various downstream applications, including sink connectors. If all of the instances' data is in one topic and every instance-based consumer is interested in (or more aptly, allowed access to) only a small subset of that data, they will each have to read **all** of the data and filter out a majority of it. This results in wasted CPU cycles, network bandwidth, and increased latency for processing. These characteristics may also limit the effectiveness of topic partitioning for scalability using consumer groups.
 
 As discussed above, it might make sense to combine all data into a single topic for ingestion to a shared OpenSearch instance but for an architecture striving to provide streaming consumption by 3rd party consumers with instance-based access, this is not ideal. Given the sensitivity of student data and the FERPA compliance goal of strong per-instance segregation, an approach based exclusively on a shared topic is not recommended.
 
@@ -82,7 +80,7 @@ As discussed above, it might make sense to combine all data into a single topic 
 
 OpenSearch presents unique challenges for supporting multitenancy at the scale required by a large SEA (e.g. Texas), particularly when considering the current implementation pattern. The following data segregation strategies are evaluated in order from least feasible to most feasible.
 
-### **Cluster-level segregation (high isolation, least feasible)**
+### Cluster-level segregation (high isolation, least feasible)
 
 At the highest level of physical isolation, a dedicated OpenSearch cluster-per-instance approach would ensure that each tenant's data is fully isolated in terms of both storage and compute. However, this approach is prohibitively expensive and operationally complex. Managing and maintaining 1300+ clusters would place an unsustainable burden on the hosting organization. This model also presents challenges for resource utilization, with a very high likelihood of underutilization across many clusters. As such, this option is not considered feasible for the intended scale and support model.
 
@@ -102,7 +100,7 @@ Given these concerns, the index-per-tenant approach is likely not feasible even 
 
 The data for each instance would be accessed by the API through _filtered aliases_ in OpenSearch, which would enforce instance-level access constraints using query-time filtering on an instance identifier field.
 
-This approach prevents further exacerbation of the “index explosion” problem presented by an index-per-resource-per-instance strategy, avoiding degradation of overall performance and stability of the cluster as it scales. However, the approach requires careful implementation with consideration to FERPA requirements as follows:
+This approach prevents further exacerbation of the "index explosion" problem presented by an index-per-resource-per-instance strategy, avoiding degradation of overall performance and stability of the cluster as it scales. However, the approach requires careful implementation with consideration to FERPA requirements as follows:
 
 * All API requests must be executed in the context of an alias with an appropriate filter applied to ensure instance-level data access boundaries. Failure to use the aliases correctly and pervasively in the application code could expose the wrong data to API consumers.
 * Care must be taken with data lifecycle policies, re-indexing, and versioning to ensure tenant-specific requirements can still be met within shared indexes.
@@ -115,7 +113,7 @@ The current DMS implementation creates an index for each resource. The current E
 
 A more scalable and operationally efficient solution would involve consolidating data into a smaller number of shared indexes, possibly one per resource type (e.g. descriptors), per domain, or based on anticipated resource size (e.g. grouping smaller resources together while keeping larger resources separate).
 
-Consideration may also be given to using a single shared index as there are only about 500-600 unique _column_ names in the current Ed-Fi ODS database and OpenSearch defines a default maximum of 1000 fields per index. However, this number doesn’t necessarily translate directly to the number of fields present in the JSON bodies presented to OpenSearch for indexing. For example, EducationOrganizationId could appear at the root level or in differently named references across various resources.
+Consideration may also be given to using a single shared index as there are only about 500-600 unique _column_ names in the current Ed-Fi ODS database and OpenSearch defines a default maximum of 1000 fields per index. However, this number doesn't necessarily translate directly to the number of fields present in the JSON bodies presented to OpenSearch for indexing. For example, EducationOrganizationId could appear at the root level or in differently named references across various resources.
 
 There are also strategies that could be used to reduce the number of fields through explicit model metadata-driven mapping generation. It is noteworthy that the current API specification provides no support for filtering on values of child objects in resources and so the current OpenSearch connector is likely over-indexing by including many fields that will never be used by the API.
 
@@ -126,13 +124,9 @@ When combined, these approaches would significantly reduce the number of indexes
 Here are the next steps based on the analysis above:
 
 * Database (Hybrid Approach)
-  * Implement support for instance-based schemas in the DMS database initialization.
-  * Replicate the behavior of the Ed-Fi ODS API Admin metadata related to associating each API client with a specific DMS instance and apply the instance-based schema to all DMS queries based on the current API client.
+  * Implement support for multiple instances through multiple DMS databases.
+  * Replicate the behavior of the Ed-Fi ODS API Admin metadata related to associating each API client with a specific instance and use the instance-specific connection string to connect to the appropriate DMS database.
 * Debezium/Kafka (Topic-per-Instance Segregation)
   * Publish changes into instance-based topics to make it more feasible to implement appropriate authorization guardrails for 3rd party Kafka consumers.
-  * Perform transformation/routing of messages into a single shared topic exclusively for use with OpenSearch ingestion.
-* OpenSearch (if support is continued)
-  * Completely revamp how OpenSearch indexes are built.
-  * Produce very few, or even a single index.
-  * Stop over-indexing by implementing appropriate maps to align the searchable fields with data elements that can be used for filtering in the API.
-  * Incorporate the necessary metadata in the JSON bodies ingested to be able to provide filtered aliases for instance-based query filtering from the API.
+
+ℹ️ After analysis and evaluation, plans for utilizing OpenSearch/ElasticSearch to support the API's read load are being dropped. Support for Kafka will remain as an optional feature of the DMS specifically for hosts with consumers with use cases that would benefit from streaming data.
