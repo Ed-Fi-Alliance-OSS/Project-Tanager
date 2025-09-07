@@ -54,20 +54,6 @@ This approach offers strong isolation between instances and aligns well with dat
 
 However, for use with OpenSearch in such a configuration, it would probably make sense to route the instance-specific topics into a single consolidated topic for ingestion into a solution-level service such as OpenSearch. It would also be necessary to perform some additional transformations along the way to retain the tenant/instance identification for use in OpenSearch indexes to provide the necessary logical segregation of the data for API clients (e.g. via filtered aliases).
 
-#### Impact of Database Engine and Data Segregation Strategy
-
-The choice of relational database engine (PostgreSQL or SQL Server) and the database multitenancy strategy (database/schema/row-level segregation) both have a strong influence on how Debezium and Kafka Connect must be configured to accurately capture, route, and sink tenant/instance-specific data into OpenSearch.
-
-##### PostgreSQL Considerations
-
-For PostgreSQL, the Debezium connector utilizes a PostgreSQL replication slot scoped to a single database --  you cannot span multiple databases with a single replication slot. However, it is important to note that connectors in Kafka Connect are primarily logical configurations and they do not directly equate to operating system processes or heavy services. Each connector is translated into tasks that are distributed across the workers in the Kafka Connect cluster.
-
-As such, the operational burden lies less in the sheer number of connectors and more in managing the Kafka Connect cluster itself (e.g. worker capacity, scaling, and fault tolerance). While a database-per-instance or schema-per-instance segregation strategy would still influence connector counts, it should not be overstated as a decisive factor in overall manageability. The true scaling concerns are at the Kafka Connect cluster level.
-
-##### SQL Server Considerations
-
-Debezium's integration with SQL Server does not have the same connector-per-database limitations since the connector relies on CDC tables that are created in each SQL Server database and the connector can be configured to process changes from multiple databases on the same server. Thus, the minimum number of Debezium connectors required correlates to the number of SQL Server instances being monitored rather than the number of databases.
-
 ### Shared topic with tenant/instance filtering (technically possible, but least desirable)
 
 An alternative model would consolidate messages for all instances into a single shared (i.e. massive) topic and rely on an instance identifier field in the message payload to filter and route messages. While this reduces topic count and centralizes stream processing, it increases the risk of cross-instance data leakage due to misconfigured consumers or processing bugs.
@@ -75,6 +61,16 @@ An alternative model would consolidate messages for all instances into a single 
 The real problems emerge when that single, massive topic is consumed by various downstream applications, including sink connectors. If all of the instances' data is in one topic and every instance-based consumer is interested in (or more aptly, allowed access to) only a small subset of that data, they will each have to read **all** of the data and filter out a majority of it. This results in wasted CPU cycles, network bandwidth, and increased latency for processing. These characteristics may also limit the effectiveness of topic partitioning for scalability using consumer groups.
 
 As discussed above, it might make sense to combine all data into a single topic for ingestion to a shared OpenSearch instance but for an architecture striving to provide streaming consumption by 3rd party consumers with instance-based access, this is not ideal. Given the sensitivity of student data and the FERPA compliance goal of strong per-instance segregation, an approach based exclusively on a shared topic is not recommended.
+
+## Kafka Connect
+
+The choice of relational database engine (PostgreSQL or SQL Server) and the database multitenancy strategy (database/schema/row-level segregation) both have a strong influence on how Debezium and Kafka Connect must be configured to accurately capture, route, and sink tenant/instance-specific data into OpenSearch.
+
+For PostgreSQL, the Debezium connector uses a replication slot that is scoped to a single database. This means it cannot span multiple databases. It's important to understand that connectors in Kafka Connect are logical configurations—they do not correspond to operating system processes or heavy services. Each connector is broken down into tasks that are distributed across the Kafka Connect cluster workers.
+
+In contrast, Debezium's integration with SQL Server does not have the same connector-per-database limitation. The connector relies on CDC tables created within each SQL Server database and can be configured to process changes from multiple databases on the same server. Therefore, the minimum number of connectors required is tied to the number of SQL Server instances being monitored, not the number of databases.
+
+Operationally, the main concern is not the number of connectors but the management of the Kafka Connect cluster itself. Factors such as worker capacity, scaling, and fault tolerance are more critical. While strategies like database-per-instance or schema-per-instance can influence connector counts, they should not be overstated as the primary factor in overall manageability. The real scaling challenges are at the Kafka Connect cluster level.
 
 ## OpenSearch
 
