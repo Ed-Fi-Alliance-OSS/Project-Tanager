@@ -125,4 +125,4 @@ Here are the next steps based on the analysis above:
 * Debezium/Kafka (Topic-per-Instance Segregation)
   * Publish changes into instance-based topics to make it more feasible to implement appropriate authorization guardrails for 3rd party Kafka consumers.
 
-ℹ️ After analysis and evaluation, plans for utilizing OpenSearch/ElasticSearch to support the API's read load are being dropped. Support for Kafka will remain as an optional feature of the DMS specifically for hosts with consumers with use cases that would benefit from streaming data.
+ℹ️ After analysis and evaluation, plans for utilizing OpenSearch/ElasticSearch to support the API's read load are being dropped. They cannot provide the required support for deep offset-based pagination, which is an anti-pattern for modern search engines. Separately, replacement of the current index-per-resource approach would require considerable work including model-informed index generation. Support for Kafka will remain as an optional feature of the DMS specifically for hosts with consumers with use cases that would benefit from streaming data.
