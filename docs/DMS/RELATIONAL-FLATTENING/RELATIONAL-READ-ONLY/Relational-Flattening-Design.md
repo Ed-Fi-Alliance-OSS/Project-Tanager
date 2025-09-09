@@ -297,7 +297,7 @@ CREATE TABLE StudentSchoolAssociationAlternativeGraduationPlan (
         REFERENCES GraduationPlan(Id),
     CONSTRAINT FK_SSAAltGradPlan_Document                   -- Back to source
         FOREIGN KEY (Document_Id, Document_PartitionKey)
-        REFERENCES Document(Id, DocumentPartitionKey) ON DELETE CASCADE
+        REFERENCES Document(Id, DocumentPartitionKey) ON DELETE CASCADE,
     CONSTRAINT UQ_SAAltGradPlan_AltGraduationPlan           -- Uniqueness on FK to root + reference
         UNIQUE (StudentSchoolAssociation_Id, AlternativeGraduationPlan_Id)
 );
