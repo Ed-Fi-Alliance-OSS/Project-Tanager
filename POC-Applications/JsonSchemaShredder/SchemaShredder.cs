@@ -273,7 +273,7 @@ public class SchemaShredder
     private string ConvertJsonPathToColumnName(string jsonPath)
     {
         // Remove the leading "$." and convert dots to underscores
-        if (jsonPath.StartsWith("$."))
+        if (jsonPath.StartsWith("$.") && jsonPath.Length > 2)
         {
             return jsonPath[2..].Replace('.', '_');
         }
@@ -320,9 +320,21 @@ public class SchemaShredder
     {
         // Convert plural table names to singular for foreign key prefixes
         // e.g., "studentEducationOrganizationAssociations" -> "studentEducationOrganizationAssociation"
-        if (tableName.EndsWith("s", StringComparison.OrdinalIgnoreCase) && tableName.Length > 1)
+        // Note: This uses simple pluralization logic suitable for Ed-Fi resource naming conventions
+        if (string.IsNullOrWhiteSpace(tableName) || tableName.Length <= 1)
         {
-            return tableName.Substring(0, tableName.Length - 1);
+            return tableName;
+        }
+
+        if (tableName.EndsWith("s", StringComparison.OrdinalIgnoreCase))
+        {
+            // Avoid removing 's' from words that would become meaningless
+            var withoutS = tableName.Substring(0, tableName.Length - 1);
+            // Basic validation to ensure we don't create obviously incorrect results
+            if (withoutS.Length > 2 && !withoutS.EndsWith("ss", StringComparison.OrdinalIgnoreCase))
+            {
+                return withoutS;
+            }
         }
         return tableName;
     }

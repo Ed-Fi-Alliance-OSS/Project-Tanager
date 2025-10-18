@@ -181,4 +181,34 @@ public class SchemaShredderTests
         Assert.Contains("integerField\" INTEGER NOT NULL", result);
         Assert.Contains("booleanField\" BOOLEAN NULL", result);
     }
+
+    [Fact]
+    public void GeneratePostgreSqlScript_HandlesEdgeCases()
+    {
+        // Arrange
+        var jsonContent = @"{
+            ""projectSchema"": {
+                ""projectEndpointName"": ""test"",
+                ""resourceSchemas"": {
+                    ""class"": {
+                        ""identityJsonPaths"": [""$"", ""$.a""],
+                        ""jsonSchemaForInsert"": {
+                            ""properties"": {
+                                ""name"": {""type"": ""string""}
+                            },
+                            ""required"": [""name""]
+                        }
+                    }
+                }
+            }
+        }";
+
+        var jsonDocument = JsonDocument.Parse(jsonContent);
+        var shredder = new SchemaShredder();
+
+        // Act & Assert - Should not throw exceptions with edge case inputs
+        var result = shredder.GeneratePostgreSqlScript(jsonDocument);
+        Assert.Contains("CREATE TABLE", result);
+        Assert.Contains("class", result);
+    }
 }
