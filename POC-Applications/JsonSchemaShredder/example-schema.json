@@ -1,0 +1,82 @@
+{
+    "projectSchema": {
+        "projectEndpointName": "ed-fi",
+        "resourceSchemas": {
+            "studentEducationOrganizationAssociations": {
+                "identityJsonPaths": [
+                    "$.educationOrganizationReference.educationOrganizationId",
+                    "$.studentReference.studentUniqueId"
+                ],
+                "jsonSchemaForInsert": {
+                    "description": "This association represents student information as reported in the context of the student's relationship to the education organization. Enrollment relationship semantics are covered by StudentSchoolAssociation.",
+                    "properties": {
+                        "addresses": {
+                            "items": {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "addressTypeDescriptor": {
+                                        "description": "The type of address listed for an individual or organization.    For example:  Physical Address, Mailing Address, Home Address, etc.)",
+                                        "type": "string"
+                                    },
+                                    "apartmentRoomSuiteNumber": {
+                                        "description": "The apartment, room, or suite number of an address.",
+                                        "maxLength": 50,
+                                        "type": "string"
+                                    },
+                                    "streetNumberName": {
+                                        "description": "The street number and street name or post office box number of an address.",
+                                        "maxLength": 150,
+                                        "pattern": "^(?!\\s)(.*\\S)$",
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "streetNumberName",
+                                    "addressTypeDescriptor"
+                                ],
+                                "type": "object"
+                            },
+                            "type": "array"
+                        },
+                        "barrierToInternetAccessInResidenceDescriptor": {
+                            "description": "An indication of the barrier to having internet access in the student's primary place of residence.",
+                            "type": "string"
+                        },
+                        "educationOrganizationReference": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "educationOrganizationId": {
+                                    "description": "The identifier assigned to an education organization.",
+                                    "type": "integer"
+                                }
+                            },
+                            "required": [
+                                "educationOrganizationId"
+                            ],
+                            "type": "object"
+                        },
+                        "studentReference": {
+                            "additionalProperties": false,
+                            "properties": {
+                                "studentUniqueId": {
+                                    "description": "A unique alphanumeric code assigned to a student.",
+                                    "maxLength": 32,
+                                    "pattern": "^(?!\\s)(.*\\S)$",
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "studentUniqueId"
+                            ],
+                            "type": "object"
+                        }
+                    },
+                    "required": [
+                        "studentReference",
+                        "educationOrganizationReference"
+                    ]
+                }
+            }
+        }
+    }
+}
