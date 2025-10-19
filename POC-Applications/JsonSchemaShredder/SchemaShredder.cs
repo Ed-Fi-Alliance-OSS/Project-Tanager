@@ -10,426 +10,507 @@ namespace JsonSchemaShredder;
 
 public class SchemaShredder
 {
-    private const string DescriptorSuffix = "Descriptors";
+  private const string DescriptorSuffix = "Descriptors";
 
-    public string GeneratePostgreSqlScript(JsonDocument jsonDocument)
+  public string GeneratePostgreSqlScript(JsonDocument jsonDocument)
+  {
+    var root = jsonDocument.RootElement;
+
+    if (!root.TryGetProperty("projectSchema", out var projectSchema))
+      throw new InvalidOperationException("Missing 'projectSchema' property");
+
+    if (!projectSchema.TryGetProperty("projectEndpointName", out var endpointName))
+      throw new InvalidOperationException("Missing 'projectEndpointName' property");
+
+    if (!projectSchema.TryGetProperty("resourceSchemas", out var resourceSchemas))
+      throw new InvalidOperationException("Missing 'resourceSchemas' property");
+
+    var schemaName = endpointName.GetString()!;
+    var scriptBuilder = new StringBuilder();
+    var tables = new List<TableDefinition>();
+    var indexes = new List<IndexDefinition>();
+
+    // Create schema
+    scriptBuilder.AppendLine($"-- PostgreSQL script for schema: {schemaName}");
+    scriptBuilder.AppendLine($"CREATE SCHEMA IF NOT EXISTS \"{schemaName}\";");
+    scriptBuilder.AppendLine();
+
+    // Process each resource schema
+    foreach (var resourceProperty in resourceSchemas.EnumerateObject())
     {
-        var root = jsonDocument.RootElement;
-        
-        if (!root.TryGetProperty("projectSchema", out var projectSchema))
-            throw new InvalidOperationException("Missing 'projectSchema' property");
+      var resourceName = resourceProperty.Name;
 
-        if (!projectSchema.TryGetProperty("projectEndpointName", out var endpointName))
-            throw new InvalidOperationException("Missing 'projectEndpointName' property");
+      // Skip descriptors
+      if (resourceName.EndsWith(DescriptorSuffix, StringComparison.OrdinalIgnoreCase))
+        continue;
 
-        if (!projectSchema.TryGetProperty("resourceSchemas", out var resourceSchemas))
-            throw new InvalidOperationException("Missing 'resourceSchemas' property");
+      var resourceValue = resourceProperty.Value;
 
-        var schemaName = endpointName.GetString()!;
-        var scriptBuilder = new StringBuilder();
-        var tables = new List<TableDefinition>();
-        var indexes = new List<IndexDefinition>();
+      if (!resourceValue.TryGetProperty("jsonSchemaForInsert", out var jsonSchema))
+        continue;
 
-        // Create schema
-        scriptBuilder.AppendLine($"-- PostgreSQL script for schema: {schemaName}");
-        scriptBuilder.AppendLine($"CREATE SCHEMA IF NOT EXISTS \"{schemaName}\";");
-        scriptBuilder.AppendLine();
+      if (!resourceValue.TryGetProperty("identityJsonPaths", out var identityPaths))
+        continue;
 
-        // Process each resource schema
-        foreach (var resourceProperty in resourceSchemas.EnumerateObject())
-        {
-            var resourceName = resourceProperty.Name;
-            
-            // Skip descriptors
-            if (resourceName.EndsWith(DescriptorSuffix, StringComparison.OrdinalIgnoreCase))
-                continue;
+      // Parse the main table
+      var mainTable = ParseTable(schemaName, resourceName, jsonSchema, null);
+      tables.Add(mainTable);
 
-            var resourceValue = resourceProperty.Value;
-            
-            if (!resourceValue.TryGetProperty("jsonSchemaForInsert", out var jsonSchema))
-                continue;
+      // Extract natural key columns once
+      var mainTableNaturalKeyColumns = ExtractNaturalKeyColumns(identityPaths, mainTable.Columns);
+      var naturalKeyColumnDefinitions = mainTable
+        .Columns.Where(c => mainTableNaturalKeyColumns.Contains(c.Name))
+        .ToList();
 
-            if (!resourceValue.TryGetProperty("identityJsonPaths", out var identityPaths))
-                continue;
+      // Parse nested array tables - pass only the natural key columns as foreign keys
+      if (jsonSchema.TryGetProperty("properties", out var properties))
+      {
+        ParseNestedArrayTables(
+          schemaName,
+          resourceName,
+          properties,
+          tables,
+          naturalKeyColumnDefinitions
+        );
+      }
 
-            // Parse the main table
-            var mainTable = ParseTable(schemaName, resourceName, jsonSchema, null);
-            tables.Add(mainTable);
+      // Create natural key index for main table
+      if (mainTableNaturalKeyColumns.Count > 0)
+      {
+        indexes.Add(
+          new IndexDefinition(
+            $"nk_{resourceName}",
+            $"\"{schemaName}\".\"{Singularize(resourceName)}\"",
+            mainTableNaturalKeyColumns
+          )
+        );
+      }
 
-            // Extract natural key columns once
-            var mainTableNaturalKeyColumns = ExtractNaturalKeyColumns(identityPaths, mainTable.Columns);
-            var naturalKeyColumnDefinitions = mainTable.Columns.Where(c => mainTableNaturalKeyColumns.Contains(c.Name)).ToList();
-
-            // Parse nested array tables - pass only the natural key columns as foreign keys
-            if (jsonSchema.TryGetProperty("properties", out var properties))
-            {
-                ParseNestedArrayTables(schemaName, resourceName, properties, tables, naturalKeyColumnDefinitions);
-            }
-
-            // Create natural key index for main table
-            if (mainTableNaturalKeyColumns.Count > 0)
-            {
-                indexes.Add(new IndexDefinition(
-                    $"nk_{resourceName}",
-                    $"\"{schemaName}\".\"{resourceName}\"",
-                    mainTableNaturalKeyColumns
-                ));
-            }
-
-            // Create natural key indexes for child tables
-            if (jsonSchema.TryGetProperty("properties", out var propertiesForIndex))
-            {
-                CreateChildTableIndexes(schemaName, resourceName, propertiesForIndex, tables, naturalKeyColumnDefinitions, indexes);
-            }
-        }
-
-        // Generate CREATE TABLE statements
-        foreach (var table in tables)
-        {
-            scriptBuilder.AppendLine(GenerateCreateTableStatement(table));
-            scriptBuilder.AppendLine();
-        }
-
-        // Generate CREATE INDEX statements
-        foreach (var index in indexes)
-        {
-            scriptBuilder.AppendLine(GenerateCreateIndexStatement(index));
-        }
-
-        return scriptBuilder.ToString();
+      // Create natural key indexes for child tables
+      if (jsonSchema.TryGetProperty("properties", out var propertiesForIndex))
+      {
+        CreateChildTableIndexes(
+          schemaName,
+          resourceName,
+          propertiesForIndex,
+          tables,
+          naturalKeyColumnDefinitions,
+          indexes
+        );
+      }
     }
 
-    private TableDefinition ParseTable(string schemaName, string tableName, JsonElement jsonSchema, List<ColumnDefinition>? parentColumns)
+    // Generate CREATE TABLE statements
+    foreach (var table in tables)
     {
-        var columns = new List<ColumnDefinition>();
-        
-        // Add primary key column
-        columns.Add(new ColumnDefinition("id", "BIGSERIAL", false, true));
-
-        // Add parent foreign key columns if this is a child table
-        if (parentColumns != null)
-        {
-            var parentTableName = ExtractParentTableName(tableName);
-            // Use singular form of parent table name for foreign key prefix
-            var fkPrefix = RemoveTrailingS(parentTableName);
-            
-            foreach (var parentColumn in parentColumns)
-            {
-                if (!parentColumn.IsPrimaryKey)
-                {
-                    // Create foreign key column that references the parent table
-                    var fkColumnName = $"{fkPrefix}_{parentColumn.Name}";
-                    columns.Add(new ColumnDefinition(fkColumnName, parentColumn.DataType, false, false));
-                }
-            }
-        }
-
-        if (jsonSchema.TryGetProperty("properties", out var properties))
-        {
-            var requiredProperties = GetRequiredProperties(jsonSchema);
-            
-            foreach (var property in properties.EnumerateObject())
-            {
-                var propertyName = property.Name;
-                var propertyValue = property.Value;
-                
-                if (!propertyValue.TryGetProperty("type", out var typeElement))
-                    continue;
-
-                var type = typeElement.GetString();
-                var isRequired = requiredProperties.Contains(propertyName);
-
-                switch (type)
-                {
-                    case "string":
-                        var dataType = GetDataTypeForProperty(propertyValue, isRequired);
-                        columns.Add(new ColumnDefinition(propertyName, dataType, !isRequired, false));
-                        break;
-
-                    case "integer":
-                        columns.Add(new ColumnDefinition(propertyName, "INTEGER", !isRequired, false));
-                        break;
-
-                    case "boolean":
-                        columns.Add(new ColumnDefinition(propertyName, "BOOLEAN", !isRequired, false));
-                        break;
-
-                    case "array":
-                        // Arrays are handled as separate tables - skip here
-                        break;
-
-                    case "object":
-                        // Flatten object properties
-                        if (propertyValue.TryGetProperty("properties", out var nestedProperties))
-                        {
-                            var nestedRequiredProperties = GetRequiredProperties(propertyValue);
-                            foreach (var nestedProperty in nestedProperties.EnumerateObject())
-                            {
-                                var nestedPropertyName = nestedProperty.Name;
-                                var nestedPropertyValue = nestedProperty.Value;
-                                var nestedIsRequired = nestedRequiredProperties.Contains(nestedPropertyName);
-                                
-                                // Use recursive approach for consistent type handling
-                                var nestedDataType = GetDataTypeForProperty(nestedPropertyValue, nestedIsRequired);
-                                
-                                // Check if column already exists to avoid duplicates
-                                if (!columns.Any(c => string.Equals(c.Name, nestedPropertyName, StringComparison.OrdinalIgnoreCase)))
-                                {
-                                    columns.Add(new ColumnDefinition(nestedPropertyName, nestedDataType, !nestedIsRequired, false));
-                                }
-                            }
-                        }
-                        break;
-                }
-            }
-        }
-
-        return new TableDefinition($"\"{schemaName}\".\"{tableName}\"", columns);
+      scriptBuilder.AppendLine(GenerateCreateTableStatement(table));
+      scriptBuilder.AppendLine();
     }
 
-    private void ParseNestedArrayTables(string schemaName, string parentTableName, JsonElement properties, List<TableDefinition> tables, List<ColumnDefinition> parentColumns)
+    // Generate CREATE INDEX statements
+    foreach (var index in indexes)
     {
-        foreach (var property in properties.EnumerateObject())
-        {
-            var propertyName = property.Name;
-            var propertyValue = property.Value;
-
-            if (propertyValue.TryGetProperty("type", out var typeElement) && typeElement.GetString() == "array")
-            {
-                if (propertyValue.TryGetProperty("items", out var items))
-                {
-                    var childTableName = $"{parentTableName}_{propertyName}";
-                    var childTable = ParseTable(schemaName, childTableName, items, parentColumns);
-                    tables.Add(childTable);
-                }
-            }
-        }
+      scriptBuilder.AppendLine(GenerateCreateIndexStatement(index));
     }
 
-    private HashSet<string> GetRequiredProperties(JsonElement element)
+    return scriptBuilder.ToString();
+  }
+
+  private TableDefinition ParseTable(
+    string schemaName,
+    string tableName,
+    JsonElement jsonSchema,
+    List<ColumnDefinition>? parentColumns
+  )
+  {
+    var columns = new List<ColumnDefinition>
     {
-        var required = new HashSet<string>();
-        if (element.TryGetProperty("required", out var requiredArray))
+      // Add primary key column
+      new("id", "BIGSERIAL", false, true),
+    };
+
+    // Add parent foreign key columns if this is a child table
+    if (parentColumns != null)
+    {
+      var parentTableName = ExtractParentTableName(tableName);
+      // Use singular form of parent table name for foreign key prefix
+      var fkPrefix = Singularize(parentTableName);
+
+      foreach (var parentColumn in parentColumns)
+      {
+        if (!parentColumn.IsPrimaryKey)
         {
-            foreach (var item in requiredArray.EnumerateArray())
-            {
-                var value = item.GetString();
-                if (!string.IsNullOrEmpty(value))
-                    required.Add(value);
-            }
+          // Create foreign key column that references the parent table
+          var fkColumnName = $"{fkPrefix}_{parentColumn.Name}";
+          columns.Add(new ColumnDefinition(fkColumnName, parentColumn.DataType, false, false));
         }
-        return required;
+      }
     }
 
-    private int? GetMaxLength(JsonElement element)
+    if (jsonSchema.TryGetProperty("properties", out var properties))
     {
-        if (element.TryGetProperty("maxLength", out var maxLengthElement))
-        {
-            return maxLengthElement.GetInt32();
-        }
-        return null;
-    }
+      var requiredProperties = GetRequiredProperties(jsonSchema);
 
-    private string GetDataTypeForProperty(JsonElement propertyValue, bool isRequired)
-    {
+      foreach (var property in properties.EnumerateObject())
+      {
+        var propertyName = property.Name;
+        var propertyValue = property.Value;
+
         if (!propertyValue.TryGetProperty("type", out var typeElement))
-            return "TEXT";
+          continue;
 
         var type = typeElement.GetString();
-        
+        var isRequired = requiredProperties.Contains(propertyName);
+
         switch (type)
         {
-            case "string":
-                // Check for format property for date/time handling
-                if (propertyValue.TryGetProperty("format", out var formatElement))
+          case "string":
+            var dataType = GetDataTypeForProperty(propertyValue, isRequired);
+            // columns.Add(new ColumnDefinition(propertyName, dataType, !isRequired, false));
+            SafelyAdd(columns, propertyName, !isRequired, dataType);
+            break;
+
+          case "integer":
+            // columns.Add(new ColumnDefinition(propertyName, "INTEGER", !isRequired, false));
+            SafelyAdd(columns, propertyName, !isRequired, "INTEGER");
+            break;
+
+          case "boolean":
+            // columns.Add(new ColumnDefinition(propertyName, "BOOLEAN", !isRequired, false));
+            SafelyAdd(columns, propertyName, !isRequired, "BOOLEAN");
+            break;
+
+          case "array":
+            // Arrays are handled as separate tables - skip here
+            break;
+
+          case "object":
+            // Flatten object properties
+            if (propertyValue.TryGetProperty("properties", out var nestedProperties))
+            {
+              var nestedRequiredProperties = GetRequiredProperties(propertyValue);
+              foreach (var nestedProperty in nestedProperties.EnumerateObject())
+              {
+                var nestedPropertyName = nestedProperty.Name;
+                var nestedPropertyValue = nestedProperty.Value;
+                var nestedIsRequired = nestedRequiredProperties.Contains(nestedPropertyName);
+
+                // Use recursive approach for consistent type handling
+                var nestedDataType = GetDataTypeForProperty(nestedPropertyValue, nestedIsRequired);
+
+                // Check if column already exists to avoid duplicates
+                SafelyAdd(columns, nestedPropertyName, nestedIsRequired, nestedDataType);
+              }
+            }
+            break;
+        }
+      }
+    }
+
+    return new TableDefinition($"\"{schemaName}\".\"{Singularize(tableName)}\"", columns);
+
+    static void SafelyAdd(List<ColumnDefinition> columns, string nestedPropertyName, bool nestedIsRequired, string nestedDataType)
+    {
+      if (
+        !columns.Any(c =>
+          string.Equals(c.Name, nestedPropertyName, StringComparison.OrdinalIgnoreCase)
+        )
+      )
+      {
+        columns.Add(
+          new ColumnDefinition(
+            nestedPropertyName,
+            nestedDataType,
+            !nestedIsRequired,
+            false
+          )
+        );
+      }
+    }
+  }
+
+  private void ParseNestedArrayTables(
+    string schemaName,
+    string parentTableName,
+    JsonElement properties,
+    List<TableDefinition> tables,
+    List<ColumnDefinition> parentColumns
+  )
+  {
+    foreach (var property in properties.EnumerateObject())
+    {
+      var propertyName = property.Name;
+      var propertyValue = property.Value;
+
+      if (
+        propertyValue.TryGetProperty("type", out var typeElement)
+        && typeElement.GetString() == "array"
+      )
+      {
+        if (propertyValue.TryGetProperty("items", out var items))
+        {
+          var childTableName = $"{parentTableName}_{propertyName}";
+          var childTable = ParseTable(schemaName, childTableName, items, parentColumns);
+          tables.Add(childTable);
+        }
+      }
+    }
+  }
+
+  private static HashSet<string> GetRequiredProperties(JsonElement element)
+  {
+    var required = new HashSet<string>();
+    if (element.TryGetProperty("required", out var requiredArray))
+    {
+      foreach (var item in requiredArray.EnumerateArray())
+      {
+        var value = item.GetString();
+        if (!string.IsNullOrEmpty(value))
+          required.Add(value);
+      }
+    }
+    return required;
+  }
+
+  private static int? GetMaxLength(JsonElement element)
+  {
+    if (element.TryGetProperty("maxLength", out var maxLengthElement))
+    {
+      return maxLengthElement.GetInt32();
+    }
+    return null;
+  }
+
+  private static string GetDataTypeForProperty(JsonElement propertyValue, bool isRequired)
+  {
+    if (!propertyValue.TryGetProperty("type", out var typeElement))
+      return "TEXT";
+
+    var type = typeElement.GetString();
+
+    switch (type)
+    {
+      case "string":
+        // Check for format property for date/time handling
+        if (propertyValue.TryGetProperty("format", out var formatElement))
+        {
+          var format = formatElement.GetString();
+          switch (format)
+          {
+            case "date":
+              return "DATE";
+            case "time":
+              return "TIME";
+          }
+        }
+
+        // Handle maxLength for string types
+        var maxLength = GetMaxLength(propertyValue);
+        return maxLength.HasValue ? $"VARCHAR({maxLength})" : "TEXT";
+
+      case "integer":
+        return "INTEGER";
+
+      case "boolean":
+        return "BOOLEAN";
+
+      default:
+        return "TEXT";
+    }
+  }
+
+  private List<string> ExtractNaturalKeyColumns(
+    JsonElement identityPaths,
+    List<ColumnDefinition> columns
+  )
+  {
+    var naturalKeyColumns = new List<string>();
+
+    foreach (var pathElement in identityPaths.EnumerateArray())
+    {
+      var jsonPath = pathElement.GetString();
+      if (string.IsNullOrEmpty(jsonPath))
+        continue;
+
+      // Convert JSON path like "$.abc.xyz" to column name like "abc_xyz"
+      var columnName = ConvertJsonPathToColumnName(jsonPath);
+
+      // Find matching column (case-insensitive)
+      var matchingColumn = columns.FirstOrDefault(c =>
+        string.Equals(c.Name, columnName, StringComparison.OrdinalIgnoreCase)
+      );
+
+      if (matchingColumn != null)
+      {
+        naturalKeyColumns.Add(matchingColumn.Name);
+      }
+    }
+
+    return naturalKeyColumns;
+  }
+
+  private string ConvertJsonPathToColumnName(string jsonPath)
+  {
+    // Remove the leading "$." and get just the last part (nested property name)
+    if (jsonPath.StartsWith("$.") && jsonPath.Length > 2)
+    {
+      var pathWithoutPrefix = jsonPath[2..];
+      // Get the last part after the final dot
+      var lastDotIndex = pathWithoutPrefix.LastIndexOf('.');
+      if (lastDotIndex >= 0)
+      {
+        return pathWithoutPrefix[(lastDotIndex + 1)..];
+      }
+      return pathWithoutPrefix;
+    }
+
+    // For paths without $. prefix, get the last part after the final dot
+    var dotIndex = jsonPath.LastIndexOf('.');
+    if (dotIndex >= 0)
+    {
+      return jsonPath[(dotIndex + 1)..];
+    }
+    return jsonPath;
+  }
+
+  private static string GenerateCreateTableStatement(TableDefinition table)
+  {
+    var builder = new StringBuilder();
+    builder.AppendLine($"CREATE TABLE {table.Name} (");
+
+    for (int i = 0; i < table.Columns.Count; i++)
+    {
+      var column = table.Columns[i];
+      var nullability = column.IsNullable ? "NULL" : "NOT NULL";
+      var primaryKey = column.IsPrimaryKey ? " PRIMARY KEY" : "";
+
+      builder.Append($"    \"{column.Name}\" {column.DataType} {nullability}{primaryKey}");
+
+      if (i < table.Columns.Count - 1)
+        builder.AppendLine(",");
+      else
+        builder.AppendLine();
+    }
+
+    builder.Append(");");
+    return builder.ToString();
+  }
+
+  private static string GenerateCreateIndexStatement(IndexDefinition index)
+  {
+    var columns = string.Join(", ", index.Columns.Select(c => $"\"{c}\""));
+    return $"CREATE INDEX \"{index.Name}\" ON {index.TableName} ({columns});";
+  }
+
+  private static string ExtractParentTableName(string childTableName)
+  {
+    // Extract the parent table name from a child table name like "parent_child" -> "parent"
+    var lastUnderscoreIndex = childTableName.LastIndexOf('_');
+    return lastUnderscoreIndex > 0
+      ? childTableName.Substring(0, lastUnderscoreIndex)
+      : childTableName;
+  }
+
+  private static string Singularize(string tableName)
+  {
+    // Convert plural table names to singular for foreign key prefixes
+    // e.g., "studentEducationOrganizationAssociations" -> "studentEducationOrganizationAssociation"
+    // Note: This uses simple pluralization logic suitable for Ed-Fi resource naming conventions
+    if (string.IsNullOrWhiteSpace(tableName) || tableName.Length <= 1)
+    {
+      return tableName;
+    }
+
+    // Hard-coded exceptions
+    if (tableName == "people")
+    {
+      return "person";
+    }
+    if (tableName.EndsWith("es", StringComparison.OrdinalIgnoreCase))
+    {
+      return tableName[..^2];
+    }
+
+    if (tableName.EndsWith("s", StringComparison.OrdinalIgnoreCase))
+    {
+      // Avoid removing 's' from words that would become meaningless
+      var withoutS = tableName[..^1];
+
+      // Basic validation to ensure we don't create obviously incorrect results
+      if (withoutS.Length > 2 && !withoutS.EndsWith("ss", StringComparison.OrdinalIgnoreCase))
+      {
+        return withoutS;
+      }
+    }
+    return tableName;
+  }
+
+  private static void CreateChildTableIndexes(
+    string schemaName,
+    string parentTableName,
+    JsonElement properties,
+    List<TableDefinition> tables,
+    List<ColumnDefinition> parentColumns,
+    List<IndexDefinition> indexes
+  )
+  {
+    foreach (var property in properties.EnumerateObject())
+    {
+      var propertyName = property.Name;
+      var propertyValue = property.Value;
+
+      if (
+        propertyValue.TryGetProperty("type", out var typeElement)
+        && typeElement.GetString() == "array"
+      )
+      {
+        if (propertyValue.TryGetProperty("items", out var items))
+        {
+          var childTableName = $"{parentTableName}_{propertyName}";
+          var childTable = tables.FirstOrDefault(t => t.Name.EndsWith($"\"{childTableName}\""));
+
+          if (childTable != null)
+          {
+            var naturalKeyColumns = new List<string>();
+
+            // Add parent foreign key columns to natural key
+            var fkPrefix = Singularize(parentTableName);
+            foreach (var parentColumn in parentColumns)
+            {
+              if (!parentColumn.IsPrimaryKey)
+              {
+                naturalKeyColumns.Add($"{fkPrefix}_{parentColumn.Name}");
+              }
+            }
+
+            // Add required columns from the child table to natural key
+            if (items.TryGetProperty("required", out var requiredArray))
+            {
+              foreach (var requiredItem in requiredArray.EnumerateArray())
+              {
+                var requiredColumn = requiredItem.GetString();
+                if (!string.IsNullOrEmpty(requiredColumn))
                 {
-                    var format = formatElement.GetString();
-                    switch (format)
-                    {
-                        case "date":
-                            return "DATE";
-                        case "time":
-                            return "TIME";
-                    }
+                  naturalKeyColumns.Add(requiredColumn);
                 }
-                
-                // Handle maxLength for string types
-                var maxLength = GetMaxLength(propertyValue);
-                return maxLength.HasValue ? $"VARCHAR({maxLength})" : "TEXT";
-
-            case "integer":
-                return "INTEGER";
-
-            case "boolean":
-                return "BOOLEAN";
-
-            default:
-                return "TEXT";
-        }
-    }
-
-    private List<string> ExtractNaturalKeyColumns(JsonElement identityPaths, List<ColumnDefinition> columns)
-    {
-        var naturalKeyColumns = new List<string>();
-        
-        foreach (var pathElement in identityPaths.EnumerateArray())
-        {
-            var jsonPath = pathElement.GetString();
-            if (string.IsNullOrEmpty(jsonPath)) continue;
-
-            // Convert JSON path like "$.abc.xyz" to column name like "abc_xyz"
-            var columnName = ConvertJsonPathToColumnName(jsonPath);
-            
-            // Find matching column (case-insensitive)
-            var matchingColumn = columns.FirstOrDefault(c => 
-                string.Equals(c.Name, columnName, StringComparison.OrdinalIgnoreCase));
-            
-            if (matchingColumn != null)
-            {
-                naturalKeyColumns.Add(matchingColumn.Name);
+              }
             }
-        }
 
-        return naturalKeyColumns;
-    }
-
-    private string ConvertJsonPathToColumnName(string jsonPath)
-    {
-        // Remove the leading "$." and get just the last part (nested property name)
-        if (jsonPath.StartsWith("$.") && jsonPath.Length > 2)
-        {
-            var pathWithoutPrefix = jsonPath[2..];
-            // Get the last part after the final dot
-            var lastDotIndex = pathWithoutPrefix.LastIndexOf('.');
-            if (lastDotIndex >= 0)
+            if (naturalKeyColumns.Count > 0)
             {
-                return pathWithoutPrefix.Substring(lastDotIndex + 1);
+              indexes.Add(
+                new IndexDefinition(
+                  $"nk_{childTableName}",
+                  $"\"{schemaName}\".\"{Singularize(childTableName)}\"",
+                  naturalKeyColumns
+                )
+              );
             }
-            return pathWithoutPrefix;
+          }
         }
-        
-        // For paths without $. prefix, get the last part after the final dot
-        var dotIndex = jsonPath.LastIndexOf('.');
-        if (dotIndex >= 0)
-        {
-            return jsonPath.Substring(dotIndex + 1);
-        }
-        return jsonPath;
+      }
     }
-
-    private string GenerateCreateTableStatement(TableDefinition table)
-    {
-        var builder = new StringBuilder();
-        builder.AppendLine($"CREATE TABLE {table.Name} (");
-        
-        for (int i = 0; i < table.Columns.Count; i++)
-        {
-            var column = table.Columns[i];
-            var nullability = column.IsNullable ? "NULL" : "NOT NULL";
-            var primaryKey = column.IsPrimaryKey ? " PRIMARY KEY" : "";
-            
-            builder.Append($"    \"{column.Name}\" {column.DataType} {nullability}{primaryKey}");
-            
-            if (i < table.Columns.Count - 1)
-                builder.AppendLine(",");
-            else
-                builder.AppendLine();
-        }
-        
-        builder.Append(");");
-        return builder.ToString();
-    }
-
-    private string GenerateCreateIndexStatement(IndexDefinition index)
-    {
-        var columns = string.Join(", ", index.Columns.Select(c => $"\"{c}\""));
-        return $"CREATE INDEX \"{index.Name}\" ON {index.TableName} ({columns});";
-    }
-
-    private string ExtractParentTableName(string childTableName)
-    {
-        // Extract the parent table name from a child table name like "parent_child" -> "parent"
-        var lastUnderscoreIndex = childTableName.LastIndexOf('_');
-        return lastUnderscoreIndex > 0 ? childTableName.Substring(0, lastUnderscoreIndex) : childTableName;
-    }
-
-    private string RemoveTrailingS(string tableName)
-    {
-        // Convert plural table names to singular for foreign key prefixes
-        // e.g., "studentEducationOrganizationAssociations" -> "studentEducationOrganizationAssociation"
-        // Note: This uses simple pluralization logic suitable for Ed-Fi resource naming conventions
-        if (string.IsNullOrWhiteSpace(tableName) || tableName.Length <= 1)
-        {
-            return tableName;
-        }
-
-        if (tableName.EndsWith("s", StringComparison.OrdinalIgnoreCase))
-        {
-            // Avoid removing 's' from words that would become meaningless
-            var withoutS = tableName.Substring(0, tableName.Length - 1);
-            // Basic validation to ensure we don't create obviously incorrect results
-            if (withoutS.Length > 2 && !withoutS.EndsWith("ss", StringComparison.OrdinalIgnoreCase))
-            {
-                return withoutS;
-            }
-        }
-        return tableName;
-    }
-
-    private void CreateChildTableIndexes(string schemaName, string parentTableName, JsonElement properties, List<TableDefinition> tables, List<ColumnDefinition> parentColumns, List<IndexDefinition> indexes)
-    {
-        foreach (var property in properties.EnumerateObject())
-        {
-            var propertyName = property.Name;
-            var propertyValue = property.Value;
-
-            if (propertyValue.TryGetProperty("type", out var typeElement) && typeElement.GetString() == "array")
-            {
-                if (propertyValue.TryGetProperty("items", out var items))
-                {
-                    var childTableName = $"{parentTableName}_{propertyName}";
-                    var childTable = tables.FirstOrDefault(t => t.Name.EndsWith($"\"{childTableName}\""));
-                    
-                    if (childTable != null)
-                    {
-                        var naturalKeyColumns = new List<string>();
-                        
-                        // Add parent foreign key columns to natural key
-                        var fkPrefix = RemoveTrailingS(parentTableName);
-                        foreach (var parentColumn in parentColumns)
-                        {
-                            if (!parentColumn.IsPrimaryKey)
-                            {
-                                naturalKeyColumns.Add($"{fkPrefix}_{parentColumn.Name}");
-                            }
-                        }
-
-                        // Add required columns from the child table to natural key
-                        if (items.TryGetProperty("required", out var requiredArray))
-                        {
-                            foreach (var requiredItem in requiredArray.EnumerateArray())
-                            {
-                                var requiredColumn = requiredItem.GetString();
-                                if (!string.IsNullOrEmpty(requiredColumn))
-                                {
-                                    naturalKeyColumns.Add(requiredColumn);
-                                }
-                            }
-                        }
-
-                        if (naturalKeyColumns.Count > 0)
-                        {
-                            indexes.Add(new IndexDefinition(
-                                $"nk_{childTableName}",
-                                $"\"{schemaName}\".\"{childTableName}\"",
-                                naturalKeyColumns
-                            ));
-                        }
-                    }
-                }
-            }
-        }
-    }
+  }
 }
 
 public record TableDefinition(string Name, List<ColumnDefinition> Columns);
