@@ -40,10 +40,8 @@ class Program
       File.WriteAllText(outputFilePath, postgresScript);
 
       Console.WriteLine($"PostgreSQL script generated successfully: {outputFilePath}");
-      Console.WriteLine();
-      Console.WriteLine("Generated SQL:");
       Console.WriteLine(new string('=', 50));
-      Console.WriteLine(postgresScript);
+
 
       if (!string.IsNullOrEmpty(connectionString))
       {
