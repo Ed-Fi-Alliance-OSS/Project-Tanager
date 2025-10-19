@@ -95,8 +95,8 @@ public class SchemaShredderTests
         Assert.That(result, Does.Contain("CREATE SCHEMA IF NOT EXISTS \"ed-fi\";"));
         Assert.That(result, Does.Contain("CREATE TABLE \"ed-fi\".\"studentEducationOrganizationAssociations\""));
         Assert.That(result, Does.Contain("CREATE TABLE \"ed-fi\".\"studentEducationOrganizationAssociations_addresses\""));
-        Assert.That(result, Does.Contain("educationOrganizationReference_educationOrganizationId\" INTEGER NOT NULL"));
-        Assert.That(result, Does.Contain("studentReference_studentUniqueId\" VARCHAR(32) NOT NULL"));
+        Assert.That(result, Does.Contain("educationOrganizationId\" INTEGER NOT NULL"));
+        Assert.That(result, Does.Contain("studentUniqueId\" VARCHAR(32) NOT NULL"));
         Assert.That(result, Does.Contain("barrierToInternetAccessInResidenceDescriptor\" TEXT NULL"));
         Assert.That(result, Does.Contain("addressTypeDescriptor\" TEXT NOT NULL"));
         Assert.That(result, Does.Contain("apartmentRoomSuiteNumber\" VARCHAR(50) NULL"));
@@ -245,5 +245,53 @@ public class SchemaShredderTests
         Assert.That(result, Does.Contain("birthDate\" DATE NOT NULL"));
         Assert.That(result, Does.Contain("startTime\" TIME NOT NULL"));
         Assert.That(result, Does.Contain("name\" TEXT NULL"));
+    }
+
+    [Test]
+    public void GeneratePostgreSqlScript_HandlesDuplicateColumnNames()
+    {
+        // Arrange
+        var jsonContent = @"{
+            ""projectSchema"": {
+                ""projectEndpointName"": ""test"",
+                ""resourceSchemas"": {
+                    ""testResource"": {
+                        ""identityJsonPaths"": [""$.id""],
+                        ""jsonSchemaForInsert"": {
+                            ""properties"": {
+                                ""id"": {""type"": ""integer""},
+                                ""personRef1"": {
+                                    ""type"": ""object"",
+                                    ""properties"": {
+                                        ""id"": {""type"": ""integer""}
+                                    },
+                                    ""required"": [""id""]
+                                },
+                                ""personRef2"": {
+                                    ""type"": ""object"",
+                                    ""properties"": {
+                                        ""id"": {""type"": ""integer""}
+                                    },
+                                    ""required"": [""id""]
+                                }
+                            },
+                            ""required"": [""id""]
+                        }
+                    }
+                }
+            }
+        }";
+
+        var jsonDocument = JsonDocument.Parse(jsonContent);
+        var shredder = new SchemaShredder();
+
+        // Act
+        var result = shredder.GeneratePostgreSqlScript(jsonDocument);
+
+        // Assert - Should only have one 'id' column despite multiple nested 'id' properties
+        var idColumnMatches = System.Text.RegularExpressions.Regex.Matches(result, @"""id"" \w+ ");
+        Assert.That(idColumnMatches.Count, Is.EqualTo(2)); // One for the BIGSERIAL primary key, one for the first 'id' property
+        Assert.That(result, Does.Contain("\"id\" INTEGER NOT NULL"));
+        Assert.That(result, Does.Not.Contain("\"id\" INTEGER NOT NULL\r\n    \"id\""));
     }
 }

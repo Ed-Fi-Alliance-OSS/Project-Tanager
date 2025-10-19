@@ -171,9 +171,12 @@ public class SchemaShredder
                                 
                                 // Use recursive approach for consistent type handling
                                 var nestedDataType = GetDataTypeForProperty(nestedPropertyValue, nestedIsRequired);
-                                var flattenedColumnName = $"{propertyName}_{nestedPropertyName}";
                                 
-                                columns.Add(new ColumnDefinition(flattenedColumnName, nestedDataType, !nestedIsRequired, false));
+                                // Check if column already exists to avoid duplicates
+                                if (!columns.Any(c => string.Equals(c.Name, nestedPropertyName, StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    columns.Add(new ColumnDefinition(nestedPropertyName, nestedDataType, !nestedIsRequired, false));
+                                }
                             }
                         }
                         break;
@@ -292,12 +295,26 @@ public class SchemaShredder
 
     private string ConvertJsonPathToColumnName(string jsonPath)
     {
-        // Remove the leading "$." and convert dots to underscores
+        // Remove the leading "$." and get just the last part (nested property name)
         if (jsonPath.StartsWith("$.") && jsonPath.Length > 2)
         {
-            return jsonPath[2..].Replace('.', '_');
+            var pathWithoutPrefix = jsonPath[2..];
+            // Get the last part after the final dot
+            var lastDotIndex = pathWithoutPrefix.LastIndexOf('.');
+            if (lastDotIndex >= 0)
+            {
+                return pathWithoutPrefix.Substring(lastDotIndex + 1);
+            }
+            return pathWithoutPrefix;
         }
-        return jsonPath.Replace('.', '_');
+        
+        // For paths without $. prefix, get the last part after the final dot
+        var dotIndex = jsonPath.LastIndexOf('.');
+        if (dotIndex >= 0)
+        {
+            return jsonPath.Substring(dotIndex + 1);
+        }
+        return jsonPath;
     }
 
     private string GenerateCreateTableStatement(TableDefinition table)
