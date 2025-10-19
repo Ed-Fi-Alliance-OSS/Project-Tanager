@@ -4,13 +4,13 @@
 // See the LICENSE and NOTICES files in the project root for more information.
 
 using System.Text.Json;
-using Xunit;
+using NUnit.Framework;
 
 namespace JsonSchemaShredder.Tests;
 
 public class SchemaShredderTests
 {
-    [Fact]
+    [Test]
     public void GeneratePostgreSqlScript_WithExampleSchema_CreatesCorrectTables()
     {
         // Arrange
@@ -92,20 +92,20 @@ public class SchemaShredderTests
         var result = shredder.GeneratePostgreSqlScript(jsonDocument);
 
         // Assert
-        Assert.Contains("CREATE SCHEMA IF NOT EXISTS \"ed-fi\";", result);
-        Assert.Contains("CREATE TABLE \"ed-fi\".\"studentEducationOrganizationAssociations\"", result);
-        Assert.Contains("CREATE TABLE \"ed-fi\".\"studentEducationOrganizationAssociations_addresses\"", result);
-        Assert.Contains("educationOrganizationReference_educationOrganizationId\" INTEGER NOT NULL", result);
-        Assert.Contains("studentReference_studentUniqueId\" VARCHAR(32) NOT NULL", result);
-        Assert.Contains("barrierToInternetAccessInResidenceDescriptor\" TEXT NULL", result);
-        Assert.Contains("addressTypeDescriptor\" TEXT NOT NULL", result);
-        Assert.Contains("apartmentRoomSuiteNumber\" VARCHAR(50) NULL", result);
-        Assert.Contains("streetNumberName\" VARCHAR(150) NOT NULL", result);
-        Assert.Contains("CREATE INDEX \"nk_studentEducationOrganizationAssociations\"", result);
-        Assert.Contains("CREATE INDEX \"nk_studentEducationOrganizationAssociations_addresses\"", result);
+        Assert.That(result, Does.Contain("CREATE SCHEMA IF NOT EXISTS \"ed-fi\";"));
+        Assert.That(result, Does.Contain("CREATE TABLE \"ed-fi\".\"studentEducationOrganizationAssociations\""));
+        Assert.That(result, Does.Contain("CREATE TABLE \"ed-fi\".\"studentEducationOrganizationAssociations_addresses\""));
+        Assert.That(result, Does.Contain("educationOrganizationReference_educationOrganizationId\" INTEGER NOT NULL"));
+        Assert.That(result, Does.Contain("studentReference_studentUniqueId\" VARCHAR(32) NOT NULL"));
+        Assert.That(result, Does.Contain("barrierToInternetAccessInResidenceDescriptor\" TEXT NULL"));
+        Assert.That(result, Does.Contain("addressTypeDescriptor\" TEXT NOT NULL"));
+        Assert.That(result, Does.Contain("apartmentRoomSuiteNumber\" VARCHAR(50) NULL"));
+        Assert.That(result, Does.Contain("streetNumberName\" VARCHAR(150) NOT NULL"));
+        Assert.That(result, Does.Contain("CREATE INDEX \"nk_studentEducationOrganizationAssociations\""));
+        Assert.That(result, Does.Contain("CREATE INDEX \"nk_studentEducationOrganizationAssociations_addresses\""));
     }
 
-    [Fact]
+    [Test]
     public void GeneratePostgreSqlScript_SkipsDescriptorResourceSchemas()
     {
         // Arrange
@@ -141,11 +141,11 @@ public class SchemaShredderTests
         var result = shredder.GeneratePostgreSqlScript(jsonDocument);
 
         // Assert
-        Assert.DoesNotContain("someDescriptors", result);
-        Assert.Contains("validResource", result);
+        Assert.That(result, Does.Not.Contain("someDescriptors"));
+        Assert.That(result, Does.Contain("validResource"));
     }
 
-    [Fact]
+    [Test]
     public void GeneratePostgreSqlScript_HandlesVariousDataTypes()
     {
         // Arrange
@@ -176,13 +176,13 @@ public class SchemaShredderTests
         var result = shredder.GeneratePostgreSqlScript(jsonDocument);
 
         // Assert
-        Assert.Contains("stringField\" TEXT NOT NULL", result);
-        Assert.Contains("stringFieldWithLength\" VARCHAR(100) NULL", result);
-        Assert.Contains("integerField\" INTEGER NOT NULL", result);
-        Assert.Contains("booleanField\" BOOLEAN NULL", result);
+        Assert.That(result, Does.Contain("stringField\" TEXT NOT NULL"));
+        Assert.That(result, Does.Contain("stringFieldWithLength\" VARCHAR(100) NULL"));
+        Assert.That(result, Does.Contain("integerField\" INTEGER NOT NULL"));
+        Assert.That(result, Does.Contain("booleanField\" BOOLEAN NULL"));
     }
 
-    [Fact]
+    [Test]
     public void GeneratePostgreSqlScript_HandlesEdgeCases()
     {
         // Arrange
@@ -208,7 +208,42 @@ public class SchemaShredderTests
 
         // Act & Assert - Should not throw exceptions with edge case inputs
         var result = shredder.GeneratePostgreSqlScript(jsonDocument);
-        Assert.Contains("CREATE TABLE", result);
-        Assert.Contains("class", result);
+        Assert.That(result, Does.Contain("CREATE TABLE"));
+        Assert.That(result, Does.Contain("class"));
+    }
+
+    [Test]
+    public void GeneratePostgreSqlScript_HandlesDateAndTimeFormats()
+    {
+        // Arrange
+        var jsonContent = @"{
+            ""projectSchema"": {
+                ""projectEndpointName"": ""test"",
+                ""resourceSchemas"": {
+                    ""testResource"": {
+                        ""identityJsonPaths"": [""$.id""],
+                        ""jsonSchemaForInsert"": {
+                            ""properties"": {
+                                ""birthDate"": {""type"": ""string"", ""format"": ""date""},
+                                ""startTime"": {""type"": ""string"", ""format"": ""time""},
+                                ""name"": {""type"": ""string""}
+                            },
+                            ""required"": [""birthDate"", ""startTime""]
+                        }
+                    }
+                }
+            }
+        }";
+
+        var jsonDocument = JsonDocument.Parse(jsonContent);
+        var shredder = new SchemaShredder();
+
+        // Act
+        var result = shredder.GeneratePostgreSqlScript(jsonDocument);
+
+        // Assert
+        Assert.That(result, Does.Contain("birthDate\" DATE NOT NULL"));
+        Assert.That(result, Does.Contain("startTime\" TIME NOT NULL"));
+        Assert.That(result, Does.Contain("name\" TEXT NULL"));
     }
 }

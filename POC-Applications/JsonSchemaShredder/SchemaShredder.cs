@@ -142,8 +142,7 @@ public class SchemaShredder
                 switch (type)
                 {
                     case "string":
-                        var maxLength = GetMaxLength(propertyValue);
-                        var dataType = maxLength.HasValue ? $"VARCHAR({maxLength})" : "TEXT";
+                        var dataType = GetDataTypeForProperty(propertyValue, isRequired);
                         columns.Add(new ColumnDefinition(propertyName, dataType, !isRequired, false));
                         break;
 
@@ -168,30 +167,13 @@ public class SchemaShredder
                             {
                                 var nestedPropertyName = nestedProperty.Name;
                                 var nestedPropertyValue = nestedProperty.Value;
+                                var nestedIsRequired = nestedRequiredProperties.Contains(nestedPropertyName);
                                 
-                                if (nestedPropertyValue.TryGetProperty("type", out var nestedTypeElement))
-                                {
-                                    var nestedType = nestedTypeElement.GetString();
-                                    var nestedIsRequired = nestedRequiredProperties.Contains(nestedPropertyName);
-                                    var flattenedColumnName = $"{propertyName}_{nestedPropertyName}";
-
-                                    switch (nestedType)
-                                    {
-                                        case "string":
-                                            var nestedMaxLength = GetMaxLength(nestedPropertyValue);
-                                            var nestedDataType = nestedMaxLength.HasValue ? $"VARCHAR({nestedMaxLength})" : "TEXT";
-                                            columns.Add(new ColumnDefinition(flattenedColumnName, nestedDataType, !nestedIsRequired, false));
-                                            break;
-
-                                        case "integer":
-                                            columns.Add(new ColumnDefinition(flattenedColumnName, "INTEGER", !nestedIsRequired, false));
-                                            break;
-
-                                        case "boolean":
-                                            columns.Add(new ColumnDefinition(flattenedColumnName, "BOOLEAN", !nestedIsRequired, false));
-                                            break;
-                                    }
-                                }
+                                // Use recursive approach for consistent type handling
+                                var nestedDataType = GetDataTypeForProperty(nestedPropertyValue, nestedIsRequired);
+                                var flattenedColumnName = $"{propertyName}_{nestedPropertyName}";
+                                
+                                columns.Add(new ColumnDefinition(flattenedColumnName, nestedDataType, !nestedIsRequired, false));
                             }
                         }
                         break;
@@ -243,6 +225,44 @@ public class SchemaShredder
             return maxLengthElement.GetInt32();
         }
         return null;
+    }
+
+    private string GetDataTypeForProperty(JsonElement propertyValue, bool isRequired)
+    {
+        if (!propertyValue.TryGetProperty("type", out var typeElement))
+            return "TEXT";
+
+        var type = typeElement.GetString();
+        
+        switch (type)
+        {
+            case "string":
+                // Check for format property for date/time handling
+                if (propertyValue.TryGetProperty("format", out var formatElement))
+                {
+                    var format = formatElement.GetString();
+                    switch (format)
+                    {
+                        case "date":
+                            return "DATE";
+                        case "time":
+                            return "TIME";
+                    }
+                }
+                
+                // Handle maxLength for string types
+                var maxLength = GetMaxLength(propertyValue);
+                return maxLength.HasValue ? $"VARCHAR({maxLength})" : "TEXT";
+
+            case "integer":
+                return "INTEGER";
+
+            case "boolean":
+                return "BOOLEAN";
+
+            default:
+                return "TEXT";
+        }
     }
 
     private List<string> ExtractNaturalKeyColumns(JsonElement identityPaths, List<ColumnDefinition> columns)
