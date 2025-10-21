@@ -216,15 +216,9 @@ public class SchemaShredder
       string dataType
     )
     {
-      if (
-        !columns.Any(c =>
-          string.Equals(c.Name, columnName, StringComparison.OrdinalIgnoreCase)
-        )
-      )
+      if (!columns.Any(c => string.Equals(c.Name, columnName, StringComparison.OrdinalIgnoreCase)))
       {
-        columns.Add(
-          new ColumnDefinition(columnName, dataType, !isRequired, false)
-        );
+        columns.Add(new ColumnDefinition(columnName, dataType, !isRequired, false));
       }
     }
   }
@@ -444,6 +438,14 @@ public class SchemaShredder
     if (tableName.EndsWith("ies", StringComparison.OrdinalIgnoreCase))
     {
       return tableName[..^2] + "y";
+    }
+    if (tableName.EndsWith("dates", StringComparison.OrdinalIgnoreCase))
+    {
+      return tableName[..^1];
+    }
+    if (tableName.EndsWith("es", StringComparison.OrdinalIgnoreCase))
+    {
+      return tableName[..^2];
     }
 
     if (tableName.EndsWith("s", StringComparison.OrdinalIgnoreCase))
