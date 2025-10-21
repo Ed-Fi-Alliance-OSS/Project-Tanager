@@ -80,7 +80,7 @@ public class SchemaShredder
         indexes.Add(
           new IndexDefinition(
             $"nk_{resourceName}",
-            $"\"{schemaName}\".\"{Singularize(resourceName)}\"",
+            $"\"{schemaName}\".\"{resourceName}\"",
             mainTableNaturalKeyColumns
           )
         );
@@ -167,17 +167,17 @@ public class SchemaShredder
           case "string":
             var dataType = GetDataTypeForProperty(propertyValue, isRequired);
             // columns.Add(new ColumnDefinition(propertyName, dataType, !isRequired, false));
-            SafelyAdd(columns, propertyName, !isRequired, dataType);
+            SafelyAdd(columns, propertyName, isRequired, dataType);
             break;
 
           case "integer":
             // columns.Add(new ColumnDefinition(propertyName, "INTEGER", !isRequired, false));
-            SafelyAdd(columns, propertyName, !isRequired, "INTEGER");
+            SafelyAdd(columns, propertyName, isRequired, "INTEGER");
             break;
 
           case "boolean":
             // columns.Add(new ColumnDefinition(propertyName, "BOOLEAN", !isRequired, false));
-            SafelyAdd(columns, propertyName, !isRequired, "BOOLEAN");
+            SafelyAdd(columns, propertyName, isRequired, "BOOLEAN");
             break;
 
           case "array":
@@ -207,23 +207,23 @@ public class SchemaShredder
       }
     }
 
-    return new TableDefinition($"\"{schemaName}\".\"{Singularize(tableName)}\"", columns);
+    return new TableDefinition($"\"{schemaName}\".\"{tableName}\"", columns);
 
     static void SafelyAdd(
       List<ColumnDefinition> columns,
-      string nestedPropertyName,
-      bool nestedIsRequired,
-      string nestedDataType
+      string columnName,
+      bool isRequired,
+      string dataType
     )
     {
       if (
         !columns.Any(c =>
-          string.Equals(c.Name, nestedPropertyName, StringComparison.OrdinalIgnoreCase)
+          string.Equals(c.Name, columnName, StringComparison.OrdinalIgnoreCase)
         )
       )
       {
         columns.Add(
-          new ColumnDefinition(nestedPropertyName, nestedDataType, !nestedIsRequired, false)
+          new ColumnDefinition(columnName, dataType, !isRequired, false)
         );
       }
     }
@@ -249,9 +249,23 @@ public class SchemaShredder
       {
         if (propertyValue.TryGetProperty("items", out var items))
         {
-          var childTableName = $"{parentTableName}_{propertyName}";
+          var childTableName = $"{parentTableName}_{Singularize(propertyName)}";
           var childTable = ParseTable(schemaName, childTableName, items, parentColumns);
           tables.Add(childTable);
+
+          // Recursively process nested arrays within the child table
+          if (items.TryGetProperty("properties", out var childProperties))
+          {
+            // Use the child table's natural key columns as foreign keys for grandchild tables
+            var childNaturalKeyColumns = childTable.Columns.Where(c => !c.IsPrimaryKey).ToList();
+            ParseNestedArrayTables(
+              schemaName,
+              childTableName,
+              childProperties,
+              tables,
+              childNaturalKeyColumns
+            );
+          }
         }
       }
     }
@@ -467,7 +481,7 @@ public class SchemaShredder
       {
         if (propertyValue.TryGetProperty("items", out var items))
         {
-          var childTableName = $"{parentTableName}_{propertyName}";
+          var childTableName = $"{parentTableName}_{Singularize(propertyName)}";
           var childTable = tables.FirstOrDefault(t => t.Name.EndsWith($"\"{childTableName}\""));
 
           if (childTable != null)
@@ -502,7 +516,7 @@ public class SchemaShredder
               indexes.Add(
                 new IndexDefinition(
                   $"nk_{childTableName}",
-                  $"\"{schemaName}\".\"{Singularize(childTableName)}\"",
+                  $"\"{schemaName}\".\"{childTableName}\"",
                   naturalKeyColumns
                 )
               );

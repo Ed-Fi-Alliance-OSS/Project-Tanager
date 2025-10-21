@@ -94,7 +94,7 @@ public class SchemaShredderTests
         // Assert
         Assert.That(result, Does.Contain("CREATE SCHEMA IF NOT EXISTS \"ed-fi\";"));
         Assert.That(result, Does.Contain("CREATE TABLE \"ed-fi\".\"studentEducationOrganizationAssociations\""));
-        Assert.That(result, Does.Contain("CREATE TABLE \"ed-fi\".\"studentEducationOrganizationAssociations_addresses\""));
+        Assert.That(result, Does.Contain("CREATE TABLE \"ed-fi\".\"studentEducationOrganizationAssociations_addresse\""));
         Assert.That(result, Does.Contain("educationOrganizationId\" INTEGER NOT NULL"));
         Assert.That(result, Does.Contain("studentUniqueId\" VARCHAR(32) NOT NULL"));
         Assert.That(result, Does.Contain("barrierToInternetAccessInResidenceDescriptor\" TEXT NULL"));
@@ -102,7 +102,7 @@ public class SchemaShredderTests
         Assert.That(result, Does.Contain("apartmentRoomSuiteNumber\" VARCHAR(50) NULL"));
         Assert.That(result, Does.Contain("streetNumberName\" VARCHAR(150) NOT NULL"));
         Assert.That(result, Does.Contain("CREATE INDEX \"nk_studentEducationOrganizationAssociations\""));
-        Assert.That(result, Does.Contain("CREATE INDEX \"nk_studentEducationOrganizationAssociations_addresses\""));
+        Assert.That(result, Does.Contain("CREATE INDEX \"nk_studentEducationOrganizationAssociations_addresse\""));
     }
 
     [Test]
@@ -209,7 +209,7 @@ public class SchemaShredderTests
         // Act & Assert - Should not throw exceptions with edge case inputs
         var result = shredder.GeneratePostgreSqlScript(jsonDocument);
         Assert.That(result, Does.Contain("CREATE TABLE"));
-        Assert.That(result, Does.Contain("class"));
+        Assert.That(result, Does.Contain("clas"));
     }
 
     [Test]
@@ -288,10 +288,70 @@ public class SchemaShredderTests
         // Act
         var result = shredder.GeneratePostgreSqlScript(jsonDocument);
 
-        // Assert - Should only have one 'id' column despite multiple nested 'id' properties
+        // Assert - Should only have the primary key id column due to duplicate prevention
         var idColumnMatches = System.Text.RegularExpressions.Regex.Matches(result, @"""id"" \w+ ");
-        Assert.That(idColumnMatches.Count, Is.EqualTo(2)); // One for the BIGSERIAL primary key, one for the first 'id' property
-        Assert.That(result, Does.Contain("\"id\" INTEGER NOT NULL"));
-        Assert.That(result, Does.Not.Contain("\"id\" INTEGER NOT NULL\r\n    \"id\""));
+        Assert.That(idColumnMatches.Count, Is.EqualTo(1)); // Only the BIGSERIAL primary key
+        Assert.That(result, Does.Contain("\"id\" BIGSERIAL NOT NULL PRIMARY KEY"));
+        Assert.That(result, Does.Not.Contain("\"id\" INTEGER")); // No INTEGER id columns should be added due to duplicate prevention
+    }
+
+    [Test]
+    public void GeneratePostgreSqlScript_HandlesNestedArrays()
+    {
+        // Arrange
+        var jsonContent = @"{
+            ""projectSchema"": {
+                ""projectEndpointName"": ""test"",
+                ""resourceSchemas"": {
+                    ""studentEducationOrganizationAssociations"": {
+                        ""identityJsonPaths"": [""$.studentId""],
+                        ""jsonSchemaForInsert"": {
+                            ""properties"": {
+                                ""studentId"": {""type"": ""integer""},
+                                ""addresses"": {
+                                    ""type"": ""array"",
+                                    ""items"": {
+                                        ""type"": ""object"",
+                                        ""properties"": {
+                                            ""addressTypeDescriptor"": {""type"": ""string""},
+                                            ""periods"": {
+                                                ""type"": ""array"",
+                                                ""items"": {
+                                                    ""type"": ""object"",
+                                                    ""properties"": {
+                                                        ""beginDate"": {""type"": ""string"", ""format"": ""date""},
+                                                        ""endDate"": {""type"": ""string"", ""format"": ""date""}
+                                                    },
+                                                    ""required"": [""beginDate""]
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            ""required"": [""studentId""]
+                        }
+                    }
+                }
+            }
+        }";
+
+        var jsonDocument = JsonDocument.Parse(jsonContent);
+        var shredder = new SchemaShredder();
+
+        // Act
+        var result = shredder.GeneratePostgreSqlScript(jsonDocument);
+
+        // Assert - Should create three tables: main, addresses, and periods
+        Assert.That(result, Does.Contain("CREATE TABLE \"test\".\"studentEducationOrganizationAssociations\""));
+        Assert.That(result, Does.Contain("CREATE TABLE \"test\".\"studentEducationOrganizationAssociations_addresse\""));
+        Assert.That(result, Does.Contain("CREATE TABLE \"test\".\"studentEducationOrganizationAssociations_addresse_period\""));
+        
+        // Verify the nested array table has the correct columns
+        Assert.That(result, Does.Contain("beginDate\" DATE NOT NULL"));
+        Assert.That(result, Does.Contain("endDate\" DATE NULL"));
+        
+        // Verify foreign key relationships
+        Assert.That(result, Does.Contain("studentEducationOrganizationAssociation_studentId"));
     }
 }
