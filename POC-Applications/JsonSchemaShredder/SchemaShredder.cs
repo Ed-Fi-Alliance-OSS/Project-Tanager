@@ -25,14 +25,14 @@ public class SchemaShredder
     if (!projectSchema.TryGetProperty("resourceSchemas", out var resourceSchemas))
       throw new InvalidOperationException("Missing 'resourceSchemas' property");
 
-    var schemaName = endpointName.GetString()!;
+    var schemaName = endpointName.GetString()!.Replace("-", string.Empty);
     var scriptBuilder = new StringBuilder();
     var tables = new List<TableDefinition>();
     var indexes = new List<IndexDefinition>();
 
     // Create schema
     scriptBuilder.AppendLine($"-- PostgreSQL script for schema: {schemaName}");
-    scriptBuilder.AppendLine($"CREATE SCHEMA IF NOT EXISTS \"{schemaName}\";");
+    scriptBuilder.AppendLine($"CREATE SCHEMA IF NOT EXISTS {schemaName};");
     scriptBuilder.AppendLine();
 
     // Process each resource schema
@@ -80,7 +80,7 @@ public class SchemaShredder
         indexes.Add(
           new IndexDefinition(
             $"nk_{resourceName}",
-            $"\"{schemaName}\".\"{resourceName}\"",
+            $"{schemaName}.{resourceName}",
             mainTableNaturalKeyColumns
           )
         );
@@ -134,7 +134,7 @@ public class SchemaShredder
     {
       var parentTableName = ExtractParentTableName(tableName);
       // Use singular form of parent table name for foreign key prefix
-      var fkPrefix = Normalize(parentTableName);
+      var fkPrefix = DbEntityName.Normalize(parentTableName);
 
       foreach (var parentColumn in parentColumns)
       {
@@ -207,7 +207,7 @@ public class SchemaShredder
       }
     }
 
-    return new TableDefinition($"\"{schemaName}\".\"{tableName}\"", columns);
+    return new TableDefinition($"{schemaName}.{tableName}", columns);
 
     static void SafelyAdd(
       List<ColumnDefinition> columns,
@@ -243,7 +243,8 @@ public class SchemaShredder
       {
         if (propertyValue.TryGetProperty("items", out var items))
         {
-          var childTableName = $"{Normalize(parentTableName)}_{Normalize(propertyName)}";
+          var childTableName =
+            $"{DbEntityName.Normalize(parentTableName)}_{DbEntityName.Normalize(propertyName)}";
           var childTable = ParseTable(schemaName, childTableName, items, parentColumns);
           tables.Add(childTable);
 
@@ -383,8 +384,10 @@ public class SchemaShredder
 
   private static string GenerateCreateTableStatement(TableDefinition table)
   {
+    var finalTableName = DbEntityName.Shorten(table.Name);
+
     var builder = new StringBuilder();
-    builder.AppendLine($"CREATE TABLE {RemoveUnderscores(table.Name)} (");
+    builder.AppendLine($"CREATE TABLE {finalTableName} (");
 
     for (int i = 0; i < table.Columns.Count; i++)
     {
@@ -393,7 +396,7 @@ public class SchemaShredder
       var primaryKey = column.IsPrimaryKey ? " PRIMARY KEY" : "";
 
       builder.Append(
-        $"    \"{RemoveUnderscores(column.Name)}\" {column.DataType} {nullability}{primaryKey}"
+        $"    {DbEntityName.Shorten(column.Name)} {column.DataType} {nullability}{primaryKey}"
       );
 
       if (i < table.Columns.Count - 1)
@@ -408,13 +411,11 @@ public class SchemaShredder
 
   private static string GenerateCreateIndexStatement(IndexDefinition index)
   {
-    var columns = string.Join(", ", index.Columns.Select(c => $"\"{RemoveUnderscores(c)}\""));
-    return $"CREATE INDEX \"{index.Name}\" ON {RemoveUnderscores(index.TableName)} ({columns});";
-  }
+    var finalTableName = DbEntityName.Shorten(index.TableName);
+    var finalIndexName = DbEntityName.Shorten(index.Name, preserveUnderscores: true);
 
-  private static string RemoveUnderscores(string objectName)
-  {
-    return objectName.Replace("_", "");
+    var columns = string.Join(", ", index.Columns.Select(c => $"{DbEntityName.Shorten(c)}"));
+    return $"CREATE INDEX {finalIndexName} ON {finalTableName} ({columns});";
   }
 
   private static string ExtractParentTableName(string childTableName)
@@ -422,52 +423,6 @@ public class SchemaShredder
     // Extract the parent table name from a child table name like "parent_child" -> "parent"
     var lastUnderscoreIndex = childTableName.LastIndexOf('_');
     return lastUnderscoreIndex > 0 ? childTableName[..lastUnderscoreIndex] : childTableName;
-  }
-
-  private static string Normalize(string tableName)
-  {
-    // Upper case first letter
-    tableName = $"{tableName[0].ToString().ToUpper()}{tableName[1..]}";
-
-    // Convert plural table names to singular for foreign key prefixes
-    // e.g., "studentEducationOrganizationAssociations" -> "studentEducationOrganizationAssociation"
-    // Note: This uses simple pluralization logic suitable for Ed-Fi resource naming conventions
-    if (string.IsNullOrWhiteSpace(tableName) || tableName.Length <= 1)
-    {
-      return tableName;
-    }
-
-    // Hard-coded exceptions
-    switch (tableName)
-    {
-      case "people":
-        return "person";
-    }
-    if (tableName.EndsWith("ies", StringComparison.OrdinalIgnoreCase))
-    {
-      return tableName[..^2] + "y";
-    }
-    if (tableName.EndsWith("dates", StringComparison.OrdinalIgnoreCase))
-    {
-      return tableName[..^1];
-    }
-    if (tableName.EndsWith("es", StringComparison.OrdinalIgnoreCase))
-    {
-      return tableName[..^2];
-    }
-
-    if (tableName.EndsWith("s", StringComparison.OrdinalIgnoreCase))
-    {
-      // Avoid removing 's' from words that would become meaningless
-      var withoutS = tableName[..^1];
-
-      // Basic validation to ensure we don't create obviously incorrect results
-      if (withoutS.Length > 2 && !withoutS.EndsWith("ss", StringComparison.OrdinalIgnoreCase))
-      {
-        return withoutS;
-      }
-    }
-    return tableName;
   }
 
   private static void CreateChildTableIndexes(
@@ -491,15 +446,16 @@ public class SchemaShredder
       {
         if (propertyValue.TryGetProperty("items", out var items))
         {
-          var childTableName = $"{Normalize(parentTableName)}_{Normalize(propertyName)}";
-          var childTable = tables.FirstOrDefault(t => t.Name.EndsWith($"\"{childTableName}\""));
+          var childTableName =
+            $"{DbEntityName.Normalize(parentTableName)}_{DbEntityName.Normalize(propertyName)}";
+          var childTable = tables.FirstOrDefault(t => t.Name.EndsWith($"{childTableName}"));
 
           if (childTable != null)
           {
             var naturalKeyColumns = new List<string>();
 
             // Add parent foreign key columns to natural key
-            var fkPrefix = Normalize(parentTableName);
+            var fkPrefix = DbEntityName.Normalize(parentTableName);
             foreach (var parentColumn in parentColumns)
             {
               if (!parentColumn.IsPrimaryKey)
@@ -526,7 +482,7 @@ public class SchemaShredder
               indexes.Add(
                 new IndexDefinition(
                   $"nk_{childTableName}",
-                  $"\"{schemaName}\".\"{childTableName}\"",
+                  $"{schemaName}.{childTableName}",
                   naturalKeyColumns
                 )
               );
