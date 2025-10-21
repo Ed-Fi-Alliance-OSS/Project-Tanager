@@ -116,7 +116,7 @@ public class SchemaShredder
     return scriptBuilder.ToString();
   }
 
-  private TableDefinition ParseTable(
+  private static TableDefinition ParseTable(
     string schemaName,
     string tableName,
     JsonElement jsonSchema,
@@ -209,7 +209,12 @@ public class SchemaShredder
 
     return new TableDefinition($"\"{schemaName}\".\"{Singularize(tableName)}\"", columns);
 
-    static void SafelyAdd(List<ColumnDefinition> columns, string nestedPropertyName, bool nestedIsRequired, string nestedDataType)
+    static void SafelyAdd(
+      List<ColumnDefinition> columns,
+      string nestedPropertyName,
+      bool nestedIsRequired,
+      string nestedDataType
+    )
     {
       if (
         !columns.Any(c =>
@@ -218,18 +223,13 @@ public class SchemaShredder
       )
       {
         columns.Add(
-          new ColumnDefinition(
-            nestedPropertyName,
-            nestedDataType,
-            !nestedIsRequired,
-            false
-          )
+          new ColumnDefinition(nestedPropertyName, nestedDataType, !nestedIsRequired, false)
         );
       }
     }
   }
 
-  private void ParseNestedArrayTables(
+  private static void ParseNestedArrayTables(
     string schemaName,
     string parentTableName,
     JsonElement properties,
@@ -349,7 +349,7 @@ public class SchemaShredder
     return naturalKeyColumns;
   }
 
-  private string ConvertJsonPathToColumnName(string jsonPath)
+  private static string ConvertJsonPathToColumnName(string jsonPath)
   {
     // Remove the leading "$." and get just the last part (nested property name)
     if (jsonPath.StartsWith("$.") && jsonPath.Length > 2)
@@ -422,13 +422,14 @@ public class SchemaShredder
     }
 
     // Hard-coded exceptions
-    if (tableName == "people")
+    switch (tableName)
     {
-      return "person";
+      case "people":
+        return "person";
     }
-    if (tableName.EndsWith("es", StringComparison.OrdinalIgnoreCase))
+    if (tableName.EndsWith("ies", StringComparison.OrdinalIgnoreCase))
     {
-      return tableName[..^2];
+      return tableName[..^2] + "y";
     }
 
     if (tableName.EndsWith("s", StringComparison.OrdinalIgnoreCase))
