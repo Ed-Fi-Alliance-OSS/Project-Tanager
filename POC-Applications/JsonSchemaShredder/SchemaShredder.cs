@@ -134,7 +134,7 @@ public class SchemaShredder
     {
       var parentTableName = ExtractParentTableName(tableName);
       // Use singular form of parent table name for foreign key prefix
-      var fkPrefix = Singularize(parentTableName);
+      var fkPrefix = Normalize(parentTableName);
 
       foreach (var parentColumn in parentColumns)
       {
@@ -243,7 +243,7 @@ public class SchemaShredder
       {
         if (propertyValue.TryGetProperty("items", out var items))
         {
-          var childTableName = $"{parentTableName}_{Singularize(propertyName)}";
+          var childTableName = $"{Normalize(parentTableName)}_{Normalize(propertyName)}";
           var childTable = ParseTable(schemaName, childTableName, items, parentColumns);
           tables.Add(childTable);
 
@@ -384,7 +384,7 @@ public class SchemaShredder
   private static string GenerateCreateTableStatement(TableDefinition table)
   {
     var builder = new StringBuilder();
-    builder.AppendLine($"CREATE TABLE {table.Name} (");
+    builder.AppendLine($"CREATE TABLE {RemoveUnderscores(table.Name)} (");
 
     for (int i = 0; i < table.Columns.Count; i++)
     {
@@ -392,7 +392,9 @@ public class SchemaShredder
       var nullability = column.IsNullable ? "NULL" : "NOT NULL";
       var primaryKey = column.IsPrimaryKey ? " PRIMARY KEY" : "";
 
-      builder.Append($"    \"{column.Name}\" {column.DataType} {nullability}{primaryKey}");
+      builder.Append(
+        $"    \"{RemoveUnderscores(column.Name)}\" {column.DataType} {nullability}{primaryKey}"
+      );
 
       if (i < table.Columns.Count - 1)
         builder.AppendLine(",");
@@ -406,21 +408,27 @@ public class SchemaShredder
 
   private static string GenerateCreateIndexStatement(IndexDefinition index)
   {
-    var columns = string.Join(", ", index.Columns.Select(c => $"\"{c}\""));
-    return $"CREATE INDEX \"{index.Name}\" ON {index.TableName} ({columns});";
+    var columns = string.Join(", ", index.Columns.Select(c => $"\"{RemoveUnderscores(c)}\""));
+    return $"CREATE INDEX \"{index.Name}\" ON {RemoveUnderscores(index.TableName)} ({columns});";
+  }
+
+  private static string RemoveUnderscores(string objectName)
+  {
+    return objectName.Replace("_", "");
   }
 
   private static string ExtractParentTableName(string childTableName)
   {
     // Extract the parent table name from a child table name like "parent_child" -> "parent"
     var lastUnderscoreIndex = childTableName.LastIndexOf('_');
-    return lastUnderscoreIndex > 0
-      ? childTableName.Substring(0, lastUnderscoreIndex)
-      : childTableName;
+    return lastUnderscoreIndex > 0 ? childTableName[..lastUnderscoreIndex] : childTableName;
   }
 
-  private static string Singularize(string tableName)
+  private static string Normalize(string tableName)
   {
+    // Upper case first letter
+    tableName = $"{tableName[0].ToString().ToUpper()}{tableName[1..]}";
+
     // Convert plural table names to singular for foreign key prefixes
     // e.g., "studentEducationOrganizationAssociations" -> "studentEducationOrganizationAssociation"
     // Note: This uses simple pluralization logic suitable for Ed-Fi resource naming conventions
@@ -483,7 +491,7 @@ public class SchemaShredder
       {
         if (propertyValue.TryGetProperty("items", out var items))
         {
-          var childTableName = $"{parentTableName}_{Singularize(propertyName)}";
+          var childTableName = $"{Normalize(parentTableName)}_{Normalize(propertyName)}";
           var childTable = tables.FirstOrDefault(t => t.Name.EndsWith($"\"{childTableName}\""));
 
           if (childTable != null)
@@ -491,7 +499,7 @@ public class SchemaShredder
             var naturalKeyColumns = new List<string>();
 
             // Add parent foreign key columns to natural key
-            var fkPrefix = Singularize(parentTableName);
+            var fkPrefix = Normalize(parentTableName);
             foreach (var parentColumn in parentColumns)
             {
               if (!parentColumn.IsPrimaryKey)
