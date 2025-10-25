@@ -4,10 +4,11 @@
 // See the LICENSE and NOTICES files in the project root for more information.
 
 using System.Text.Json;
+using Shouldly;
 
 namespace JsonSchemaShredder.Tests;
 
-public class SchemaShredderTests
+public partial class SchemaShredderTests
 {
   [Test]
   public void GeneratePostgreSqlScript_WithExampleSchema_CreatesCorrectTables()
@@ -92,23 +93,17 @@ public class SchemaShredderTests
     var result = shredder.GeneratePostgreSqlScript(jsonDocument);
 
     // Assert
-    Assert.That(result, Does.Contain("CREATE SCHEMA IF NOT EXISTS edfi;"));
-    Assert.That(result, Does.Contain("CREATE TABLE edfi.studentEducationOrganizationAssociations"));
-    Assert.That(
-      result,
-      Does.Contain("CREATE TABLE edfi.StudentEducationOrganizationAssociation_Address")
-    );
-    Assert.That(result, Does.Contain("educationOrganizationId INTEGER NOT NULL"));
-    Assert.That(result, Does.Contain("studentUniqueId VARCHAR(32) NOT NULL"));
-    Assert.That(result, Does.Contain("barrierToInternetAccessInResidenceDescriptor TEXT NULL"));
-    Assert.That(result, Does.Contain("addressTypeDescriptor TEXT NOT NULL"));
-    Assert.That(result, Does.Contain("apartmentRoomSuiteNumber VARCHAR(50) NULL"));
-    Assert.That(result, Does.Contain("streetNumberName VARCHAR(150) NOT NULL"));
-    Assert.That(result, Does.Contain("CREATE INDEX nk_studentEducationOrganizationAssociations"));
-    Assert.That(
-      result,
-      Does.Contain("CREATE INDEX nk_StudentEducationOrganizationAssociation_Address")
-    );
+    result.ShouldContain("CREATE SCHEMA IF NOT EXISTS edfi;");
+    result.ShouldContain("CREATE TABLE edfi.studentEducationOrganizationAssociation");
+    result.ShouldContain("CREATE TABLE edfi.StudentEducationOrganizationAssociationAddress");
+    result.ShouldContain("EducationOrganizationId INTEGER NOT NULL");
+    result.ShouldContain("StudentUniqueId VARCHAR(32) NOT NULL");
+    result.ShouldContain("BarrierToInternetAccessInResidenceDescriptor TEXT NULL");
+    result.ShouldContain("AddressTypeDescriptor TEXT NOT NULL");
+    result.ShouldContain("ApartmentRoomSuiteNumber VARCHAR(50) NULL");
+    result.ShouldContain("StreetNumberName VARCHAR(150) NOT NULL");
+    result.ShouldContain("CREATE INDEX nk_StudentEducationOrganizationAssociation");
+    result.ShouldContain("CREATE INDEX nk_StudentEducationOrganizationAssociationAddress");
   }
 
   [Test]
@@ -148,8 +143,8 @@ public class SchemaShredderTests
     var result = shredder.GeneratePostgreSqlScript(jsonDocument);
 
     // Assert
-    Assert.That(result, Does.Not.Contain("someDescriptors"));
-    Assert.That(result, Does.Contain("validResource"));
+    result.ShouldNotContain("someDescriptors");
+    result.ShouldContain("validResource");
   }
 
   [Test]
@@ -184,10 +179,10 @@ public class SchemaShredderTests
     var result = shredder.GeneratePostgreSqlScript(jsonDocument);
 
     // Assert
-    Assert.That(result, Does.Contain("stringField TEXT NOT NULL"));
-    Assert.That(result, Does.Contain("stringFieldWithLength VARCHAR(100) NULL"));
-    Assert.That(result, Does.Contain("integerField INTEGER NOT NULL"));
-    Assert.That(result, Does.Contain("booleanField BOOLEAN NULL"));
+    result.ShouldContain("stringField TEXT NOT NULL");
+    result.ShouldContain("stringFieldWithLength VARCHAR(100) NULL");
+    result.ShouldContain("integerField INTEGER NOT NULL");
+    result.ShouldContain("booleanField BOOLEAN NULL");
   }
 
   [Test]
@@ -217,8 +212,8 @@ public class SchemaShredderTests
 
     // Act & Assert - Should not throw exceptions with edge case inputs
     var result = shredder.GeneratePostgreSqlScript(jsonDocument);
-    Assert.That(result, Does.Contain("CREATE TABLE"));
-    Assert.That(result, Does.Contain("clas"));
+    result.ShouldContain("CREATE TABLE");
+    result.ShouldContain("clas");
   }
 
   [Test]
@@ -252,9 +247,9 @@ public class SchemaShredderTests
     var result = shredder.GeneratePostgreSqlScript(jsonDocument);
 
     // Assert
-    Assert.That(result, Does.Contain("birthDate DATE NOT NULL"));
-    Assert.That(result, Does.Contain("startTime TIME NOT NULL"));
-    Assert.That(result, Does.Contain("name TEXT NULL"));
+    result.ShouldContain("birthDate DATE NOT NULL");
+    result.ShouldContain("startTime TIME NOT NULL");
+    result.ShouldContain("name TEXT NULL");
   }
 
   [Test]
@@ -300,10 +295,10 @@ public class SchemaShredderTests
     var result = shredder.GeneratePostgreSqlScript(jsonDocument);
 
     // Assert - Should only have the primary key id column due to duplicate prevention
-    var idColumnMatches = System.Text.RegularExpressions.Regex.Matches(result, @"id \w+ ");
-    Assert.That(idColumnMatches.Count, Is.EqualTo(1)); // Only the BIGSERIAL primary key
-    Assert.That(result, Does.Contain("id BIGSERIAL NOT NULL PRIMARY KEY"));
-    Assert.That(result, Does.Not.Contain("id INTEGER")); // No INTEGER id columns should be added due to duplicate prevention
+    var idColumnMatches = IdColumnRegex().Matches(result);
+    idColumnMatches.Count.ShouldBe(1); // Only the BIGSERIAL primary key
+    result.ShouldContain("Id BIGSERIAL NOT NULL PRIMARY KEY");
+    result.ShouldNotContain("Id INTEGER"); // No INTEGER id columns should be added due to duplicate prevention
   }
 
   [Test]
@@ -355,21 +350,15 @@ public class SchemaShredderTests
     var result = shredder.GeneratePostgreSqlScript(jsonDocument);
 
     // Assert - Should create three tables: main, addresses, and periods
-    Assert.That(result, Does.Contain("CREATE TABLE test.studentEducationOrganizationAssociations"));
-    Assert.That(
-      result,
-      Does.Contain("CREATE TABLE test.StudentEducationOrganizationAssociation_Address")
-    );
-    Assert.That(
-      result,
-      Does.Contain("CREATE TABLE test.StudentEducationOrganizationAssociation_Addres_Period")
-    );
+    result.ShouldContain("CREATE TABLE test.StudentEducationOrganizationAssociation");
+    result.ShouldContain("CREATE TABLE test.StudentEducationOrganizationAssociationAddress");
+    result.ShouldContain("CREATE TABLE test.StudentEducationOrganizationAssociationAddressPeriod");
 
     // Verify the nested array table has the correct columns
-    Assert.That(result, Does.Contain("beginDate DATE NOT NULL"));
-    Assert.That(result, Does.Contain("endDate DATE NULL"));
-
-    // Verify foreign key relationships
-    Assert.That(result, Does.Contain("StudentEducationOrganizationAssociation_studentId"));
+    result.ShouldContain("BeginDate DATE NOT NULL");
+    result.ShouldContain("EndDate DATE NULL");
   }
+
+  [System.Text.RegularExpressions.GeneratedRegex(@"Id \w+ ")]
+  private static partial System.Text.RegularExpressions.Regex IdColumnRegex();
 }

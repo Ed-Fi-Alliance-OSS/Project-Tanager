@@ -52,10 +52,17 @@ public class SchemaShredder
       if (!resourceValue.TryGetProperty("identityJsonPaths", out var identityPaths))
         continue;
 
-      var tableName = DbEntityName.Shorten(DbEntityName.Normalize(resourceName));
+      var normalizedName = DbEntityName.Normalize(resourceName);
+      var shortenedTableName = DbEntityName.Shorten(normalizedName);
 
       // Parse the main table
-      var mainTable = TranslateSchemaToTable(schemaName, tableName, jsonSchema, null);
+      var mainTable = TranslateSchemaToTable(
+        schemaName,
+        normalizedName,
+        shortenedTableName,
+        jsonSchema,
+        null
+      );
       tables.Add(mainTable);
 
       // Extract natural key columns once
@@ -82,7 +89,7 @@ public class SchemaShredder
         indexes.Add(
           new IndexDefinition(
             $"nk_{resourceName}",
-            $"{schemaName}.{tableName}",
+            $"{schemaName}.{shortenedTableName}",
             [.. naturalKeyColumnDefinitions.Select(c => DbEntityName.Normalize(c.Name))]
           )
         );
@@ -120,7 +127,8 @@ public class SchemaShredder
 
   private static TableDefinition TranslateSchemaToTable(
     string schemaName,
-    string tableName,
+    string fullTableName,
+    string shortenedTableName,
     JsonElement jsonSchema,
     List<ColumnDefinition>? parentColumns
   )
@@ -205,7 +213,7 @@ public class SchemaShredder
       }
     }
 
-    return new TableDefinition($"{schemaName}.{tableName}", columns);
+    return new TableDefinition(fullTableName, $"{schemaName}.{shortenedTableName}", columns);
 
     static void SafelyAdd(
       List<ColumnDefinition> columns,
@@ -241,10 +249,16 @@ public class SchemaShredder
       {
         if (propertyValue.TryGetProperty("items", out var items))
         {
-          var childTableName = DbEntityName.Shorten(
-            $"{DbEntityName.Normalize(parentTableName)}{DbEntityName.Normalize(propertyName)}"
+          var fullChildTableName =
+            $"{DbEntityName.Normalize(parentTableName)}{DbEntityName.Normalize(propertyName)}";
+          var shortenedChildTableName = DbEntityName.Shorten(fullChildTableName);
+          var childTable = TranslateSchemaToTable(
+            schemaName,
+            fullChildTableName,
+            shortenedChildTableName,
+            items,
+            parentColumns
           );
-          var childTable = TranslateSchemaToTable(schemaName, childTableName, items, parentColumns);
           tables.Add(childTable);
 
           // Recursively process nested arrays within the child table
@@ -254,7 +268,7 @@ public class SchemaShredder
             var childNaturalKeyColumns = childTable.Columns.Where(c => !c.IsPrimaryKey).ToList();
             TranslateNestedArraySchema(
               schemaName,
-              childTableName,
+              shortenedChildTableName,
               childProperties,
               tables,
               childNaturalKeyColumns
@@ -385,7 +399,8 @@ public class SchemaShredder
   private static string GenerateCreateTableStatement(TableDefinition table)
   {
     var builder = new StringBuilder();
-    builder.AppendLine($"CREATE TABLE {table.Name} (");
+    builder.AppendLine($"-- {table.FullName}");
+    builder.AppendLine($"CREATE TABLE {table.ShortenedName} (");
 
     for (int i = 0; i < table.Columns.Count; i++)
     {
@@ -439,7 +454,9 @@ public class SchemaShredder
         {
           var childTableName =
             $"{DbEntityName.Normalize(parentTableName)}{DbEntityName.Normalize(propertyName)}";
-          var childTable = tables.FirstOrDefault(t => t.Name.EndsWith($"{childTableName}"));
+          var childTable = tables.FirstOrDefault(t =>
+            t.ShortenedName.EndsWith($"{childTableName}")
+          );
 
           if (childTable != null)
           {
@@ -485,7 +502,11 @@ public class SchemaShredder
   }
 }
 
-public record TableDefinition(string Name, List<ColumnDefinition> Columns);
+public record TableDefinition(
+  string FullName,
+  string ShortenedName,
+  List<ColumnDefinition> Columns
+);
 
 public record ColumnDefinition(string Name, string DataType, bool IsNullable, bool IsPrimaryKey);
 
