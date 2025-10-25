@@ -11,7 +11,11 @@ class Program
 {
   static int Main(string[] args)
   {
-    var jsonFilePath = args.Length > 0 ? args[0] : "example-schema.json";
+    var jsonFilePath =
+      args.Length > 0
+        ? args[0]
+        : throw new ArgumentException("JSON schema file path is required as the first argument.");
+
     string? connectionString = null;
     if (args.Length > 1)
     {
