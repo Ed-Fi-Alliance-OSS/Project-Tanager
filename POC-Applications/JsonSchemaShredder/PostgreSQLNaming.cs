@@ -14,9 +14,6 @@ public static class DbEntityName
 
   public static string Normalize(string entityName)
   {
-    // Upper case first letter
-    entityName = $"{entityName[0].ToString().ToUpper()}{entityName[1..]}";
-
     // Convert plural table names to singular for foreign key prefixes
     // e.g., "studentEducationOrganizationAssociations" -> "studentEducationOrganizationAssociation"
     // Note: This uses simple pluralization logic suitable for Ed-Fi resource naming conventions
@@ -25,49 +22,56 @@ public static class DbEntityName
       return entityName;
     }
 
-    // Hard-coded exceptions
-    switch (entityName)
+    var lower = entityName.ToLower();
+    var normalized = entityName;
+
+    if (lower.EndsWith("people"))
     {
-      case "people":
-        return "person";
+      normalized = "person";
     }
-    if (entityName.EndsWith("ies", StringComparison.OrdinalIgnoreCase))
+    else if (lower.EndsWith("quizzes"))
     {
-      return entityName[..^2] + "y";
+      normalized = entityName[..^3];
     }
-    if (entityName.EndsWith("dates", StringComparison.OrdinalIgnoreCase))
+    else if (lower.EndsWith("address") || lower.EndsWith("class"))
     {
-      return entityName[..^1];
+      normalized = entityName;
     }
-    if (entityName.EndsWith("es", StringComparison.OrdinalIgnoreCase))
+    else if (lower.EndsWith("ies", StringComparison.OrdinalIgnoreCase))
     {
-      return entityName[..^2];
+      normalized = entityName[..^3] + "y";
+    }
+    else if (
+      lower.EndsWith("sses", StringComparison.OrdinalIgnoreCase)
+      || lower.EndsWith("shes", StringComparison.OrdinalIgnoreCase)
+      || lower.EndsWith("ches", StringComparison.OrdinalIgnoreCase)
+      || lower.EndsWith("xes", StringComparison.OrdinalIgnoreCase)
+      || lower.EndsWith("zes", StringComparison.OrdinalIgnoreCase)
+    )
+    {
+      normalized = entityName[..^2];
+    }
+    else if (lower.EndsWith("s", StringComparison.OrdinalIgnoreCase))
+    {
+      normalized = entityName[..^1];
     }
 
-    if (entityName.EndsWith("s", StringComparison.OrdinalIgnoreCase))
-    {
-      // Avoid removing 's' from words that would become meaningless
-      var withoutS = entityName[..^1];
-
-      // Basic validation to ensure we don't create obviously incorrect results
-      if (withoutS.Length > 2 && !withoutS.EndsWith("ss", StringComparison.OrdinalIgnoreCase))
-      {
-        return withoutS;
-      }
-    }
-    return entityName;
+    return Capitalize(normalized);
   }
 
-  public static string Shorten(string entityName, bool preserveUnderscores = false)
+  public static string Capitalize(string input)
+  {
+    if (string.IsNullOrEmpty(input))
+      return input;
+
+    return char.ToUpper(input[0]) + input[1..];
+  }
+
+  public static string Shorten(string entityName)
   {
     _ = entityName ?? throw new InvalidOperationException($"{nameof(entityName)} cannot be null");
 
-    if (!preserveUnderscores)
-    {
-      entityName = entityName.Replace("-", string.Empty);
-    }
-
-    if (entityName.Length < PostgreSQLMaxLength)
+    if (entityName.Length <= PostgreSQLMaxLength)
     {
       return entityName;
     }
