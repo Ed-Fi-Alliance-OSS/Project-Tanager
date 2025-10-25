@@ -4,7 +4,6 @@
 // See the LICENSE and NOTICES files in the project root for more information.
 
 using System.Text.Json;
-using NUnit.Framework;
 
 namespace JsonSchemaShredder.Tests;
 
