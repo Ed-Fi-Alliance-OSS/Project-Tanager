@@ -42,7 +42,6 @@ class Program
       Console.WriteLine($"PostgreSQL script generated successfully: {outputFilePath}");
       Console.WriteLine(new string('=', 50));
 
-
       if (!string.IsNullOrEmpty(connectionString))
       {
         Console.WriteLine("\nAttempting to execute script on PostgreSQL database...");
