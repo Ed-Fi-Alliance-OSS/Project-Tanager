@@ -52,8 +52,10 @@ public class SchemaShredder
       if (!resourceValue.TryGetProperty("identityJsonPaths", out var identityPaths))
         continue;
 
+      var tableName = DbEntityName.Shorten(DbEntityName.Normalize(resourceName));
+
       // Parse the main table
-      var mainTable = ParseTable(schemaName, resourceName, jsonSchema, null);
+      var mainTable = TranslateSchemaToTable(schemaName, tableName, jsonSchema, null);
       tables.Add(mainTable);
 
       // Extract natural key columns once
@@ -65,7 +67,7 @@ public class SchemaShredder
       // Parse nested array tables - pass only the natural key columns as foreign keys
       if (jsonSchema.TryGetProperty("properties", out var properties))
       {
-        ParseNestedArrayTables(
+        TranslateNestedArraySchema(
           schemaName,
           resourceName,
           properties,
@@ -75,13 +77,13 @@ public class SchemaShredder
       }
 
       // Create natural key index for main table
-      if (mainTableNaturalKeyColumns.Count > 0)
+      if (naturalKeyColumnDefinitions.Count > 0)
       {
         indexes.Add(
           new IndexDefinition(
             $"nk_{resourceName}",
-            $"{schemaName}.{resourceName}",
-            mainTableNaturalKeyColumns
+            $"{schemaName}.{tableName}",
+            [.. naturalKeyColumnDefinitions.Select(c => DbEntityName.Normalize(c.Name))]
           )
         );
       }
@@ -116,7 +118,7 @@ public class SchemaShredder
     return scriptBuilder.ToString();
   }
 
-  private static TableDefinition ParseTable(
+  private static TableDefinition TranslateSchemaToTable(
     string schemaName,
     string tableName,
     JsonElement jsonSchema,
@@ -132,16 +134,12 @@ public class SchemaShredder
     // Add parent foreign key columns if this is a child table
     if (parentColumns != null)
     {
-      var parentTableName = ExtractParentTableName(tableName);
-      // Use singular form of parent table name for foreign key prefix
-      var fkPrefix = DbEntityName.Normalize(parentTableName);
-
       foreach (var parentColumn in parentColumns)
       {
         if (!parentColumn.IsPrimaryKey)
         {
           // Create foreign key column that references the parent table
-          var fkColumnName = $"{fkPrefix}_{parentColumn.Name}";
+          var fkColumnName = DbEntityName.Capitalize(parentColumn.Name);
           columns.Add(new ColumnDefinition(fkColumnName, parentColumn.DataType, false, false));
         }
       }
@@ -223,7 +221,7 @@ public class SchemaShredder
     }
   }
 
-  private static void ParseNestedArrayTables(
+  private static void TranslateNestedArraySchema(
     string schemaName,
     string parentTableName,
     JsonElement properties,
@@ -243,9 +241,10 @@ public class SchemaShredder
       {
         if (propertyValue.TryGetProperty("items", out var items))
         {
-          var childTableName =
-            $"{DbEntityName.Normalize(parentTableName)}_{DbEntityName.Normalize(propertyName)}";
-          var childTable = ParseTable(schemaName, childTableName, items, parentColumns);
+          var childTableName = DbEntityName.Shorten(
+            $"{DbEntityName.Normalize(parentTableName)}{DbEntityName.Normalize(propertyName)}"
+          );
+          var childTable = TranslateSchemaToTable(schemaName, childTableName, items, parentColumns);
           tables.Add(childTable);
 
           // Recursively process nested arrays within the child table
@@ -253,7 +252,7 @@ public class SchemaShredder
           {
             // Use the child table's natural key columns as foreign keys for grandchild tables
             var childNaturalKeyColumns = childTable.Columns.Where(c => !c.IsPrimaryKey).ToList();
-            ParseNestedArrayTables(
+            TranslateNestedArraySchema(
               schemaName,
               childTableName,
               childProperties,
@@ -339,9 +338,10 @@ public class SchemaShredder
     {
       var jsonPath = pathElement.GetString();
       if (string.IsNullOrEmpty(jsonPath))
+      {
         continue;
+      }
 
-      // Convert JSON path like "$.abc.xyz" to column name like "abc_xyz"
       var columnName = ConvertJsonPathToColumnName(jsonPath);
 
       // Find matching column (case-insensitive)
@@ -384,10 +384,8 @@ public class SchemaShredder
 
   private static string GenerateCreateTableStatement(TableDefinition table)
   {
-    var finalTableName = DbEntityName.Shorten(table.Name);
-
     var builder = new StringBuilder();
-    builder.AppendLine($"CREATE TABLE {finalTableName} (");
+    builder.AppendLine($"CREATE TABLE {table.Name} (");
 
     for (int i = 0; i < table.Columns.Count; i++)
     {
@@ -396,7 +394,7 @@ public class SchemaShredder
       var primaryKey = column.IsPrimaryKey ? " PRIMARY KEY" : "";
 
       builder.Append(
-        $"    {DbEntityName.Shorten(column.Name)} {column.DataType} {nullability}{primaryKey}"
+        $"    {DbEntityName.Shorten(DbEntityName.Capitalize(column.Name))} {column.DataType} {nullability}{primaryKey}"
       );
 
       if (i < table.Columns.Count - 1)
@@ -412,17 +410,10 @@ public class SchemaShredder
   private static string GenerateCreateIndexStatement(IndexDefinition index)
   {
     var finalTableName = DbEntityName.Shorten(index.TableName);
-    var finalIndexName = DbEntityName.Shorten(index.Name, preserveUnderscores: true);
+    var finalIndexName = DbEntityName.Shorten(index.Name);
 
     var columns = string.Join(", ", index.Columns.Select(c => $"{DbEntityName.Shorten(c)}"));
     return $"CREATE INDEX {finalIndexName} ON {finalTableName} ({columns});";
-  }
-
-  private static string ExtractParentTableName(string childTableName)
-  {
-    // Extract the parent table name from a child table name like "parent_child" -> "parent"
-    var lastUnderscoreIndex = childTableName.LastIndexOf('_');
-    return lastUnderscoreIndex > 0 ? childTableName[..lastUnderscoreIndex] : childTableName;
   }
 
   private static void CreateChildTableIndexes(
@@ -447,7 +438,7 @@ public class SchemaShredder
         if (propertyValue.TryGetProperty("items", out var items))
         {
           var childTableName =
-            $"{DbEntityName.Normalize(parentTableName)}_{DbEntityName.Normalize(propertyName)}";
+            $"{DbEntityName.Normalize(parentTableName)}{DbEntityName.Normalize(propertyName)}";
           var childTable = tables.FirstOrDefault(t => t.Name.EndsWith($"{childTableName}"));
 
           if (childTable != null)
@@ -460,7 +451,7 @@ public class SchemaShredder
             {
               if (!parentColumn.IsPrimaryKey)
               {
-                naturalKeyColumns.Add($"{fkPrefix}_{parentColumn.Name}");
+                naturalKeyColumns.Add(DbEntityName.Normalize(parentColumn.Name));
               }
             }
 
@@ -472,7 +463,7 @@ public class SchemaShredder
                 var requiredColumn = requiredItem.GetString();
                 if (!string.IsNullOrEmpty(requiredColumn))
                 {
-                  naturalKeyColumns.Add(requiredColumn);
+                  naturalKeyColumns.Add(DbEntityName.Normalize(requiredColumn));
                 }
               }
             }
