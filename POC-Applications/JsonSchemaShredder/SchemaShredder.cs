@@ -186,6 +186,11 @@ public class SchemaShredder
             SafelyAdd(columns, propertyName, isRequired, "BOOLEAN");
             break;
 
+          case "number":
+            // columns.Add(new ColumnDefinition(propertyName, "DECIMAL", !isRequired, false));
+            SafelyAdd(columns, propertyName, isRequired, "DECIMAL");
+            break;
+
           case "array":
             // Arrays are handled as separate tables - skip here
             break;

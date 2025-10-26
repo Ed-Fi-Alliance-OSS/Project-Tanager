@@ -215,7 +215,6 @@ public partial class SchemaShredderTests
     result.ShouldContain("CREATE TABLE");
     result.ShouldContain("clas");
   }
-
   [Test]
   public void GeneratePostgreSqlScript_HandlesDateAndTimeFormats()
   {
@@ -250,6 +249,43 @@ public partial class SchemaShredderTests
     result.ShouldContain("birthDate DATE NOT NULL");
     result.ShouldContain("startTime TIME NOT NULL");
     result.ShouldContain("name TEXT NULL");
+  }
+
+
+  [Test]
+  public void GeneratePostgreSqlScript_HandlesNumericFormats()
+  {
+    // Arrange
+    var jsonContent =
+      @"{
+            ""projectSchema"": {
+                ""projectEndpointName"": ""test"",
+                ""resourceSchemas"": {
+                    ""testResource"": {
+                        ""identityJsonPaths"": [""$.id""],
+                        ""jsonSchemaForInsert"": {
+                            ""properties"": {
+                                ""a"": {""type"": ""number""},
+                                ""b"": {""type"": ""integer""},
+                                ""c"": {""type"": ""number""}
+                            },
+                            ""required"": [""a"", ""b""]
+                        }
+                    }
+                }
+            }
+        }";
+
+    var jsonDocument = JsonDocument.Parse(jsonContent);
+    var shredder = new SchemaShredder();
+
+    // Act
+    var result = shredder.GeneratePostgreSqlScript(jsonDocument);
+
+    // Assert
+    result.ShouldContain("a DECIMAL NOT NULL");
+    result.ShouldContain("b INTEGER NOT NULL");
+    result.ShouldContain("c DECIMAL NULL");
   }
 
   [Test]
