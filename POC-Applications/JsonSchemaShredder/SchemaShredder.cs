@@ -468,7 +468,7 @@ public class SchemaShredder
             {
               if (!parentColumn.IsPrimaryKey)
               {
-                naturalKeyColumns.Add(DbEntityName.Normalize(parentColumn.Name));
+                naturalKeyColumns.Add(DbEntityName.Capitalize(parentColumn.Name));
               }
             }
 
@@ -478,9 +478,25 @@ public class SchemaShredder
               foreach (var requiredItem in requiredArray.EnumerateArray())
               {
                 var requiredColumn = requiredItem.GetString();
-                if (!string.IsNullOrEmpty(requiredColumn))
+                if (string.IsNullOrEmpty(requiredColumn))
+                  continue;
+
+                if (requiredColumn.EndsWith("Reference"))
                 {
-                  naturalKeyColumns.Add(DbEntityName.Normalize(requiredColumn));
+                  foreach (
+                    var referenceRequired in items
+                      .GetProperty("properties")
+                      .GetProperty(requiredColumn)
+                      .GetProperty("properties")
+                      .EnumerateObject()
+                  )
+                  {
+                    naturalKeyColumns.Add(DbEntityName.Capitalize(referenceRequired.Name));
+                  }
+                }
+                else
+                {
+                  naturalKeyColumns.Add(DbEntityName.Capitalize(requiredColumn));
                 }
               }
             }
