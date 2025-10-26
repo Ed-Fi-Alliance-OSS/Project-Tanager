@@ -395,6 +395,93 @@ public partial class SchemaShredderTests
     result.ShouldContain("EndDate DATE NULL");
   }
 
+  [Test]
+  public void GeneratePostgreSqlScript_CreatesForeignKeysForReferenceProperties()
+  {
+    // Arrange
+    var jsonContent =
+      @"{
+            ""projectSchema"": {
+                ""projectEndpointName"": ""ed-fi"",
+                ""resourceSchemas"": {
+                    ""schools"": {
+                        ""identityJsonPaths"": [""$.schoolId""],
+                        ""jsonSchemaForInsert"": {
+                            ""properties"": {
+                                ""schoolId"": {
+                                    ""type"": ""integer""
+                                },
+                                ""schoolName"": {
+                                    ""type"": ""string"",
+                                    ""maxLength"": 100
+                                }
+                            },
+                            ""required"": [""schoolId"", ""schoolName""]
+                        }
+                    },
+                    ""academicWeeks"": {
+                        ""identityJsonPaths"": [""$.schoolReference.schoolId"", ""$.weekIdentifier""],
+                        ""jsonSchemaForInsert"": {
+                            ""properties"": {
+                                ""beginDate"": {
+                                    ""format"": ""date"",
+                                    ""type"": ""string""
+                                },
+                                ""endDate"": {
+                                    ""format"": ""date"",
+                                    ""type"": ""string""
+                                },
+                                ""schoolReference"": {
+                                    ""type"": ""object"",
+                                    ""properties"": {
+                                        ""schoolId"": {
+                                            ""type"": ""integer""
+                                        }
+                                    },
+                                    ""required"": [""schoolId""]
+                                },
+                                ""totalInstructionalDays"": {
+                                    ""type"": ""integer"",
+                                    ""minimum"": 0
+                                },
+                                ""weekIdentifier"": {
+                                    ""type"": ""string"",
+                                    ""maxLength"": 80,
+                                    ""minLength"": 5
+                                }
+                            },
+                            ""required"": [
+                                ""schoolReference"",
+                                ""weekIdentifier"",
+                                ""beginDate"",
+                                ""endDate"",
+                                ""totalInstructionalDays""
+                            ]
+                        }
+                    }
+                }
+            }
+        }";
+
+    var jsonDocument = JsonDocument.Parse(jsonContent);
+    var shredder = new SchemaShredder();
+
+    // Act
+    var result = shredder.GeneratePostgreSqlScript(jsonDocument);
+
+    // Assert
+    result.ShouldContain("CREATE TABLE edfi.School");
+    result.ShouldContain("CREATE TABLE edfi.AcademicWeek");
+
+    // Verify the foreign key constraint is created
+    result.ShouldContain(
+      "ALTER TABLE edfi.AcademicWeek ADD CONSTRAINT fk_academicWeeks_school FOREIGN KEY (SchoolId) REFERENCES edfi.School (SchoolId);"
+    );
+
+    // Verify the schoolId column exists in both tables
+    result.ShouldContain("SchoolId INTEGER NOT NULL");
+  }
+
   [System.Text.RegularExpressions.GeneratedRegex(@"Id \w+ ")]
   private static partial System.Text.RegularExpressions.Regex IdColumnRegex();
 }

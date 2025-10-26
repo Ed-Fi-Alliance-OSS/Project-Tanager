@@ -29,6 +29,7 @@ public class SchemaShredder
     var scriptBuilder = new StringBuilder();
     var tables = new List<TableDefinition>();
     var indexes = new List<IndexDefinition>();
+    var foreignKeys = new List<ForeignKeyDefinition>();
 
     // Create schema
     scriptBuilder.AppendLine($"-- PostgreSQL script for schema: {schemaName}");
@@ -79,7 +80,8 @@ public class SchemaShredder
           resourceName,
           properties,
           tables,
-          naturalKeyColumnDefinitions
+          naturalKeyColumnDefinitions,
+          foreignKeys
         );
       }
 
@@ -107,6 +109,18 @@ public class SchemaShredder
           indexes
         );
       }
+
+      // Create foreign keys for reference properties
+      if (jsonSchema.TryGetProperty("properties", out var propertiesForFk))
+      {
+        CreateForeignKeysForReferences(
+          schemaName,
+          resourceName,
+          shortenedTableName,
+          propertiesForFk,
+          foreignKeys
+        );
+      }
     }
 
     // Generate CREATE TABLE statements
@@ -120,6 +134,12 @@ public class SchemaShredder
     foreach (var index in indexes)
     {
       scriptBuilder.AppendLine(GenerateCreateIndexStatement(index));
+    }
+
+    // Generate ALTER TABLE ADD FOREIGN KEY statements
+    foreach (var fk in foreignKeys)
+    {
+      scriptBuilder.AppendLine(GenerateAddForeignKeyStatement(fk));
     }
 
     return scriptBuilder.ToString();
@@ -239,7 +259,8 @@ public class SchemaShredder
     string parentTableName,
     JsonElement properties,
     List<TableDefinition> tables,
-    List<ColumnDefinition> parentColumns
+    List<ColumnDefinition> parentColumns,
+    List<ForeignKeyDefinition> foreignKeys
   )
   {
     foreach (var property in properties.EnumerateObject())
@@ -266,6 +287,18 @@ public class SchemaShredder
           );
           tables.Add(childTable);
 
+          // Create foreign keys for reference properties in child table
+          if (items.TryGetProperty("properties", out var childPropertiesForFk))
+          {
+            CreateForeignKeysForReferences(
+              schemaName,
+              fullChildTableName,
+              shortenedChildTableName,
+              childPropertiesForFk,
+              foreignKeys
+            );
+          }
+
           // Recursively process nested arrays within the child table
           if (items.TryGetProperty("properties", out var childProperties))
           {
@@ -276,7 +309,8 @@ public class SchemaShredder
               shortenedChildTableName,
               childProperties,
               tables,
-              childNaturalKeyColumns
+              childNaturalKeyColumns,
+              foreignKeys
             );
           }
         }
@@ -436,6 +470,77 @@ public class SchemaShredder
     return $"CREATE INDEX {finalIndexName} ON {finalTableName} ({columns});";
   }
 
+  private static string GenerateAddForeignKeyStatement(ForeignKeyDefinition fk)
+  {
+    var finalSourceTable = DbEntityName.Shorten(fk.SourceTable);
+    var finalReferencedTable = DbEntityName.Shorten(fk.ReferencedTable);
+    var finalFkName = DbEntityName.Shorten(fk.Name);
+
+    var sourceColumns = string.Join(", ", fk.SourceColumns.Select(c => DbEntityName.Shorten(DbEntityName.Capitalize(c))));
+    var referencedColumns = string.Join(
+      ", ",
+      fk.ReferencedColumns.Select(c => DbEntityName.Shorten(DbEntityName.Capitalize(c)))
+    );
+
+    return $"ALTER TABLE {finalSourceTable} ADD CONSTRAINT {finalFkName} FOREIGN KEY ({sourceColumns}) REFERENCES {finalReferencedTable} ({referencedColumns});";
+  }
+
+  private static void CreateForeignKeysForReferences(
+    string schemaName,
+    string sourceTableName,
+    string shortenedTableName,
+    JsonElement properties,
+    List<ForeignKeyDefinition> foreignKeys
+  )
+  {
+    foreach (var property in properties.EnumerateObject())
+    {
+      var propertyName = property.Name;
+      var propertyValue = property.Value;
+
+      // Check if this is a reference property (ends with "Reference")
+      if (
+        propertyName.EndsWith("Reference", StringComparison.OrdinalIgnoreCase)
+        && propertyValue.TryGetProperty("type", out var typeElement)
+        && typeElement.GetString() == "object"
+      )
+      {
+        // Extract the referenced table name (remove "Reference" suffix)
+        var referencedTableName = propertyName.Substring(0, propertyName.Length - "Reference".Length);
+        var normalizedReferencedTable = DbEntityName.Normalize(referencedTableName);
+        var shortenedReferencedTable = DbEntityName.Shorten(normalizedReferencedTable);
+
+        // Get the properties of the reference object to find the foreign key columns
+        if (propertyValue.TryGetProperty("properties", out var refProperties))
+        {
+          var sourceColumns = new List<string>();
+          var referencedColumns = new List<string>();
+
+          foreach (var refProperty in refProperties.EnumerateObject())
+          {
+            var columnName = refProperty.Name;
+            sourceColumns.Add(columnName);
+            referencedColumns.Add(columnName);
+          }
+
+          if (sourceColumns.Count > 0)
+          {
+            var fkName = $"fk_{sourceTableName}_{referencedTableName}";
+            foreignKeys.Add(
+              new ForeignKeyDefinition(
+                fkName,
+                $"{schemaName}.{shortenedTableName}",
+                sourceColumns,
+                $"{schemaName}.{shortenedReferencedTable}",
+                referencedColumns
+              )
+            );
+          }
+        }
+      }
+    }
+  }
+
   private static void CreateChildTableIndexes(
     string schemaName,
     string parentTableName,
@@ -532,3 +637,11 @@ public record TableDefinition(
 public record ColumnDefinition(string Name, string DataType, bool IsNullable, bool IsPrimaryKey);
 
 public record IndexDefinition(string Name, string TableName, List<string> Columns);
+
+public record ForeignKeyDefinition(
+  string Name,
+  string SourceTable,
+  List<string> SourceColumns,
+  string ReferencedTable,
+  List<string> ReferencedColumns
+);
