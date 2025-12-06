@@ -12,9 +12,13 @@ standard, so that there are no mismatches in the shape of the payload. Assume
 that the client credentials for the custom application have sufficient
 authorization to write any of the data received.
 
-> [!WARNING]
-> A production system will need to handle retries and possibly rate limit
-> throttling. This POC will not code for that.
+> [!NOTE]
+> This POC lacks the following features that would be needed in a production-ready system:
+>
+> - Retries and rate limit handling
+> - Support for updates
+> - Support for deletes
+> - Parseable log format (e.g. using Serilog or log4net)
 
 ## Architecture
 
