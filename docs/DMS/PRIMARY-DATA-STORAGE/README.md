@@ -369,3 +369,157 @@ Transaction:
 
 Use the SQL statements in the proof-of-concept code. Be sure to use the `VARCHAR` version
 rather than `VARBINARY`. Do not apply any foreign key cascades in the initial work.
+
+## Alternative Table Designs
+
+> [!NOTE]
+> The following designs and text were developed by GitHub Copilot using
+> GPT-5.1-Codex, based on the following prompt, with this file itself as
+> additional context: "Analyze this design document and offer alternative table
+> designs that would meet the objectives."
+
+Each option below preserves deterministic referential IDs, tunable partitioning, and the requirement that a
+single transaction envelope spans every write. They offer different trade-offs for existence validation,
+query fan-out, and operational isolation.
+
+### Partitioned Doc Store with Reference Edge Table
+
+This variant keeps the single `Documents` table but decomposes the `References` responsibilities into a
+lightweight `ReferenceEdges` table plus an `AliasLookup`. Reference existence checks rely on a single
+covering index over `AliasLookup(ReferentialPartitionKey, ReferentialId)`, so inserts do not need to join
+back to `Documents` immediately. That improves write throughput, allows cache-friendly lookups per
+partition, and still enforces referential integrity for delete/update flows.
+
+```mermaid
+erDiagram
+  Documents ||--o{ AliasLookup : "Document exposes referential IDs"
+  Documents ||--o{ ReferenceEdges : "Parent document edges"
+  AliasLookup ||--o{ ReferenceEdges : "Edges target referential id"
+  Documents {
+    bigint Id PK "Sequential, partition-aligned"
+    tinyint DocumentPartitionKey "Hash of DocumentUuid"
+    uuid DocumentUuid "API id, unique"
+    json EdfiDoc "Compressed payload"
+  }
+  AliasLookup {
+    uuid ReferentialId PK "Deterministic identity"
+    tinyint ReferentialPartitionKey PK "Hash of ReferentialId"
+    bigint DocumentId FK "Targets Documents.Id"
+    tinyint DocumentPartitionKey FK "Copies parent partition"
+  }
+  ReferenceEdges {
+    bigint Id PK
+    tinyint EdgePartitionKey "Derived from ParentDocumentId"
+    bigint ParentDocumentId FK "Back to Documents"
+    uuid TargetReferentialId FK "To AliasLookup.ReferentialId"
+    string EdgeHash "Supports change streaming"
+  }
+```
+
+Here’s how the “Partitioned Doc Store with Reference Edge Table” deviates from the baseline three-table design:
+
+**Alias lookup structure**: In the baseline Aliases, each row uses a surrogate Id plus (ReferentialPartitionKey, ReferentialId) indexing. In the alternative AliasLookup, the deterministic ReferentialId (with its partition key) becomes the primary key itself, so there’s no extra surrogate Id, and every lookup can be satisfied by a single partition-aligned covering index. That makes referential checks cheaper and avoids writing two clustered rows whenever a document has subclass identities.
+
+**Reference edge payload**: The original References table stores both ParentDocumentId and ReferencedDocumentId, meaning every insert needs to resolve the referenced document’s surrogate key and keep it synchronized. The alternative ReferenceEdges drops ReferencedDocumentId entirely and instead records (ParentDocumentId, TargetReferentialId). Existence validation is still enforced because TargetReferentialId has a foreign key to AliasLookup, but the insert path no longer has to touch the Documents table twice (once for parent, once for child). That shrinks lock contention and makes batching/caching of referential lookups straightforward.
+
+**Partitioning focus**: Because ReferenceEdges partitions solely on the parent document key, all writes for a document happen in one partition (instead of tracking both parent and child partition keys). Referential partition keys only matter inside AliasLookup, so you can size reference partitions independently from document partitions. This is useful when reference fan-out outgrows document volume.
+
+**Streaming metadata**: ReferenceEdges introduces an EdgeHash column explicitly intended for change-stream checkpoints. The baseline design has no built-in place to store a deterministic hash per reference row, so streaming consumers must compute their own hashes from multiple columns.
+
+In short, while the table counts stay at three, the responsibilities shift: AliasLookup becomes the sole arbiter of referential identities, and ReferenceEdges carries only parent-side metadata. That separation removes the tight coupling between reference inserts and the referenced document row, which is the core behavioral difference from the original design.
+
+### Resource-Bucketed Hybrid Layout
+
+To improve multi-tenant isolation and allow per-resource tuning, this design adds a `ResourceBuckets` table
+that maps `(project, resource, version)` to a storage bucket. Each bucket corresponds to a partitioned trio of
+child tables. SQL Server partitioned views or PostgreSQL table inheritance present these child tables as a
+single logical schema to the API, while operations teams can move buckets to different filegroups or hosts.
+
+```mermaid
+erDiagram
+  ResourceBuckets ||--o{ BucketDocuments : "Route writes to bucket"
+  BucketDocuments ||--o{ BucketAliases : "Per-bucket identities"
+  BucketDocuments ||--o{ BucketReferences : "Per-bucket references"
+  ResourceBuckets {
+    bigint Id PK
+    string ProjectName
+    string ResourceName
+    string ResourceVersion
+    string StorageProfile "Hot, Warm, Archive"
+    string BucketTableSuffix "Used for partitioned views"
+  }
+  BucketDocuments {
+    bigint Id PK
+    bigint BucketId FK
+    tinyint DocumentPartitionKey
+    uuid DocumentUuid
+    json EdfiDoc
+  }
+  BucketAliases {
+    uuid ReferentialId PK
+    bigint BucketDocumentId FK
+    tinyint ReferentialPartitionKey
+  }
+  BucketReferences {
+    bigint Id PK
+    bigint BucketDocumentId FK "Parent"
+    uuid TargetReferentialId FK
+    tinyint ReferencePartitionKey
+  }
+```
+
+> [!NOTE]
+> Stephen's analysis: this is an interesting workaround for regular table partitioning, probably based on the fact that SQL Server formerly only had partitioning in the enterprise edition (now present in all editions). If there is a "Bucket" table per resource type, then we are back to CDC monitoring of dozens of different tables. Is that really so bad? Wonder if this would net any real performance benefit though.
+
+### Document/Identity/Edge with Materialized Reference Paths
+
+This alternative promotes identities to a first-class table so that references only capture `(parent_id,
+identity_hash)` pairs. A background task materializes resolved edges for popular query shapes, accelerating
+joins without penalizing writes. Reference validation still occurs by enforcing the `ReferenceEdges` foreign
+key to `Identities`, while `ResolvedReferences` can be truncated and rebuilt on demand or streamed out for
+change-data consumers.
+
+```mermaid
+erDiagram
+  Documents ||--o{ Identities : "Each doc exposes one or more identities"
+  Identities ||--o{ ReferenceEdges : "Edges point at identity hashes"
+  Documents ||--o{ ReferenceEdges : "Edges originate from parent doc"
+  ReferenceEdges ||--o{ ResolvedReferences : "Async materialized joins"
+  Documents {
+    bigint Id PK
+    uuid DocumentUuid
+    tinyint DocumentPartitionKey
+    json EdfiDoc
+  }
+  Identities {
+    uuid IdentityHash PK "UUIDv5 of natural key"
+    bigint DocumentId FK
+    tinyint IdentityPartitionKey
+    smallint IdentityVersion "Bumps on identity updates"
+  }
+  ReferenceEdges {
+    bigint Id PK
+    bigint ParentDocumentId FK
+    uuid TargetIdentityHash FK
+    tinyint ParentPartitionKey
+    tinyint TargetPartitionKey
+  }
+  ResolvedReferences {
+    bigint ParentDocumentId
+    bigint ReferencedDocumentId
+    uuid TargetIdentityHash
+    datetime SnapshotTs "Refresh watermark"
+  }
+```
+
+### Insert Performance Assessment
+
+**Partitioned Doc Store + Reference Edge Table**: Best raw insert throughput. It removes the synchronous lookup of ReferencedDocumentId, keeps reference inserts in a single partition keyed by the parent, and validates existence via a covering index on AliasLookup. That cuts locking and reduces per-reference work to two narrow writes (edge row + alias hit).
+
+**Baseline Three-Table Design**: Still efficient but every reference insert requires resolving the child document’s surrogate key and writing both parent and child partition keys. That extra lookup, plus broader clustered rows, adds latency compared with the edge-table variant.
+
+**Resource-Bucketed Hybrid**: Most overhead on insert because the router must resolve the bucket, then write into bucket-specific tables or partitioned views. Benefits show up in operational isolation, not raw speed.
+
+**Identity/Edge + Materialized Paths**: Inserts touch Documents, Identities (possibly twice for subclass), and ReferenceEdges. The same number of synchronous writes as the baseline plus background work for ResolvedReferences, so per-document insert cost is slightly higher.
+
+**Bottom line**: the “Partitioned Doc Store with Reference Edge Table” is the most insertion-friendly design thanks to its leaner reference row, single join per reference, and partition-local writes.
