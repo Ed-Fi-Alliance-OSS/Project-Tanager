@@ -179,4 +179,4 @@ Successfully published GradeLevelDescriptor
 ## DMS Kafka Connection
 
 > [!NOTE]
-> The DMS Kafka setup uses host name `dms-kafka1`. To connect to this Kafka instance _outside_ of Docker, you will need to add a HOSTS file mapping from server `dms-kafka1` to IP address `127.0.0.1`.
+> The DMS Kafka setup uses host name `dms-kafka1`. To connect to this Kafka instance _outside_ of Docker, you will need to add a hosts file mapping from server `dms-kafka1` to IP address `127.0.0.1`.
