@@ -118,6 +118,45 @@ For example: `https://api.ed-fi.org/v7.3.1/data/ed-fi/GradeLevelDescriptors`
 
 Messages marked as deleted (`__deleted: "true"`) are skipped.
 
+### Environment Variable Overrides
+
+Configuration values can be overridden using environment variables. Use double underscores (`__`) to represent nested configuration keys:
+
+* `DiscoveryApiUrl` - Discovery API URL
+* `OAuth__ClientId` - OAuth client ID
+* `OAuth__ClientSecret` - OAuth client secret
+* `Kafka__BootstrapServers` - Kafka broker address(es)
+* `Kafka__GroupId` - Consumer group ID
+* `Kafka__Topic` - Kafka topic name
+* `Kafka__AutoOffsetReset` - Offset reset strategy
+
+Example:
+
+```bash
+export DiscoveryApiUrl="https://api.ed-fi.org/v7.3.1/api"
+export OAuth__ClientId="my-client-id"
+export OAuth__ClientSecret="my-client-secret"
+export Kafka__BootstrapServers="dms-kafka1:9092"
+dotnet run
+```
+
+### Running with Docker
+
+Build and run the application using Docker Compose:
+
+```bash
+# Copy the example environment file
+cp .env.example .env
+
+# Edit .env with your configuration values
+nano .env
+
+# Build and run
+docker compose up --build
+```
+
+The Docker Compose configuration connects to the external `dms` network.
+
 ### Example Output
 
 ```
@@ -136,3 +175,8 @@ Resource: Ed-Fi/GradeLevelDescriptor
 Publishing GradeLevelDescriptor to https://api.ed-fi.org/v7.3.1/data/ed-fi/GradeLevelDescriptors
 Successfully published GradeLevelDescriptor
 ```
+
+## DMS Kafka Connection
+
+> [!NOTE]
+> The DMS Kafka setup uses host name `dms-kafka1`. To connect to this Kafka instance _outside_ of Docker, you will need to add a HOSTS file mapping from server `dms-kafka1` to IP address `127.0.0.1`.
