@@ -29,14 +29,15 @@ namespace ApiPublisher
             var autoOffsetReset = configuration["Kafka:AutoOffsetReset"];
 
             if (string.IsNullOrEmpty(discoveryApiUrl) || string.IsNullOrEmpty(clientId) || 
-                string.IsNullOrEmpty(clientSecret) || string.IsNullOrEmpty(bootstrapServers))
+                string.IsNullOrEmpty(clientSecret) || string.IsNullOrEmpty(bootstrapServers) ||
+                string.IsNullOrEmpty(groupId) || string.IsNullOrEmpty(topic))
             {
                 Console.WriteLine("Error: Missing required configuration values");
                 Environment.Exit(1);
             }
 
             // Initialize HTTP client
-            var httpClient = new HttpClient();
+            using var httpClient = new HttpClient();
 
             try
             {
@@ -132,10 +133,6 @@ namespace ApiPublisher
             {
                 Console.WriteLine($"Fatal error: {ex.Message}");
                 Environment.Exit(1);
-            }
-            finally
-            {
-                httpClient.Dispose();
             }
 
             Console.WriteLine("API Publisher stopped");

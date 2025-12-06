@@ -29,7 +29,7 @@ namespace ApiPublisher
             try
             {
                 // Skip deleted documents
-                if (message.Deleted.ToLower() == "true")
+                if (string.Equals(message.Deleted, "true", StringComparison.OrdinalIgnoreCase))
                 {
                     Console.WriteLine($"Skipping deleted document: {message.ResourceName}");
                     return true;
@@ -37,22 +37,15 @@ namespace ApiPublisher
 
                 // Remove the 'id' field from edfidoc
                 var edfiDocJson = message.EdfiDoc.GetRawText();
-                var edfiDocObject = JsonSerializer.Deserialize<JsonDocument>(edfiDocJson);
+                var jsonNode = System.Text.Json.Nodes.JsonNode.Parse(edfiDocJson);
                 
-                if (edfiDocObject == null)
+                if (jsonNode == null)
                 {
-                    throw new InvalidOperationException("Failed to deserialize edfidoc");
+                    throw new InvalidOperationException("Failed to parse edfidoc");
                 }
 
-                // Create a new JSON object without the 'id' field
-                var jsonObject = new System.Text.Json.Nodes.JsonObject();
-                foreach (var property in edfiDocObject.RootElement.EnumerateObject())
-                {
-                    if (property.Name != "id")
-                    {
-                        jsonObject.Add(property.Name, System.Text.Json.Nodes.JsonNode.Parse(property.Value.GetRawText()));
-                    }
-                }
+                var jsonObject = jsonNode.AsObject();
+                jsonObject.Remove("id");
 
                 var payload = jsonObject.ToJsonString();
 
