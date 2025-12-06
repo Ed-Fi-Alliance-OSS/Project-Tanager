@@ -1,0 +1,34 @@
+{
+  "id": 1,
+  "documentpartitionkey": 4,
+  "documentuuid": "48de3506-e6bb-1fd8-7fa6-eab6bcebfb74",
+  "resourcename": "GradeLevelDescriptor",
+  "resourceversion": "5.2.0",
+  "isdescriptor": true,
+  "projectname": "Ed-Fi",
+  "edfidoc": {
+    "id": "48de3506-e6bb-1fd8-7fa6-eab6bcebfb74",
+    "_etag": "1PTRsk2O6uWoeWmjHp/0Oo/RCQmIC49Csv93f7c72nA=",
+    "codeValue": "Ninth Grade",
+    "namespace": "uri://ed-fi.org/GradeLevelDescriptor",
+    "shortDescription": "9th Grade",
+    "_lastModifiedDate": "2025-12-06T20:34:48Z"
+  },
+  "securityelements": {
+    "Staff": [],
+    "Contact": [],
+    "Student": [],
+    "Namespace": [
+      "uri://ed-fi.org/GradeLevelDescriptor"
+    ],
+    "EducationOrganization": []
+  },
+  "studentschoolauthorizationedorgids": null,
+  "studentedorgresponsibilityauthorizationids": null,
+  "contactstudentschoolauthorizationedorgids": null,
+  "staffeducationorganizationauthorizationedorgids": null,
+  "createdat": 1765053289159866,
+  "lastmodifiedat": 1765053289159866,
+  "lastmodifiedtraceid": "0HNHL0L6OGCAS:00000001",
+  "__deleted": "false"
+}
