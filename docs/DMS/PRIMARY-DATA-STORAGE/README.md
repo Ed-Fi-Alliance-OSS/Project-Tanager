@@ -397,36 +397,40 @@ erDiagram
   AliasLookup ||--o{ ReferenceEdges : "Edges target referential id"
   Documents {
     bigint Id PK "Sequential, partition-aligned"
-    tinyint DocumentPartitionKey "Hash of DocumentUuid"
+    tinyint DocumentPartitionKey PK "Hash of DocumentUuid"
     uuid DocumentUuid "API id, unique"
     json EdfiDoc "Compressed payload"
   }
   AliasLookup {
-    uuid ReferentialId PK "Deterministic identity"
+    bigint Id PK "Sequential key pattern, clustered"
+    uuid ReferentialId "Deterministic identity, unique non-clustered, partition-aligned"
     tinyint ReferentialPartitionKey PK "Hash of ReferentialId"
     bigint DocumentId FK "Targets Documents.Id"
     tinyint DocumentPartitionKey FK "Copies parent partition"
   }
   ReferenceEdges {
     bigint Id PK
-    tinyint EdgePartitionKey "Derived from ParentDocumentId"
+    tinyint ParentDocumentPartitionKey PK "Derived from ParentDocumentId"
     bigint ParentDocumentId FK "Back to Documents"
-    uuid TargetReferentialId FK "To AliasLookup.ReferentialId"
+    bigint AliasLookupId FK "To AliasLookup.Id"
+    tinyint ReferentialPartitionKey FK "For partition-aligned lookup to AliasLookup"
     string EdgeHash "Supports change streaming"
   }
 ```
 
 Here’s how the “Partitioned Doc Store with Reference Edge Table” deviates from the baseline three-table design:
 
-**Alias lookup structure**: In the baseline Aliases, each row uses a surrogate Id plus (ReferentialPartitionKey, ReferentialId) indexing. In the alternative AliasLookup, the deterministic ReferentialId (with its partition key) becomes the primary key itself, so there’s no extra surrogate Id, and every lookup can be satisfied by a single partition-aligned covering index. That makes referential checks cheaper and avoids writing two clustered rows whenever a document has subclass identities.
+**Alias lookup structure**: Like the baseline Aliases table, AliasLookup uses a surrogate `Id` as the primary key (sequential key pattern) plus a unique non-clustered index on (ReferentialPartitionKey, ReferentialId). This maintains consistency with the baseline design's approach of avoiding UUIDs as primary/foreign keys. Every lookup can be satisfied by a partition-aligned covering index, making referential checks efficient.
 
-**Reference edge payload**: The original References table stores both ParentDocumentId and ReferencedDocumentId, meaning every insert needs to resolve the referenced document’s surrogate key and keep it synchronized. The alternative ReferenceEdges drops ReferencedDocumentId entirely and instead records (ParentDocumentId, TargetReferentialId). Existence validation is still enforced because TargetReferentialId has a foreign key to AliasLookup, but the insert path no longer has to touch the Documents table twice (once for parent, once for child). That shrinks lock contention and makes batching/caching of referential lookups straightforward.
+**Reference edge payload**: The original References table stores both ParentDocumentId and ReferencedDocumentId, meaning every insert needs to resolve the referenced document's surrogate key and keep it synchronized. The alternative ReferenceEdges uses `AliasLookupId` as a foreign key instead of directly referencing the document. Existence validation is enforced through the foreign key to AliasLookup, but the insert path only needs to look up the alias once rather than touching the Documents table twice. The table includes `ReferentialPartitionKey` to enable partition-aligned lookups into AliasLookup. This shrinks lock contention and makes batching/caching of referential lookups straightforward.
 
-**Partitioning focus**: Because ReferenceEdges partitions solely on the parent document key, all writes for a document happen in one partition (instead of tracking both parent and child partition keys). Referential partition keys only matter inside AliasLookup, so you can size reference partitions independently from document partitions. This is useful when reference fan-out outgrows document volume.
+**Reverse lookup support**: ReferenceEdges can be efficiently queried to find which documents reference a specific target. By querying ReferenceEdges with `AliasLookupId` and `ReferentialPartitionKey`, you can find all parent documents that reference a given document. This is a partition-aligned query that avoids cross-partition joins, though it requires an additional non-clustered index on (ReferentialPartitionKey, AliasLookupId, ParentDocumentId) for optimal performance.
+
+**Partitioning focus**: ReferenceEdges partitions on the parent document's partition key (`ParentDocumentPartitionKey`), so all writes for a document's outgoing references happen in one partition. However, it also maintains `ReferentialPartitionKey` to enable efficient partition-aligned lookups when validating references or performing reverse lookups. This dual-key approach balances write locality with read efficiency.
 
 **Streaming metadata**: ReferenceEdges introduces an EdgeHash column explicitly intended for change-stream checkpoints. The baseline design has no built-in place to store a deterministic hash per reference row, so streaming consumers must compute their own hashes from multiple columns.
 
-In short, while the table counts stay at three, the responsibilities shift: AliasLookup becomes the sole arbiter of referential identities, and ReferenceEdges carries only parent-side metadata. That separation removes the tight coupling between reference inserts and the referenced document row, which is the core behavioral difference from the original design.
+In short, while the table counts stay at three, the responsibilities shift: AliasLookup becomes the sole arbiter of referential identities, and ReferenceEdges carries parent-side metadata plus the information needed for efficient reverse lookups. The design maintains the sequential surrogate key pattern consistently across all tables, avoiding UUID primary/foreign keys while still supporting efficient partition-aligned operations.
 
 ### Resource-Bucketed Hybrid Layout
 
