@@ -20,6 +20,8 @@ authorization to write any of the data received.
 > - Support for deletes
 > - Parseable log format (e.g. using Serilog or log4net)
 > - Interesting pluralizations such as "agency" --> "agencies" and "person" --> "people"
+> - Token refresh logic
+> - Assumes messages arrive in dependency order, which is not actually guaranteed.
 
 ## Architecture
 
