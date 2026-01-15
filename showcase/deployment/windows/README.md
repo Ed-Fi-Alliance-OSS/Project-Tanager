@@ -132,7 +132,8 @@ We will use CMS API to create an Instance, a Vendor and an Application. First, w
 Using the [REST Client VS Code extension](https://marketplace.visualstudio.com/items?itemName=humao.rest-client), Postman, or a similar tool, execute:
 
 ```http
-POST {{CMS_base_path}}/connect/token
+# Get CMS OAuth Token
+POST http://iis-server/cms/connect/token
 Content-Type: application/x-www-form-urlencoded
 
 client_id=DmsConfigurationService
@@ -141,13 +142,13 @@ client_id=DmsConfigurationService
 &scope=edfi_admin_api/full_access
 ```
 
-Take note of the returned token, set it in the `{{access_token}}` below, initialize the `<DB server IP or Hostname>` placeholder, and execute:
+Take note of the returned token, set it in the `{access_token}` below, initialize the `<DB server IP or Hostname>` placeholder, and execute:
 
 ```http
-### Create Instance
-POST {{CMS_base_path}}/v2/dmsInstances
+# Create Instance
+POST http://iis-server/cms/v2/dmsInstances
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {access_token}
 
 {
     "instanceType": "Local",
@@ -159,10 +160,10 @@ Authorization: Bearer {{access_token}}
 Then execute:
 
 ```http
-### Create Vendor
-POST {{CMS_base_path}}/v2/vendors
+# Create Vendor
+POST http://iis-server/cms/v2/vendors
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {access_token}
 
 {
     "company": "Test Vendor",
@@ -175,10 +176,10 @@ Authorization: Bearer {{access_token}}
 Then execute:
 
 ```http
-### Create Application
-POST {{CMS_base_path}}/v2/applications
+# Create Application
+POST http://iis-server/cms/v2/applications
 Content-Type: application/json
-Authorization: Bearer {{access_token}}
+Authorization: Bearer {access_token}
 
 {
   "vendorId": 1,
@@ -211,25 +212,25 @@ First, we have to generate a DMS token.
 
 #### Using the REST Client VS Code extension, Postman, or a similar tool
 
-Set the `{{application_key}}`, and `{{application_secret}}` to the `key` and `secret` returned from the Applications endpoint above.
+Set the `{application_key}`, and `{application_secret}` to the `key` and `secret` returned from the Applications endpoint above.
 
 ```http
-### Get DMS OAuth Token
-POST {{DMS_base_path}}/oauth/token
+# Get DMS OAuth Token
+POST http://iis-server/dms/oauth/token
 Content-Type: application/json
-Authorization: Basic {{application_key}}:{{application_secret}}
+Authorization: Basic {application_key}:{application_secret}
 
 {
     "grant_type": "client_credentials"
 }
 ```
 
-Set `{{dms_access_token}}` below and execute:
+Set `{dms_access_token}` below and execute:
 
 ```http
-### Get Students
-GET {{DMS_base_path}}/data/ed-fi/students
-Authorization: Bearer {{dms_access_token}}
+# Get Students
+GET http://iis-server/dms/data/ed-fi/students
+Authorization: Bearer {dms_access_token}
 ```
 
 You should get an empty array in the response.
@@ -302,14 +303,14 @@ We will configure DMS to use _topic-per-instance_ architecture, where each insta
 
 14. Using the REST Client VS Code extension, Postman, or a similar tool, execute the next request.
 
-    Replace `{{template}}` with the modified template from the previous step:
+    Replace `{template}` with the modified template from the previous step:
 
     ```http
-    ### Create Kafka Connector
-    POST {{Kafka_Connect_base_path}}/connectors
+    # Create Kafka Connector
+    POST http://kafka-server:8083/connectors
     Content-Type: application/json
 
-    {{template}}
+    {template}
     ```
 
 15. In a separate terminal window, go to Kafka's download directory and execute:
@@ -338,3 +339,19 @@ $env:DYNAMIC_CONFIG_ENABLED="true"
 
 java --add-opens java.rmi/javax.rmi.ssl=ALL-UNNAMED -jar kafka-ui-api-v0.7.2.jar
 ```
+
+Open kafka-ui by visitng `http://localhost:8080` in a browser.
+
+## Screenshots
+
+### CMS
+
+![CMS](cms.png)
+
+### DMS
+
+![DMS](dms.png)
+
+### Kafka-ui
+
+![Kafka-ui](kafka-ui.png)
