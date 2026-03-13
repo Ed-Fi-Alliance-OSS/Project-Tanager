@@ -30,7 +30,7 @@ C4Deployment
         ContainerDb(dmsdb, "DMS")
         ContainerDb(cmsdb, "CMS")
     }
-    
+
     Rel(user, dms, "HTTP request")
     Rel(user, cms, "HTTP request")
     Rel(dms, dmsdb, "read/write")
@@ -98,29 +98,32 @@ The `setup-openiddict.ps1` script requires `psql` to be installed and available 
 3. Set `AppSettings.PathBase` to `/cms`.
 4. Set `IdentitySettings.Authority` to `http://localhost/cms`.
 5. Update `IdentitySettings.EncryptionKey` with the `EncryptionKey` you generated for the `setup-openiddict.ps1` script.
-6. Set a random string for `IdentitySettings.ClientSecret` and take note of it. There's no minimum length validation, but the longer the secret, the safer it is.
-7. Update `DatabaseSettings.DatabaseConnection` with the connection string for the CMS database.
-8. Update `Serilog.WriteTo.Args.path` to your desired log folder.
-9. In IIS, restart the `cms` application pool to apply the changes.
-10. Open `http://localhost/cms` in a web browser.
-11. Check the CMS logs to verify a successful startup.
+6. Set `IdentitySettings.ClientSecret` to a value that satisfies CMS client-secret validation and take note of it.
+7. In the same `IdentitySettings` section, confirm or set `ClientSecretValidation.MinimumLength` to `32` and `ClientSecretValidation.MaximumLength` to `128` unless you have a reason to use different values.
+8. By default, `IdentitySettings.ClientSecret` must be 32 to 128 characters long and include at least one lowercase letter, one uppercase letter, one number, and one special character from `!@#$%^&*()-_=+[]{}:;,.?`.
+9. CMS validates `IdentitySettings.ClientSecret` during startup and will fail to start if the configured secret is outside the configured range or does not satisfy the complexity rules.
+10. Update `DatabaseSettings.DatabaseConnection` with the connection string for the CMS database.
+11. Update `Serilog.WriteTo.Args.path` to your desired log folder.
+12. In IIS, restart the `cms` application pool to apply the changes.
+13. Open `http://localhost/cms` in a web browser.
+14. Check the CMS logs to verify a successful startup.
 
 ### On the Database Server (Part 2)
 
 1. At this point, the CMS tables should have been automatically created.
 2. In a PowerShell v7 terminal, navigate to the `Data-Management-Service\eng\docker-compose` directory.
 
-    Set the `NewClientSecret` parameter in the command below to the value you configured for `IdentitySettings.ClientSecret` in the CMS `appsettings.json` file.
+    Set the `NewClientSecret` parameter in the command below to the value you configured for `IdentitySettings.ClientSecret` in the CMS `appsettings.json` file. `setup-openiddict.ps1` validates the same length and complexity rules, so keep the script parameters aligned with CMS `IdentitySettings.ClientSecretValidation`.
 
     ```powershell
-    ./setup-openiddict.ps1 -InsertData -NewClientId "DmsConfigurationService" -NewClientName "DMS Configuration Service" -NewClientSecret "SomeRandomString" -ClientScopeName "edfi_admin_api/full_access" -ConnectionString "host=localhost;port=5435;username=postgres;password=;database=edfi_configurationservice;Application Name=CMS" -HashIterations 210000 -EnvironmentFile $null -PostgresContainerName $null
+    ./setup-openiddict.ps1 -InsertData -NewClientId "DmsConfigurationService" -NewClientName "DMS Configuration Service" -NewClientSecret "ValidClientSecret1234567890!Abcd" -ClientSecretMinimumLength 32 -ClientSecretMaximumLength 128 -ClientScopeName "edfi_admin_api/full_access" -ConnectionString "host=localhost;port=5435;username=postgres;password=;database=edfi_configurationservice;Application Name=CMS" -HashIterations 210000 -EnvironmentFile $null -PostgresContainerName $null
     ```
 
     This command creates the client that CMS will use for authentication with OpenIddict.
-3. Next, create another random string to use as the secret for DMS to authenticate its calls to CMS. There's no minimum length validation, but the longer the secret, the safer it is. Set it as the `NewClientSecret` parameter in the command below:
+3. Next, create another client secret for DMS to authenticate its calls to CMS. This secret must satisfy the same configured length and complexity rules. Set it as the `NewClientSecret` parameter in the command below:
 
     ```powershell
-    ./setup-openiddict.ps1 -InsertData -NewClientId "CMSReadOnlyAccess" -NewClientName "CMS ReadOnly Access" -NewClientSecret "SomeRandomString" -ClientScopeName "edfi_admin_api/readonly_access" -ConnectionString "host=localhost;port=5435;username=postgres;password=;database=edfi_configurationservice;Application Name=CMS" -HashIterations 210000 -EnvironmentFile $null -PostgresContainerName $null
+    ./setup-openiddict.ps1 -InsertData -NewClientId "CMSReadOnlyAccess" -NewClientName "CMS ReadOnly Access" -NewClientSecret "ValidClientSecret1234567890!Abcd" -ClientSecretMinimumLength 32 -ClientSecretMaximumLength 128 -ClientScopeName "edfi_admin_api/readonly_access" -ConnectionString "host=localhost;port=5435;username=postgres;password=;database=edfi_configurationservice;Application Name=CMS" -HashIterations 210000 -EnvironmentFile $null -PostgresContainerName $null
     ```
 
 ### On Your Development Machine
@@ -135,7 +138,7 @@ POST http://iis-server/cms/connect/token
 Content-Type: application/x-www-form-urlencoded
 
 client_id=DmsConfigurationService
-&client_secret=s3creT@09
+&client_secret=ValidClientSecret1234567890!Abcd
 &grant_type=client_credentials
 &scope=edfi_admin_api/full_access
 ```
